@@ -1,0 +1,31 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@beefurca/bracket-engine": "workspace:*",
+    "@beefurca/database": "workspace:*",
+    "@beefurca/elo-calculator": "workspace:*",
+    "@beefurca/excel-generator": "workspace:*",
+    "@beefurca/shared-types": "workspace:*",
+    "@elysiajs/cors": "^1.0.2",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.30.1",
+    "elysia": "^1.0.14",
+    "exceljs": "^4.4.0",
+    "ioredis": "^5.3.2",
+    "jose": "^5.2.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.11.24",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3"
+  }
+}

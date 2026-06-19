@@ -1,0 +1,21 @@
+{
+  "name": "@beefurca/database",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.30.1",
+    "postgres": "^3.4.3"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.20.14",
+    "typescript": "^5.3.3"
+  }
+}
