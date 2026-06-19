@@ -10,16 +10,32 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Семантические поверхности через CSS-переменные — автоматически
-        // переключаются между тёмной (.dark) и светлой темами. Имя `obsidian`
-        // сохранено ради совместимости с существующей разметкой.
+        /* ── Semantic design tokens (Aqua x Fractal) ── */
+        surface: "var(--surface)",
+        panel: "var(--panel-solid)",
+        "panel-sunken": "var(--panel-sunken)",
+        "chrome-top": "var(--chrome-top)",
+        "chrome-bot": "var(--chrome-bot)",
+        border: "var(--border)",
+        hairline: "var(--hairline)",
+        text: "var(--text)",
+        "text-muted": "var(--text-muted)",
+        accent: "var(--accent)",
+        "accent-hi": "var(--accent-hi)",
+        "accent-lo": "var(--accent-lo)",
+        live: "var(--status-live)",
+        done: "var(--status-done)",
+        win: "var(--status-win)",
+        danger: "var(--status-danger)",
+
+        /* ── Temporary aliases (old tokens still referenced in pages) ──
+           Remove in Task 22 after all pages are migrated. */
         obsidian: {
-          base: "var(--bg-base)",
-          panel: "var(--bg-panel)",
-          border: "var(--border-color)",
-          input: "var(--bg-input)",
+          base: "var(--surface)",
+          panel: "var(--panel-solid)",
+          border: "var(--border)",
+          input: "var(--panel-sunken)",
         },
-        // Прямые значения светлой палитры (на случай явного использования).
         clinical: {
           base: "#FFFFFF",
           panel: "#F4F7FA",
@@ -27,20 +43,26 @@ const config: Config = {
           input: "#E1E8ED",
         },
         activeGrad: {
-          start: "#FF1F44", // Neon Red
-          mid: "#4D00FF",   // Purple
-          end: "#FFDE00",   // Yellow
+          start: "#FF1F44",
+          mid: "#4D00FF",
+          end: "#FFDE00",
         },
         completeGrad: {
-          start: "#004BFF", // Cobalt Blue
-          mid: "#00E5FF",   // Electric Cyan
-          end: "#E0E0E0",   // Silver
+          start: "#004BFF",
+          mid: "#00E5FF",
+          end: "#E0E0E0",
         },
       },
       fontFamily: {
-        sans: ["Grafmassa", "sans-serif"],
-        mono: ["Unifix SP", "monospace"],
-        pixel: ["Beast", "monospace"],
+        display: ["var(--font-display)", "sans-serif"],
+        sans: ["var(--font-sans)", "sans-serif"],
+        cond: ["var(--font-cond)", "sans-serif"],
+        mono: ["var(--font-mono)", "monospace"],
+      },
+      borderRadius: {
+        ctl: "6px",
+        card: "10px",
+        win: "12px",
       },
     },
   },

@@ -1,58 +1,149 @@
-@font-face {
-  font-family: 'Grafmassa';
-  src: url('/fonts/Grafmassa-Regular.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Unifix SP';
-  src: url('/fonts/UnifixSPDemo.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Beast';
-  src: url('/fonts/Beast-Regular.woff2') format('woff2');
-  font-weight: normal;
-  font-style: normal;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ================================================================
+   Aqua x Fractal — semantic design tokens
+   ================================================================ */
 @layer base {
-  /* Светлая тема (значения по умолчанию, применяются когда нет класса .dark) */
   :root {
-    --bg-base: #FFFFFF;
-    --bg-panel: #F4F7FA;
-    --bg-input: #E9EEF3;
-    --border-color: #D9E2EC;
-    --text-core: #0B1014;
-    --text-muted: #475569;
+    --surface: #EDF1F6;
+    --panel-solid: #FBFCFE;
+    --panel-sunken: #E7ECF2;
+    --chrome-top: #EEF3FA;
+    --chrome-bot: #CFD9E6;
+    --border: #B7C4D6;
+    --hairline: #D7DEE6;
+    --text: #16202B;
+    --text-muted: #54657A;
+    --shadow: rgba(13, 18, 22, 0.16);
+    --gloss: rgba(255, 255, 255, 0.9);
+    --accent-hi: #8FC0FF;
+    --accent: #2E86F0;
+    --accent-lo: #0A5BD0;
+    --status-live: #F5A623;
+    --status-done: #18B5C7;
+    --status-win: #28C840;
+    --status-danger: #FF5F57;
+    --panel-rgb: 251 252 254;
+    --panel-alpha: 0.80;
   }
 
-  /* Тёмная тема (класс .dark на <html> ставит next-themes) */
   .dark {
-    --bg-base: #050709;
-    --bg-panel: #11161B;
-    --bg-input: #0B0E12;
-    --border-color: #1B232D;
-    --text-core: #FFFFFF;
-    --text-muted: #64748B;
+    --surface: #0A1320;
+    --panel-solid: #161D26;
+    --panel-sunken: #0E141B;
+    --chrome-top: #28333F;
+    --chrome-bot: #161D26;
+    --border: #2E3A47;
+    --hairline: #1B232C;
+    --text: #EAF1F8;
+    --text-muted: #8FA0B2;
+    --shadow: rgba(0, 0, 0, 0.55);
+    --gloss: rgba(255, 255, 255, 0.10);
+    --panel-rgb: 22 29 38;
+    --panel-alpha: 0.62;
   }
 
   body {
-    background-color: var(--bg-base);
-    color: var(--text-core);
-    font-family: 'Grafmassa', sans-serif;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    background-color: var(--surface);
+    color: var(--text);
+    font-family: var(--font-sans), "Fira Sans", sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
-/* Анимация появления тоста */
+/* ================================================================
+   Utility classes — copied verbatim from design-preview.html
+   ================================================================ */
+
+/* ---------- Brushed metal ---------- */
+.brushed {
+  background:
+    repeating-linear-gradient(180deg, rgba(255,255,255,0.05) 0 1px, rgba(0,0,0,0.02) 1px 3px),
+    linear-gradient(180deg, var(--chrome-top), var(--chrome-bot));
+}
+
+/* ---------- Pinstripe ---------- */
+.pinstripe {
+  background-image: repeating-linear-gradient(180deg, transparent 0 3px, rgba(0,0,0,0.022) 3px 4px);
+}
+
+/* ---------- Frost (frosted glass panel) ---------- */
+.frost {
+  background: rgb(var(--panel-rgb) / var(--panel-alpha));
+  backdrop-filter: blur(22px) saturate(1.3);
+  -webkit-backdrop-filter: blur(22px) saturate(1.3);
+}
+
+/* ---------- Gel button ---------- */
+.gel {
+  background: linear-gradient(180deg, var(--accent-hi) 0%, var(--accent) 50%, var(--accent-lo) 51%, var(--accent) 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -10px 14px -8px rgba(0,0,0,.25), 0 2px 6px var(--shadow);
+  text-shadow: 0 -1px 0 rgba(0,0,0,.18);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.gel::after {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 3px;
+  height: 42%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,0));
+  pointer-events: none;
+}
+.gel:hover {
+  filter: brightness(1.05) saturate(1.05);
+}
+
+/* ---------- Window shell ---------- */
+.window-shell {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 var(--gloss), 0 10px 34px var(--shadow);
+}
+
+/* ---------- Titlebar ---------- */
+.titlebar {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+/* ---------- Fluted glass (modals) ---------- */
+.fluted-glass {
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  background: rgb(var(--panel-rgb) / calc(var(--panel-alpha) - 0.12));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  background-image: repeating-linear-gradient(90deg, transparent 0 4px, color-mix(in srgb, var(--text) 4%, transparent) 4px 8px);
+  box-shadow: 0 16px 48px var(--shadow), inset 0 1px 0 var(--gloss);
+  padding: 20px;
+}
+
+/* ================================================================
+   Keyframes
+   ================================================================ */
+@keyframes aurora-drift {
+  from { transform: translate3d(-3%, -2%, 0) scale(1.05); }
+  to   { transform: translate3d(3%, 2%, 0) scale(1.12); }
+}
+@keyframes aurora-drift2 {
+  from { transform: translate3d(4%, 3%, 0); }
+  to   { transform: translate3d(-4%, -3%, 0); }
+}
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(8px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -61,75 +152,9 @@
   animation: toast-in 0.18s ease-out;
 }
 
-/* 3D Skeuomorphic Aqua/Win95 Volumetric Card Shadows.
-   Класс `component-card-dark` исторически используется во всей разметке как
-   «карточка»; теперь он тема-зависимый: светлый вид по умолчанию, тёмный —
-   под .dark. Это даёт рабочую светлую тему без правки каждого компонента. */
-.component-card-dark {
-  background: linear-gradient(135deg, #F5F8FA 0%, #EDF1F4 100%);
-  border: 1px solid #D9E2EC;
-  border-radius: 4px;
-  box-shadow:
-    inset 0 1px 0 0 #FFFFFF,
-    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.04),
-    0 2px 8px 0 rgba(13, 18, 22, 0.03);
-}
-
-.dark .component-card-dark {
-  background: linear-gradient(135deg, #12171E 0%, #0E1218 100%);
-  border: 1px solid #1B232D;
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
-    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.5),
-    0 4px 16px 0 rgba(0, 0, 0, 0.35);
-}
-
-.component-card-light {
-  background: linear-gradient(135deg, #F5F8FA 0%, #EDF1F4 100%);
-  border: 1px solid #D9E2EC;
-  border-radius: 4px;
-  box-shadow: 
-    inset 0 1px 0 0 #FFFFFF,
-    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.04),
-    0 2px 8px 0 rgba(13, 18, 22, 0.03);
-}
-
-/* --- Светлая тема: мост для контраста текста ---
-   Разметка повсеместно использует литералы text-slate-* (наследие тёмной темы).
-   До семантических токенов (UI-фаза) инвертируем шкалу slate ТОЛЬКО в светлом
-   режиме, чтобы текст был читаемым на светлых поверхностях. Селектор
-   html:not(.dark) .text-slate-N имеет приоритет над одиночным utility-классом.
-   text-white намеренно не трогаем — он стоит на цветных кнопках. */
-html:not(.dark) .text-slate-100 { color: #0B1014; }
-html:not(.dark) .text-slate-200 { color: #1E293B; }
-html:not(.dark) .text-slate-300 { color: #334155; }
-html:not(.dark) .text-slate-400 { color: #475569; }
-html:not(.dark) .text-slate-500 { color: #64748B; }
-html:not(.dark) .text-slate-600 { color: #94A3B8; }
-
-/* Тёмные «чипы»/плашки, завязанные на slate-800/900 как фон, в светлой теме
-   делаем светло-серыми, чтобы тёмный текст оставался читаем. */
-html:not(.dark) .bg-slate-800 { background-color: #E2E8F0; }
-html:not(.dark) .bg-slate-900 { background-color: #E2E8F0; }
-html:not(.dark) .border-slate-700 { border-color: #CBD5E1; }
-
-/* Glassmorphism with fluted glass vertical scanlines */
-.fluted-glass {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  background: rgba(17, 22, 27, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background-image: repeating-linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0px,
-    rgba(255, 255, 255, 0) 4px,
-    rgba(255, 255, 255, 0.03) 4px,
-    rgba(255, 255, 255, 0.03) 8px
-  );
-}
-
-/* Noise overlay for tactile dither texture */
-.dither-overlay {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
-  pointer-events: none;
+/* ================================================================
+   Reduced motion
+   ================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .aurora::before, .aurora::after { animation: none !important; }
 }
