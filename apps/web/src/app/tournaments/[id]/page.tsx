@@ -5,10 +5,21 @@ import { useRouter } from "next/navigation";
 import { BracketCanvas } from "../../../components/BracketCanvas";
 import { FractalAvatar } from "../../../components/FractalAvatar";
 import { FractalSeal } from "../../../components/FractalSeal";
+import { FractalMedallion } from "../../../components/Fractal";
 import { API_URL, apiFetch, fetchProfile, setSession } from "../../../lib/api";
 import { useToast } from "../../../components/Toast";
 import { useConfirm } from "../../../components/ConfirmDialog";
 import { ThemeToggle } from "../../../components/ThemeToggle";
+import { Nav } from "../../../components/Nav";
+import { Window, Card } from "../../../components/ui/Window";
+import { Button } from "../../../components/ui/Button";
+import { Badge, tournamentStatusTone } from "../../../components/ui/Badge";
+import { Modal } from "../../../components/ui/Modal";
+import { Field, Input, Select, Checkbox } from "../../../components/ui/Field";
+import { Table } from "../../../components/ui/Table";
+import { PageHeader } from "../../../components/ui/PageHeader";
+import { EmptyState } from "../../../components/ui/EmptyState";
+import type { TableColumn } from "../../../components/ui/Table";
 import {
   Trophy,
   Users,
@@ -26,6 +37,7 @@ import {
   LinkSimple as LinkIcon,
   Check,
   Trash as Trash2,
+  Lock,
 } from "@phosphor-icons/react";
 
 export default function TournamentDetailPage({ params }: { params: { id: string } }) {
@@ -230,7 +242,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
   };
 
   const handleRemoveApproved = async (partId: string, name: string) => {
-    if (!(await confirm(`Снять участника «${name}» с турнира?`))) return;
+    if (!(await confirm(`Снять участника \"${name}\" с турнира?`))) return;
     try {
       const res = await apiFetch(`/tournaments/${params.id}/reject/${partId}`, { method: "POST" });
       const data = await res.json();
@@ -436,8 +448,8 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-obsidian-base flex items-center justify-center text-white">
-        <span className="text-xs font-mono uppercase tracking-widest animate-pulse">
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="text-xs font-mono uppercase tracking-widest animate-pulse text-[var(--text-muted)]">
           Загрузка сетки...
         </span>
       </div>
@@ -474,263 +486,216 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
   const scoringName1 = selectedScoringMatch ? nameOf(selectedScoringMatch.participant1Id) : "";
   const scoringName2 = selectedScoringMatch ? nameOf(selectedScoringMatch.participant2Id) : "";
 
-  return (
-    <div className="min-h-screen bg-obsidian-base text-white pb-16 relative">
-      <div className="absolute inset-0 dither-overlay z-0" />
+  const tournamentStatus = tournament?.isCompleted ? "done" : tournament?.isStarted ? "live" : "draft";
+  const tournamentStatusLabel = tournament?.isCompleted ? "Завершен" : tournament?.isStarted ? "Идет" : "Регистрация";
 
-      <header className="relative z-10 border-b border-obsidian-border bg-obsidian-panel/40 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex justify-between items-center">
-          <button
-            onClick={() => router.push("/tournaments")}
-            className="text-xs font-semibold text-slate-400 hover:text-white transition"
-          >
-            ← К списку турниров
-          </button>
-          <span className="font-extrabold text-sm tracking-wider uppercase">Турнирная панель</span>
+  const standingsColumns: TableColumn<any>[] = [
+    { key: "rank", header: "Место", numeric: true, render: (_: any, idx: number) => <span className="font-bold">{idx + 1}</span> },
+    { key: "name", header: "Участник", render: (row: any) => <span className="font-semibold">{row.teamName ? `${row.teamName} (${row.nickname})` : row.nickname}</span> },
+    { key: "matchesPlayed", header: "Игры", numeric: true },
+    { key: "wins", header: "Победы", numeric: true, render: (row: any) => <span className="text-[var(--status-win)]">{row.wins}</span> },
+    { key: "losses", header: "Поражения", numeric: true, render: (row: any) => <span className="text-[var(--status-danger)]">{row.losses}</span> },
+    { key: "eloChange", header: "Разница ELO", numeric: true, render: (row: any) => <span className={`font-bold ${row.eloChange >= 0 ? "text-[var(--status-win)]" : "text-[var(--status-danger)]"}`}>{row.eloChange >= 0 ? `+${row.eloChange}` : row.eloChange}</span> },
+  ];
+
+  return (
+    <div className="min-h-screen pb-16 relative">
+      {/* Header */}
+      <header className="relative z-10 brushed pinstripe border-b border-[var(--border)]" style={{ boxShadow: "0 1px 0 var(--gloss) inset, 0 4px 18px var(--shadow)" }}>
+        <div className="max-w-7xl mx-auto px-6 h-[62px] flex justify-between items-center">
+          <Button variant="ghost" size="sm" onClick={() => router.push("/tournaments")}>
+            &larr; К списку турниров
+          </Button>
+          <span className="font-display font-bold text-sm tracking-wider uppercase text-[var(--text)]">Турнирная панель</span>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="text-xs font-semibold text-slate-400 hover:text-white transition"
-            >
+            <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
               Кабинет
-            </button>
+            </Button>
           </div>
         </div>
       </header>
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Tournament Header */}
-        <div className="lg:col-span-12 component-card-dark p-6 flex flex-col md:flex-row gap-6 items-center">
-          <FractalAvatar seed={tournament?.id} size={80} />
-          <div className="flex-1 text-center md:text-left">
-            <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 mb-2">
-              <span className="text-xs font-mono text-slate-400 bg-slate-800 border border-slate-700 px-2.5 py-0.5 rounded">
-                {tournament?.tournamentType}
-              </span>
-              <span className="text-xs font-mono text-completeGrad-mid bg-completeGrad-start/10 border border-completeGrad-start/20 px-2.5 py-0.5 rounded uppercase">
-                {tournament?.bracketType}
-              </span>
-              {tournament?.isPrivate && (
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-purple-950/30 text-purple-300 border border-purple-800">🔒 Приватный</span>
-              )}
-              {tournament?.isCompleted ? (
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-700">Завершён</span>
-              ) : tournament?.isStarted ? (
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-activeGrad-start/20 text-activeGrad-start border border-activeGrad-start">Идёт</span>
-              ) : (
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-green-950/20 text-green-400 border border-green-900">Регистрация</span>
-              )}
-            </div>
-            <h2 className="text-2xl font-bold text-slate-100">{tournament?.name}</h2>
-            <div className="flex flex-wrap justify-center md:justify-start gap-6 mt-3 text-xs text-slate-400">
-              {tournament?.prizePool && (
-                <span><strong>Призовой фонд:</strong> {tournament.prizePool}</span>
-              )}
-              <span><strong>Взнос:</strong> {tournament?.entryFee > 0 ? `${tournament.entryFee} руб` : "Бесплатно"}</span>
-              <span><strong>Начало:</strong> {new Date(tournament?.startDate).toLocaleDateString("ru-RU")}</span>
-              <span><strong>Участников:</strong> {approvedParticipants.length}</span>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-wrap gap-3 mt-4 md:mt-0">
-            <button
-              onClick={() => router.push(`/tournaments/${params.id}/scoreboard`)}
-              className="h-11 px-5 border border-obsidian-border hover:bg-white/5 rounded text-xs font-bold uppercase tracking-wider text-slate-300 transition flex items-center gap-2"
-            >
-              <Tv size={14} className="text-completeGrad-mid" />
-              Табло трансляции
-            </button>
-
-            <button
-              onClick={handleCopyInvite}
-              className="h-11 px-5 border border-obsidian-border hover:bg-white/5 rounded text-xs font-bold uppercase tracking-wider text-slate-300 transition flex items-center gap-2"
-              title="Скопировать ссылку-приглашение на турнир"
-            >
-              {inviteCopied ? <Check size={14} className="text-green-400" /> : <LinkIcon size={14} className="text-completeGrad-mid" />}
-              {inviteCopied ? "Ссылка скопирована" : "Пригласить (ссылка)"}
-            </button>
-
-            {/* Игрок: подать заявку */}
-            {canJoin && (
-              <div className="flex items-center gap-2">
-                {isTeamDiscipline && (
-                  <select
-                    value={joinTeamId}
-                    onChange={(e) => setJoinTeamId(e.target.value)}
-                    className="h-11 bg-obsidian-input border border-obsidian-border rounded px-3 text-xs text-white"
-                  >
-                    <option value="">-- Ваша команда --</option>
-                    {myTeams.map((t) => (
-                      <option key={t.teamId} value={t.teamId}>{t.teamName}</option>
-                    ))}
-                  </select>
-                )}
-                <button
-                  onClick={handleJoin}
-                  disabled={joining}
-                  className="h-11 px-6 bg-completeGrad-start hover:bg-blue-600 rounded text-xs font-bold uppercase tracking-wider text-white shadow-lg transition flex items-center gap-2 disabled:opacity-60"
-                >
-                  <UserPlus size={14} />
-                  {joining ? "Отправка..." : "Подать заявку"}
-                </button>
+        <div className="lg:col-span-12">
+          <Window title={tournament?.name} status={tournamentStatus as "live" | "done" | "draft"}>
+            <div className="flex flex-col md:flex-row gap-6 items-center">
+              <FractalMedallion seed={tournament?.id} size={80} />
+              <div className="flex-1 text-center md:text-left">
+                <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 mb-2">
+                  <Badge tone="draft">{tournament?.tournamentType}</Badge>
+                  <Badge tone="accent">{tournament?.bracketType}</Badge>
+                  {tournament?.isPrivate && (
+                    <Badge tone="accent"><Lock size={10} weight="bold" /> Приватный</Badge>
+                  )}
+                  <Badge tone={tournamentStatusTone(tournamentStatusLabel)} dot={tournament?.isStarted && !tournament?.isCompleted}>
+                    {tournamentStatusLabel}
+                  </Badge>
+                </div>
+                <h2 className="font-display font-bold text-2xl text-[var(--text)]">{tournament?.name}</h2>
+                <div className="flex flex-wrap justify-center md:justify-start gap-6 mt-3 text-xs text-[var(--text-muted)]">
+                  {tournament?.prizePool && (
+                    <span><strong>Призовой фонд:</strong> {tournament.prizePool}</span>
+                  )}
+                  <span><strong>Взнос:</strong> {tournament?.entryFee > 0 ? `${tournament.entryFee} руб` : "Бесплатно"}</span>
+                  <span><strong>Начало:</strong> {new Date(tournament?.startDate).toLocaleDateString("ru-RU")}</span>
+                  <span><strong>Участников:</strong> {approvedParticipants.length}</span>
+                </div>
               </div>
-            )}
 
-            {/* Статус заявки игрока */}
-            {!canManage && myParticipation && (
-              <span className={`h-11 px-4 inline-flex items-center rounded text-xs font-bold uppercase tracking-wider border ${
-                myParticipation.status === "APPROVED"
-                  ? "bg-green-950/20 text-green-400 border-green-900"
-                  : myParticipation.status === "PENDING"
-                  ? "bg-yellow-950/20 text-yellow-400 border-yellow-900"
-                  : "bg-red-950/20 text-red-400 border-red-900"
-              }`}>
-                {myParticipation.status === "APPROVED" ? "Вы участвуете" : myParticipation.status === "PENDING" ? "Заявка на рассмотрении" : "Заявка отклонена"}
-              </span>
-            )}
+              {/* Actions */}
+              <div className="flex flex-wrap gap-3 mt-4 md:mt-0">
+                <Button variant="secondary" size="sm" leftIcon={<Tv size={14} />} onClick={() => router.push(`/tournaments/${params.id}/scoreboard`)}>
+                  Табло трансляции
+                </Button>
 
-            {canManage && !tournament?.isStarted && (
-              <button
-                onClick={handleGenerateBracket}
-                className="h-11 px-6 bg-activeGrad-start hover:bg-red-600 rounded text-xs font-bold uppercase tracking-wider text-white shadow-lg transition flex items-center gap-2"
-              >
-                <Play size={14} />
-                Начать турнир
-              </button>
-            )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  leftIcon={inviteCopied ? <Check size={14} /> : <LinkIcon size={14} />}
+                  onClick={handleCopyInvite}
+                >
+                  {inviteCopied ? "Ссылка скопирована" : "Пригласить (ссылка)"}
+                </Button>
 
-            {canManage && tournament?.isStarted && !tournament?.isCompleted && tournament?.bracketType === "SWISS" && (
-              <button
-                onClick={handleNextRound}
-                className="h-11 px-5 bg-completeGrad-start hover:bg-blue-600 rounded text-xs font-bold uppercase tracking-wider text-white transition flex items-center gap-2"
-              >
-                <ArrowsClockwise size={14} />
-                Следующий тур
-              </button>
-            )}
+                {/* Игрок: подать заявку */}
+                {canJoin && (
+                  <div className="flex items-center gap-2">
+                    {isTeamDiscipline && (
+                      <Select
+                        value={joinTeamId}
+                        onChange={(e) => setJoinTeamId(e.target.value)}
+                        className="h-[32px] w-auto"
+                      >
+                        <option value="">-- Ваша команда --</option>
+                        {myTeams.map((t) => (
+                          <option key={t.teamId} value={t.teamId}>{t.teamName}</option>
+                        ))}
+                      </Select>
+                    )}
+                    <Button variant="gel" size="sm" leftIcon={<UserPlus size={14} />} onClick={handleJoin} loading={joining} disabled={joining}>
+                      {joining ? "Отправка..." : "Подать заявку"}
+                    </Button>
+                  </div>
+                )}
 
-            {canManage && tournament?.isStarted && !tournament?.isCompleted && (
-              <button
-                onClick={handleComplete}
-                className="h-11 px-6 bg-green-700 hover:bg-green-600 text-white rounded text-xs font-bold uppercase tracking-wider transition flex items-center gap-2"
-              >
-                <UserCheck size={14} />
-                Завершить
-              </button>
-            )}
-          </div>
+                {/* Статус заявки игрока */}
+                {!canManage && myParticipation && (
+                  <Badge
+                    tone={myParticipation.status === "APPROVED" ? "win" : myParticipation.status === "PENDING" ? "live" : "danger"}
+                    className="h-[32px] flex items-center"
+                  >
+                    {myParticipation.status === "APPROVED" ? "Вы участвуете" : myParticipation.status === "PENDING" ? "Заявка на рассмотрении" : "Заявка отклонена"}
+                  </Badge>
+                )}
+
+                {canManage && !tournament?.isStarted && (
+                  <Button variant="gel" size="sm" leftIcon={<Play size={14} />} onClick={handleGenerateBracket}>
+                    Начать турнир
+                  </Button>
+                )}
+
+                {canManage && tournament?.isStarted && !tournament?.isCompleted && tournament?.bracketType === "SWISS" && (
+                  <Button variant="secondary" size="sm" leftIcon={<ArrowsClockwise size={14} />} onClick={handleNextRound}>
+                    Следующий тур
+                  </Button>
+                )}
+
+                {canManage && tournament?.isStarted && !tournament?.isCompleted && (
+                  <Button variant="gel" size="sm" leftIcon={<UserCheck size={14} />} onClick={handleComplete}>
+                    Завершить
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Window>
         </div>
 
-        {/* Турнирная сетка — своя визуализация под каждый формат:
-            дерево (Single), две дорожки (Double), кросс-таблица (Round Robin),
-            колонки по турам (Swiss). */}
+        {/* Турнирная сетка */}
         {matches.length > 0 && (
           <div className="lg:col-span-12">
-            <h3 className="text-sm uppercase font-mono tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-              <GripHorizontal size={16} className="text-activeGrad-start" />
-              {tournament?.bracketType === "ROUND_ROBIN"
-                ? "Турнирная таблица (круговая)"
-                : tournament?.bracketType === "SWISS"
-                ? "Туры (швейцарская система)"
-                : "Турнирная сетка (реалтайм)"}
-            </h3>
+            <div className="flex items-center gap-2 mb-4">
+              <GripHorizontal size={16} className="text-[var(--accent)]" />
+              <span className="font-cond font-semibold uppercase tracking-[.06em] text-[12px] text-[var(--text-muted)]">
+                {tournament?.bracketType === "ROUND_ROBIN"
+                  ? "Турнирная таблица (круговая)"
+                  : tournament?.bracketType === "SWISS"
+                  ? "Туры (швейцарская система)"
+                  : "Турнирная сетка (реалтайм)"}
+              </span>
+            </div>
             <BracketCanvas matches={matches} participants={approvedParticipants} bracketType={tournament?.bracketType} />
           </div>
         )}
 
         {confirmedSealHash && (
-          <div className="lg:col-span-12 component-card-dark p-6 border-completeGrad-start flex flex-col items-center justify-center py-10">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-completeGrad-mid mb-6">
-              Результат зафиксирован судьёй
-            </h4>
-            <FractalSeal hash={confirmedSealHash} size={110} />
-            <button
-              onClick={() => setConfirmedSealHash(null)}
-              className="mt-8 text-xs font-mono text-slate-500 hover:text-slate-300 underline"
-            >
-              Закрыть
-            </button>
+          <div className="lg:col-span-12">
+            <Window title="Результат зафиксирован судьей" status="done">
+              <div className="flex flex-col items-center justify-center py-10">
+                <FractalSeal hash={confirmedSealHash} size={110} />
+                <Button variant="ghost" size="sm" className="mt-8" onClick={() => setConfirmedSealHash(null)}>
+                  Закрыть
+                </Button>
+              </div>
+            </Window>
           </div>
         )}
 
         {/* Organizer panels */}
         {canManage && (
-          <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-obsidian-border pt-8">
+          <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-[var(--border)] pt-8">
             {/* SANDBOX ручное добавление */}
             {tournament?.tournamentType === "SANDBOX" && !tournament?.isStarted && (
-              <div className="component-card-dark p-5">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-                  <UserPlus size={16} className="text-green-400" />
-                  Добавить участника вручную
-                </h3>
-                <p className="text-[10px] text-slate-400 mb-4 leading-relaxed">
-                  Впишите имя участника (или название команды) — регистрация на платформе не требуется.
+              <Window title="Добавить участника вручную">
+                <div className="flex items-center gap-2 mb-4">
+                  <UserPlus size={16} className="text-[var(--status-win)]" />
+                  <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Добавить участника вручную</span>
+                </div>
+                <p className="text-[10px] text-[var(--text-muted)] mb-4 leading-relaxed">
+                  Впишите имя участника (или название команды) -- регистрация на платформе не требуется.
                 </p>
                 <form onSubmit={handleSandboxAdd} className="flex flex-col gap-3">
-                  <input
-                    type="text"
-                    placeholder="ФИО / Никнейм участника"
-                    className="h-9 bg-obsidian-input border border-obsidian-border rounded px-3 text-xs text-white"
-                    value={sbNickname}
-                    onChange={(e) => setSbNickname(e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Название команды (необязательно)"
-                    className="h-9 bg-obsidian-input border border-obsidian-border rounded px-3 text-xs text-white"
-                    value={sbTeamName}
-                    onChange={(e) => setSbTeamName(e.target.value)}
-                  />
-                  <button
-                    type="submit"
-                    className="h-9 bg-green-700 hover:bg-green-600 rounded text-[10px] font-bold uppercase tracking-wider text-white"
-                  >
-                    Добавить участника
-                  </button>
+                  <Field label="ФИО / Никнейм участника">
+                    <Input type="text" placeholder="ФИО / Никнейм участника" value={sbNickname} onChange={(e) => setSbNickname(e.target.value)} />
+                  </Field>
+                  <Field label="Название команды (необязательно)">
+                    <Input type="text" placeholder="Название команды (необязательно)" value={sbTeamName} onChange={(e) => setSbTeamName(e.target.value)} />
+                  </Field>
+                  <Button variant="gel" size="sm" type="submit">Добавить участника</Button>
                 </form>
-              </div>
+              </Window>
             )}
 
             {/* Mass referee */}
-            <div className="component-card-dark p-5">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-                <User size={16} className="text-purple-400" />
-                Назначение судей (массово)
-              </h3>
-              <p className="text-[10px] text-slate-400 mb-4 leading-relaxed">
+            <Window title="Назначение судей (массово)">
+              <div className="flex items-center gap-2 mb-4">
+                <User size={16} className="text-[var(--accent)]" />
+                <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Назначение судей (массово)</span>
+              </div>
+              <p className="text-[10px] text-[var(--text-muted)] mb-4 leading-relaxed">
                 Назначить одного судью на все незавершённые матчи турнира.
               </p>
               <div className="flex gap-3">
-                <select
-                  className="h-10 flex-1 bg-obsidian-input border border-obsidian-border rounded px-3 text-xs text-white"
-                  value={selectedRefereeId}
-                  onChange={(e) => setSelectedRefereeId(e.target.value)}
-                >
+                <Select value={selectedRefereeId} onChange={(e) => setSelectedRefereeId(e.target.value)} className="flex-1">
                   <option value="">-- Выберите арбитра --</option>
                   {usersList.map((u) => (
                     <option key={u.id} value={u.id}>{u.nickname}</option>
                   ))}
-                </select>
-                <button
-                  onClick={handleMassAssignReferee}
-                  className="h-10 px-4 bg-completeGrad-start hover:bg-blue-600 rounded text-xs font-bold uppercase tracking-wider text-white"
-                >
-                  Назначить
-                </button>
+                </Select>
+                <Button variant="gel" size="sm" onClick={handleMassAssignReferee}>Назначить</Button>
               </div>
-            </div>
+            </Window>
 
             {/* Excel import */}
             {!tournament?.isStarted && (
-              <div className="component-card-dark p-5">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-                  <FileSpreadsheet size={16} className="text-activeGrad-start" />
-                  Пакетный импорт (Excel)
-                </h3>
-                <p className="text-[10px] text-slate-400 mb-4 leading-relaxed">
-                  Таблица `.xlsx`: столбец 1 — Никнейм, столбец 2 — Команда (опц.).
+              <Window title="Пакетный импорт (Excel)">
+                <div className="flex items-center gap-2 mb-4">
+                  <FileSpreadsheet size={16} className="text-[var(--accent)]" />
+                  <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Пакетный импорт (Excel)</span>
+                </div>
+                <p className="text-[10px] text-[var(--text-muted)] mb-4 leading-relaxed">
+                  Таблица `.xlsx`: столбец 1 -- Никнейм, столбец 2 -- Команда (опц.).
                 </p>
                 <form onSubmit={handleImportExcel} className="flex items-center gap-3">
                   <input
@@ -738,162 +703,145 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                     accept=".xlsx"
                     required
                     onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                    className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700"
+                    className="text-xs text-[var(--text-muted)] file:mr-4 file:py-2 file:px-4 file:rounded-ctl file:border-0 file:text-xs file:font-semibold file:bg-[var(--panel-sunken)] file:text-[var(--text)] hover:file:bg-[var(--chrome-bot)]"
                   />
-                  <button
-                    type="submit"
-                    className="h-9 px-4 bg-activeGrad-start hover:bg-red-600 rounded text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2"
-                  >
-                    <Upload size={14} />
+                  <Button variant="gel" size="sm" type="submit" leftIcon={<Upload size={14} />}>
                     Загрузить
-                  </button>
+                  </Button>
                 </form>
-              </div>
+              </Window>
             )}
           </div>
         )}
 
         {/* Управление составом участников (организатор) */}
         {canManage && (
-          <div className="lg:col-span-12 component-card-dark p-5 border-t border-obsidian-border">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                <Users size={16} className="text-completeGrad-mid" />
-                Участники турнира ({approvedParticipants.length})
-              </h3>
-              {!tournament?.isStarted && (
-                <span className="text-[10px] text-slate-500 font-mono">До старта можно снимать участников</span>
-              )}
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[280px] overflow-y-auto pr-1">
-              {approvedParticipants.map((p) => (
-                <div key={p.id} className="flex justify-between items-center p-2 bg-obsidian-input border border-obsidian-border rounded">
-                  <div className="min-w-0">
-                    <span className="text-xs font-semibold text-slate-200 truncate block">{p.teamSnapshot || p.nicknameSnapshot}</span>
-                    {p.teamSnapshot && (
-                      <span className="text-[8px] text-slate-500 font-mono">капитан: {p.nicknameSnapshot}</span>
+          <div className="lg:col-span-12">
+            <Window title={`Участники турнира (${approvedParticipants.length})`}>
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-2">
+                  <Users size={16} className="text-[var(--status-done)]" />
+                  <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Участники турнира ({approvedParticipants.length})</span>
+                </div>
+                {!tournament?.isStarted && (
+                  <span className="text-[10px] text-[var(--text-muted)] font-mono">До старта можно снимать участников</span>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[280px] overflow-y-auto pr-1">
+                {approvedParticipants.map((p) => (
+                  <div key={p.id} className="flex justify-between items-center p-2 bg-[var(--panel-sunken)] border border-[var(--hairline)] rounded-ctl">
+                    <div className="min-w-0">
+                      <span className="text-xs font-semibold text-[var(--text)] truncate block">{p.teamSnapshot || p.nicknameSnapshot}</span>
+                      {p.teamSnapshot && (
+                        <span className="text-[8px] text-[var(--text-muted)] font-mono">капитан: {p.nicknameSnapshot}</span>
+                      )}
+                    </div>
+                    {!tournament?.isStarted && (
+                      <button
+                        onClick={() => handleRemoveApproved(p.id, p.teamSnapshot || p.nicknameSnapshot)}
+                        className="p-1.5 shrink-0 text-[var(--status-danger)] hover:bg-[color-mix(in_srgb,var(--status-danger)_10%,transparent)] rounded"
+                        title="Снять с турнира"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     )}
                   </div>
-                  {!tournament?.isStarted && (
-                    <button
-                      onClick={() => handleRemoveApproved(p.id, p.teamSnapshot || p.nicknameSnapshot)}
-                      className="p-1.5 shrink-0 text-red-400 hover:bg-white/5 rounded"
-                      title="Снять с турнира"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                </div>
-              ))}
-              {approvedParticipants.length === 0 && (
-                <div className="col-span-full text-xs text-slate-500 italic font-mono text-center py-4">Подтверждённых участников пока нет</div>
-              )}
-            </div>
+                ))}
+                {approvedParticipants.length === 0 && (
+                  <div className="col-span-full">
+                    <EmptyState title="Нет участников" hint="Подтверждённых участников пока нет" seed="participants-empty" />
+                  </div>
+                )}
+              </div>
+            </Window>
           </div>
         )}
 
         {/* Approvals + referee scoring */}
-        <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-obsidian-border pt-8">
+        <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-[var(--border)] pt-8">
           {canManage && (
-            <div className="component-card-dark p-5">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-                <UserCheck size={16} className="text-green-400" />
-                Заявки на участие ({pendingParticipants.length})
-              </h3>
+            <Window title={`Заявки на участие (${pendingParticipants.length})`}>
+              <div className="flex items-center gap-2 mb-4">
+                <UserCheck size={16} className="text-[var(--status-win)]" />
+                <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Заявки на участие ({pendingParticipants.length})</span>
+              </div>
               <div className="flex flex-col gap-3 max-h-[200px] overflow-y-auto pr-2">
                 {pendingParticipants.map((p) => (
-                  <div key={p.id} className="flex justify-between items-center p-2 bg-obsidian-input border border-obsidian-border rounded">
+                  <div key={p.id} className="flex justify-between items-center p-2 bg-[var(--panel-sunken)] border border-[var(--hairline)] rounded-ctl">
                     <div>
-                      <span className="text-xs font-semibold text-slate-200">{p.nicknameSnapshot}</span>
+                      <span className="text-xs font-semibold text-[var(--text)]">{p.nicknameSnapshot}</span>
                       {p.teamSnapshot && (
-                        <span className="text-[8px] bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded font-mono text-slate-400 ml-2">
-                          Команда: {p.teamSnapshot}
-                        </span>
+                        <Badge tone="draft" className="ml-2">Команда: {p.teamSnapshot}</Badge>
                       )}
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <button
-                        onClick={() => handleApproveParticipant(p.id)}
-                        className="px-3 py-1 bg-green-700 hover:bg-green-600 rounded text-[10px] font-bold uppercase tracking-wider text-white"
-                      >
-                        Одобрить
-                      </button>
-                      <button
-                        onClick={() => handleRejectParticipant(p.id)}
-                        className="px-3 py-1 rounded border border-red-900/60 text-red-400 hover:bg-red-950/20 text-[10px] font-bold uppercase tracking-wider"
-                      >
-                        Отклонить
-                      </button>
+                      <Button variant="gel" size="sm" onClick={() => handleApproveParticipant(p.id)}>Одобрить</Button>
+                      <Button variant="danger" size="sm" onClick={() => handleRejectParticipant(p.id)}>Отклонить</Button>
                     </div>
                   </div>
                 ))}
                 {pendingParticipants.length === 0 && (
-                  <div className="text-xs text-slate-500 italic font-mono text-center py-4">Нет ожидающих заявок</div>
+                  <EmptyState title="Нет заявок" hint="Нет ожидающих заявок" seed="pending-empty" />
                 )}
               </div>
-            </div>
+            </Window>
           )}
 
           {myRefereedMatches.length > 0 && (
-            <div className="component-card-dark p-5">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-                <Trophy size={16} className="text-activeGrad-start" />
-                Панель судейства ({myRefereedMatches.length})
-              </h3>
+            <Window title={`Панель судейства (${myRefereedMatches.length})`} status="live">
+              <div className="flex items-center gap-2 mb-4">
+                <Trophy size={16} className="text-[var(--accent)]" />
+                <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Панель судейства ({myRefereedMatches.length})</span>
+              </div>
               <div className="flex flex-col gap-4">
                 {myRefereedMatches.map((m) => (
-                  <div key={m.id} className="p-3.5 bg-obsidian-input border border-obsidian-border rounded flex flex-col gap-3">
-                    <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono pb-2 border-b border-obsidian-border">
-                      <span>Раунд {m.round} • Пара {m.position + 1}</span>
+                  <Card key={m.id}>
+                    <div className="flex justify-between items-center text-[10px] text-[var(--text-muted)] font-mono pb-2 border-b border-[var(--hairline)]">
+                      <span>Раунд {m.round} | Пара {m.position + 1}</span>
                       <div className="flex gap-2">
-                        <button onClick={() => openMetadataModal(m)} className="text-completeGrad-mid hover:underline uppercase font-bold text-[9px]">Инфо</button>
-                        <button
-                          onClick={() => {
-                            setSelectedScoringMatch(m);
-                            setScore1(0);
-                            setScore2(0);
-                            setCustomFieldsData({});
-                            setTechDefeat(false);
-                            setTechLoserId("");
-                          }}
-                          className="text-activeGrad-start hover:underline uppercase font-bold text-[9px]"
-                        >
-                          Ввести счёт
-                        </button>
+                        <Button variant="ghost" size="sm" onClick={() => openMetadataModal(m)}>Инфо</Button>
+                        <Button variant="ghost" size="sm" onClick={() => {
+                          setSelectedScoringMatch(m);
+                          setScore1(0);
+                          setScore2(0);
+                          setCustomFieldsData({});
+                          setTechDefeat(false);
+                          setTechLoserId("");
+                        }}>Ввести счет</Button>
                       </div>
                     </div>
-                    <div className="flex justify-between text-xs text-slate-200">
+                    <div className="flex justify-between text-xs text-[var(--text)] mt-2">
                       <span className="truncate max-w-[140px]">{nameOf(m.participant1Id)}</span>
-                      <span className="font-bold">{m.score1 !== null ? m.score1 : "-"}</span>
+                      <span className="font-bold font-mono">{m.score1 !== null ? m.score1 : "-"}</span>
                     </div>
-                    <div className="flex justify-between text-xs text-slate-200">
+                    <div className="flex justify-between text-xs text-[var(--text)] mt-1">
                       <span className="truncate max-w-[140px]">{nameOf(m.participant2Id)}</span>
-                      <span className="font-bold">{m.score2 !== null ? m.score2 : "-"}</span>
+                      <span className="font-bold font-mono">{m.score2 !== null ? m.score2 : "-"}</span>
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
-            </div>
+            </Window>
           )}
         </div>
 
         {/* Match list */}
         {matches.length > 0 && (
-          <div className="lg:col-span-12 component-card-dark p-6 mt-4 border-t border-obsidian-border/50">
-            <h3 className="text-sm uppercase font-mono tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-              <Calendar size={16} className="text-activeGrad-start" />
-              Расписание и результаты матчей
-            </h3>
+          <div className="lg:col-span-12 mt-4 border-t border-[var(--border)] pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar size={16} className="text-[var(--accent)]" />
+              <span className="font-cond font-semibold uppercase tracking-[.06em] text-[12px] text-[var(--text-muted)]">Расписание и результаты матчей</span>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {matches.map((m) => (
-                <div key={m.id} className="p-3 bg-obsidian-input border border-obsidian-border rounded flex flex-col gap-2">
-                  <div className="flex justify-between items-center text-[9px] text-slate-500 font-mono">
-                    <span>Раунд {m.round} • Пара {m.position + 1}</span>
-                    <span className={m.winnerId ? "text-slate-400" : "text-green-400"}>
-                      {m.winnerId ? "Завершён" : "Активен"}
-                    </span>
+                <Card key={m.id}>
+                  <div className="flex justify-between items-center text-[9px] text-[var(--text-muted)] font-mono">
+                    <span>Раунд {m.round} | Пара {m.position + 1}</span>
+                    <Badge tone={m.winnerId ? "done" : "win"} className="text-[8px]">
+                      {m.winnerId ? "Завершен" : "Активен"}
+                    </Badge>
                   </div>
-                  <div className="text-xs font-semibold text-slate-200">
+                  <div className="text-xs font-semibold text-[var(--text)] mt-2">
                     <div className="flex justify-between">
                       <span className="truncate max-w-[120px]">{nameOf(m.participant1Id)}</span>
                       <span className="font-mono font-bold">{m.score1 !== null ? m.score1 : "-"}</span>
@@ -903,231 +851,196 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                       <span className="font-mono font-bold">{m.score2 !== null ? m.score2 : "-"}</span>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-obsidian-border/30 items-center justify-between">
+                  <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-[var(--hairline)] items-center justify-between">
                     <div className="flex gap-2">
                       {m.customFieldsData?.stream_url && (
-                        <a href={m.customFieldsData.stream_url} target="_blank" rel="noopener noreferrer" className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[8px] text-slate-300 hover:text-white flex items-center gap-1 transition">
-                          <Tv size={8} className="text-red-400" /><span>Стрим</span>
+                        <a href={m.customFieldsData.stream_url} target="_blank" rel="noopener noreferrer" className="px-2 py-0.5 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--hairline)] text-[8px] text-[var(--text)] hover:text-[var(--accent)] flex items-center gap-1 transition">
+                          <Tv size={8} className="text-[var(--status-danger)]" /><span>Стрим</span>
                         </a>
                       )}
                       {m.customFieldsData?.invite_link && (
-                        <a href={m.customFieldsData.invite_link} target="_blank" rel="noopener noreferrer" className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[8px] text-slate-300 hover:text-white flex items-center gap-1 transition">
-                          <ExternalLink size={8} className="text-blue-400" /><span>Комната</span>
+                        <a href={m.customFieldsData.invite_link} target="_blank" rel="noopener noreferrer" className="px-2 py-0.5 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--hairline)] text-[8px] text-[var(--text)] hover:text-[var(--accent)] flex items-center gap-1 transition">
+                          <ExternalLink size={8} className="text-[var(--accent)]" /><span>Комната</span>
                         </a>
                       )}
                     </div>
                     {(m.refereeId === currentUser?.id || canManage) && (
-                      <button onClick={() => openMetadataModal(m)} className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[8px] text-completeGrad-mid font-bold uppercase transition">
-                        Инфо
-                      </button>
+                      <Button variant="ghost" size="sm" onClick={() => openMetadataModal(m)}>Инфо</Button>
                     )}
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           </div>
         )}
 
         {/* Standings */}
-        <div className="lg:col-span-12 component-card-dark p-6 mt-4 border-t border-obsidian-border/50">
-          <h3 className="text-sm uppercase font-mono tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-            <Trophy size={16} className="text-completeGrad-mid" />
-            Таблица лидеров турнира
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-obsidian-border text-slate-400 uppercase font-mono text-[9px] tracking-wider font-bold">
-                <tr>
-                  <th className="p-3 w-16 text-center">Место</th>
-                  <th className="p-3">Участник</th>
-                  <th className="p-3 text-center">Игры</th>
-                  <th className="p-3 text-center text-green-400">Победы</th>
-                  <th className="p-3 text-center text-red-400">Поражения</th>
-                  <th className="p-3 text-right pr-6">Разница ELO</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-obsidian-border">
-                {standings.map((row: any, idx) => (
-                  <tr key={row.participantId} className="hover:bg-white/5 transition-colors">
-                    <td className="p-3 text-center font-mono font-bold text-slate-400">{idx + 1}</td>
-                    <td className="p-3 font-semibold text-slate-200">
-                      {row.teamName ? `${row.teamName} (${row.nickname})` : row.nickname}
-                    </td>
-                    <td className="p-3 text-center font-mono">{row.matchesPlayed}</td>
-                    <td className="p-3 text-center font-mono text-green-400">{row.wins}</td>
-                    <td className="p-3 text-center font-mono text-red-400">{row.losses}</td>
-                    <td className={`p-3 text-right font-mono font-bold pr-6 ${row.eloChange >= 0 ? "text-green-400" : "text-red-400"}`}>
-                      {row.eloChange >= 0 ? `+${row.eloChange}` : row.eloChange}
-                    </td>
-                  </tr>
-                ))}
-                {standings.length === 0 && (
-                  <tr><td colSpan={6} className="p-6 text-center text-slate-500 italic font-mono">В турнире пока нет завершённых матчей.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="lg:col-span-12 mt-4 border-t border-[var(--border)] pt-6">
+          <Window title="Таблица лидеров турнира">
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy size={16} className="text-[var(--status-done)]" />
+              <span className="font-cond font-semibold uppercase tracking-[.06em] text-[12px] text-[var(--text-muted)]">Таблица лидеров турнира</span>
+            </div>
+            {standings.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table
+                  columns={standingsColumns}
+                  rows={standings}
+                  rowKey={(row) => row.participantId}
+                />
+              </div>
+            ) : (
+              <EmptyState title="Нет результатов" hint="В турнире пока нет завершённых матчей." seed="standings-empty" />
+            )}
+          </Window>
         </div>
 
         {/* Individual referee assignment */}
         {canManage && matches.length > 0 && (
-          <div className="lg:col-span-12 component-card-dark p-6 border-t border-obsidian-border/50">
-            <h3 className="text-sm uppercase font-mono tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-              <Users size={16} className="text-purple-400" />
-              Индивидуальное назначение судей по матчам
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {matches.map((m) => (
-                <div key={m.id} className="p-3 bg-obsidian-input border border-obsidian-border rounded flex flex-col gap-2">
-                  <div className="flex justify-between items-center text-[9px] text-slate-500 font-mono">
-                    <span>Раунд {m.round} • Пара {m.position + 1}</span>
-                    <span className={m.winnerId ? "text-slate-400" : "text-green-400"}>{m.winnerId ? "Завершён" : "Активен"}</span>
-                  </div>
-                  <div className="text-xs font-semibold text-slate-200">
-                    <div className="flex justify-between"><span className="truncate max-w-[120px]">{nameOf(m.participant1Id)}</span><span className="font-mono font-bold">{m.score1 !== null ? m.score1 : "-"}</span></div>
-                    <div className="flex justify-between mt-1"><span className="truncate max-w-[120px]">{nameOf(m.participant2Id)}</span><span className="font-mono font-bold">{m.score2 !== null ? m.score2 : "-"}</span></div>
-                  </div>
-                  <div className="flex flex-col gap-1 mt-2 pt-2 border-t border-obsidian-border/30">
-                    <label className="text-[8px] font-bold text-slate-500 uppercase font-mono">Назначенный судья</label>
-                    <select
-                      className="h-7 bg-obsidian-panel border border-obsidian-border rounded px-2 text-[10px] text-slate-300"
-                      value={m.refereeId || ""}
-                      onChange={(e) => handleSetMatchReferee(m.id, e.target.value)}
-                    >
-                      <option value="">-- Без судьи / Организатор --</option>
-                      {usersList.map((u) => (<option key={u.id} value={u.id}>{u.nickname}</option>))}
-                    </select>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="lg:col-span-12 border-t border-[var(--border)] pt-6">
+            <Window title="Индивидуальное назначение судей по матчам">
+              <div className="flex items-center gap-2 mb-4">
+                <Users size={16} className="text-[var(--accent)]" />
+                <span className="font-cond font-semibold uppercase tracking-[.06em] text-[12px] text-[var(--text-muted)]">Индивидуальное назначение судей по матчам</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {matches.map((m) => (
+                  <Card key={m.id}>
+                    <div className="flex justify-between items-center text-[9px] text-[var(--text-muted)] font-mono">
+                      <span>Раунд {m.round} | Пара {m.position + 1}</span>
+                      <Badge tone={m.winnerId ? "done" : "win"} className="text-[8px]">
+                        {m.winnerId ? "Завершен" : "Активен"}
+                      </Badge>
+                    </div>
+                    <div className="text-xs font-semibold text-[var(--text)] mt-2">
+                      <div className="flex justify-between"><span className="truncate max-w-[120px]">{nameOf(m.participant1Id)}</span><span className="font-mono font-bold">{m.score1 !== null ? m.score1 : "-"}</span></div>
+                      <div className="flex justify-between mt-1"><span className="truncate max-w-[120px]">{nameOf(m.participant2Id)}</span><span className="font-mono font-bold">{m.score2 !== null ? m.score2 : "-"}</span></div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-[var(--hairline)]">
+                      <Field label="Назначенный судья">
+                        <Select
+                          className="h-7 text-[10px]"
+                          value={m.refereeId || ""}
+                          onChange={(e) => handleSetMatchReferee(m.id, e.target.value)}
+                        >
+                          <option value="">-- Без судьи / Организатор --</option>
+                          {usersList.map((u) => (<option key={u.id} value={u.id}>{u.nickname}</option>))}
+                        </Select>
+                      </Field>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </Window>
           </div>
         )}
       </div>
 
       {/* Scoring modal */}
-      {selectedScoringMatch && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md component-card-dark p-6">
-            <h4 className="font-bold text-sm text-slate-200 border-b border-obsidian-border pb-3 mb-4 uppercase tracking-wider">
-              Фиксация результата
-            </h4>
-
-            {/* Кто играет */}
-            <div className="flex justify-between text-xs font-bold text-slate-300 mb-4">
-              <span className="truncate max-w-[160px]">{scoringName1}</span>
-              <span className="text-slate-500">vs</span>
-              <span className="truncate max-w-[160px] text-right">{scoringName2}</span>
-            </div>
-
-            {/* Переключатель техпоражения */}
-            <label className="flex items-center gap-2 mb-4 text-[11px] text-slate-300 font-mono cursor-pointer">
-              <input type="checkbox" checked={techDefeat} onChange={(e) => setTechDefeat(e.target.checked)} />
-              Техническое поражение
-            </label>
-
-            <form onSubmit={handleScoreSubmit} className="flex flex-col gap-4">
-              {techDefeat ? (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">Кому засчитать поражение</label>
-                  <select
-                    required
-                    className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3 text-xs text-white"
-                    value={techLoserId}
-                    onChange={(e) => setTechLoserId(e.target.value)}
-                  >
-                    <option value="">-- Выберите участника --</option>
-                    {selectedScoringMatch.participant1Id && (
-                      <option value={selectedScoringMatch.participant1Id}>{scoringName1}</option>
-                    )}
-                    {selectedScoringMatch.participant2Id && (
-                      <option value={selectedScoringMatch.participant2Id}>{scoringName2}</option>
-                    )}
-                  </select>
-                </div>
-              ) : (
-                <>
-                  <div className="flex justify-between items-center gap-4">
-                    <div className="flex-1 flex flex-col gap-1.5">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase font-mono truncate">{scoringName1}</label>
-                      <input type="number" required min="0" className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3 text-xs text-white text-right font-mono" value={score1} onChange={(e) => setScore1(Number(e.target.value))} />
-                    </div>
-                    <span className="text-xl font-bold font-mono text-slate-400 mt-4">:</span>
-                    <div className="flex-1 flex flex-col gap-1.5">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase font-mono truncate text-right">{scoringName2}</label>
-                      <input type="number" required min="0" className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3 text-xs text-white text-right font-mono" value={score2} onChange={(e) => setScore2(Number(e.target.value))} />
-                    </div>
-                  </div>
-
-                  {tournament?.customFieldsSchema && tournament.customFieldsSchema.map((field: any) => (
-                    <div key={field.name} className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">
-                        {field.label} {field.required && "*"}
-                      </label>
-                      <input
-                        type={field.type === "number" ? "number" : "text"}
-                        required={field.required}
-                        className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3.5 text-xs text-white focus:outline-none"
-                        placeholder={`Введите ${field.label.toLowerCase()}`}
-                        value={customFieldsData[field.name] || ""}
-                        onChange={(e) => {
-                          const val = field.type === "number" ? Number(e.target.value) || 0 : e.target.value;
-                          setCustomFieldsData((prev) => ({ ...prev, [field.name]: val }));
-                        }}
-                      />
-                    </div>
-                  ))}
-                </>
-              )}
-
-              <div className="flex gap-3 mt-4">
-                <button type="button" onClick={closeScoreModal} className="h-10 flex-1 border border-obsidian-border hover:bg-white/5 rounded text-xs font-bold uppercase tracking-wider text-slate-400">Отмена</button>
-                <button type="submit" className="h-10 flex-1 bg-activeGrad-start hover:bg-red-600 rounded text-xs font-bold uppercase tracking-wider text-white shadow-lg">Подтвердить</button>
-              </div>
-            </form>
-          </div>
+      <Modal
+        open={!!selectedScoringMatch}
+        title="Фиксация результата"
+        onClose={closeScoreModal}
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeScoreModal}>Отмена</Button>
+            <Button variant="gel" type="submit" form="score-form">Подтвердить</Button>
+          </>
+        }
+      >
+        {/* Кто играет */}
+        <div className="flex justify-between text-xs font-bold text-[var(--text)] mb-4">
+          <span className="truncate max-w-[160px]">{scoringName1}</span>
+          <span className="text-[var(--text-muted)]">vs</span>
+          <span className="truncate max-w-[160px] text-right">{scoringName2}</span>
         </div>
-      )}
 
-      {/* Metadata modal */}
-      {selectedMetadataMatch && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md component-card-dark p-6">
-            <h4 className="font-bold text-sm text-slate-200 border-b border-obsidian-border pb-3 mb-4 uppercase tracking-wider">
-              Информация о матче
-            </h4>
-            <form onSubmit={handleSaveMetadata} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">Ссылка на стрим / трансляцию</label>
-                <input type="url" placeholder="https://twitch.tv/..." className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3.5 text-xs text-white focus:outline-none" value={metadataStreamUrl} onChange={(e) => setMetadataStreamUrl(e.target.value)} />
+        {/* Переключатель техпоражения */}
+        <Checkbox
+          label="Техническое поражение"
+          checked={techDefeat}
+          onChange={(e) => setTechDefeat(e.target.checked)}
+          className="mb-4"
+        />
+
+        <form id="score-form" onSubmit={handleScoreSubmit} className="flex flex-col gap-4">
+          {techDefeat ? (
+            <Field label="Кому засчитать поражение">
+              <Select required value={techLoserId} onChange={(e) => setTechLoserId(e.target.value)}>
+                <option value="">-- Выберите участника --</option>
+                {selectedScoringMatch?.participant1Id && (
+                  <option value={selectedScoringMatch.participant1Id}>{scoringName1}</option>
+                )}
+                {selectedScoringMatch?.participant2Id && (
+                  <option value={selectedScoringMatch.participant2Id}>{scoringName2}</option>
+                )}
+              </Select>
+            </Field>
+          ) : (
+            <>
+              <div className="flex justify-between items-center gap-4">
+                <Field label={scoringName1} className="flex-1">
+                  <Input type="number" required min={0} className="text-right font-mono" value={score1} onChange={(e) => setScore1(Number(e.target.value))} />
+                </Field>
+                <span className="text-xl font-bold font-mono text-[var(--text-muted)] mt-4">:</span>
+                <Field label={scoringName2} className="flex-1">
+                  <Input type="number" required min={0} className="text-right font-mono" value={score2} onChange={(e) => setScore2(Number(e.target.value))} />
+                </Field>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">Ссылка-приглашение в комнату (лобби)</label>
-                <input type="text" placeholder="https://lichess.org/..." className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3.5 text-xs text-white focus:outline-none" value={metadataInviteLink} onChange={(e) => setMetadataInviteLink(e.target.value)} />
-              </div>
+
               {tournament?.customFieldsSchema && tournament.customFieldsSchema.map((field: any) => (
-                <div key={field.name} className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">{field.label}</label>
-                  <input
+                <Field key={field.name} label={`${field.label}${field.required ? " *" : ""}`}>
+                  <Input
                     type={field.type === "number" ? "number" : "text"}
-                    className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3.5 text-xs text-white focus:outline-none"
+                    required={field.required}
                     placeholder={`Введите ${field.label.toLowerCase()}`}
-                    value={metadataCustomFields[field.name] || ""}
+                    value={customFieldsData[field.name] || ""}
                     onChange={(e) => {
                       const val = field.type === "number" ? Number(e.target.value) || 0 : e.target.value;
-                      setMetadataCustomFields((prev) => ({ ...prev, [field.name]: val }));
+                      setCustomFieldsData((prev) => ({ ...prev, [field.name]: val }));
                     }}
                   />
-                </div>
+                </Field>
               ))}
-              <div className="flex gap-3 mt-4">
-                <button type="button" onClick={() => setSelectedMetadataMatch(null)} className="h-10 flex-1 border border-obsidian-border hover:bg-white/5 rounded text-xs font-bold uppercase tracking-wider text-slate-400">Отмена</button>
-                <button type="submit" className="h-10 flex-1 bg-completeGrad-start hover:bg-blue-600 rounded text-xs font-bold uppercase tracking-wider text-white shadow-lg">Сохранить</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </>
+          )}
+        </form>
+      </Modal>
+
+      {/* Metadata modal */}
+      <Modal
+        open={!!selectedMetadataMatch}
+        title="Информация о матче"
+        onClose={() => setSelectedMetadataMatch(null)}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setSelectedMetadataMatch(null)}>Отмена</Button>
+            <Button variant="gel" type="submit" form="metadata-form">Сохранить</Button>
+          </>
+        }
+      >
+        <form id="metadata-form" onSubmit={handleSaveMetadata} className="flex flex-col gap-4">
+          <Field label="Ссылка на стрим / трансляцию">
+            <Input type="url" placeholder="https://twitch.tv/..." value={metadataStreamUrl} onChange={(e) => setMetadataStreamUrl(e.target.value)} />
+          </Field>
+          <Field label="Ссылка-приглашение в комнату (лобби)">
+            <Input type="text" placeholder="https://lichess.org/..." value={metadataInviteLink} onChange={(e) => setMetadataInviteLink(e.target.value)} />
+          </Field>
+          {tournament?.customFieldsSchema && tournament.customFieldsSchema.map((field: any) => (
+            <Field key={field.name} label={field.label}>
+              <Input
+                type={field.type === "number" ? "number" : "text"}
+                placeholder={`Введите ${field.label.toLowerCase()}`}
+                value={metadataCustomFields[field.name] || ""}
+                onChange={(e) => {
+                  const val = field.type === "number" ? Number(e.target.value) || 0 : e.target.value;
+                  setMetadataCustomFields((prev) => ({ ...prev, [field.name]: val }));
+                }}
+              />
+            </Field>
+          ))}
+        </form>
+      </Modal>
     </div>
   );
 }

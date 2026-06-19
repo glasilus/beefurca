@@ -8,7 +8,7 @@
 @layer base {
   :root {
     --surface: #EDF1F6;
-    --panel-solid: #FBFCFE;
+    --panel: #FBFCFE;
     --panel-sunken: #E7ECF2;
     --chrome-top: #EEF3FA;
     --chrome-bot: #CFD9E6;
@@ -31,7 +31,7 @@
 
   .dark {
     --surface: #0A1320;
-    --panel-solid: #161D26;
+    --panel: #161D26;
     --panel-sunken: #0E141B;
     --chrome-top: #28333F;
     --chrome-bot: #161D26;
@@ -134,6 +134,98 @@
 }
 
 /* ================================================================
+   Aqua Aurora background
+   ================================================================ */
+.aurora {
+  position: fixed;
+  inset: -20%;
+  z-index: -2;
+  pointer-events: none;
+}
+.aurora::before,
+.aurora::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+/* Light theme — silky blue ribbons */
+.aurora::before {
+  background:
+    radial-gradient(45% 60% at 18% 12%, #FFFFFF 0%, transparent 60%),
+    radial-gradient(55% 72% at 84% 2%, #BBD6FA 0%, transparent 62%),
+    radial-gradient(72% 82% at 28% 98%, #7FB6EE 0%, transparent 60%),
+    radial-gradient(82% 72% at 78% 82%, #A6D2F2 0%, transparent 60%),
+    linear-gradient(158deg, #D6E6FF 0%, #9AC2F0 42%, #5B9BE8 74%, #AED4F5 100%);
+  animation: aurora-drift 38s ease-in-out infinite alternate;
+}
+.aurora::after {
+  background:
+    radial-gradient(42% 32% at 48% 36%, rgba(255,255,255,.62), transparent 70%),
+    radial-gradient(36% 26% at 78% 70%, rgba(120,180,250,.40), transparent 72%);
+  animation: aurora-drift2 30s ease-in-out infinite alternate;
+}
+/* Dark theme — deep midnight aurora */
+.dark .aurora::before {
+  background:
+    radial-gradient(52% 62% at 14% 8%, #1A4E86 0%, transparent 60%),
+    radial-gradient(56% 72% at 86% 0%, #103C6E 0%, transparent 62%),
+    radial-gradient(72% 82% at 34% 100%, #14506E 0%, transparent 58%),
+    radial-gradient(62% 60% at 82% 86%, #1E6A90 0%, transparent 60%),
+    linear-gradient(160deg, #0A1730 0%, #0E2B50 45%, #06121F 80%);
+}
+.dark .aurora::after {
+  background:
+    radial-gradient(46% 34% at 54% 38%, rgba(70,165,245,.42), transparent 72%),
+    radial-gradient(34% 24% at 22% 78%, rgba(40,200,210,.22), transparent 74%);
+}
+
+/* ================================================================
+   Medallion gel-lens (fractal avatar wrapper)
+   ================================================================ */
+.medallion {
+  position: relative;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: none;
+  box-shadow: 0 3px 10px var(--shadow), inset 0 0 0 2px rgba(255,255,255,.22);
+}
+.medallion img {
+  display: block;
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+}
+.medallion::before {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 4%;
+  height: 42%;
+  background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0));
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2;
+}
+.medallion::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 -3px 8px rgba(0,0,0,.35), inset 0 2px 4px rgba(255,255,255,.4);
+  pointer-events: none;
+  z-index: 2;
+}
+.medallion-rounded {
+  border-radius: 16px;
+}
+.medallion-rounded img,
+.medallion-rounded::before,
+.medallion-rounded::after {
+  border-radius: 16px;
+}
+
+/* ================================================================
    Keyframes
    ================================================================ */
 @keyframes aurora-drift {
@@ -157,4 +249,5 @@
    ================================================================ */
 @media (prefers-reduced-motion: reduce) {
   .aurora::before, .aurora::after { animation: none !important; }
+  .animate-spin { animation: none !important; }
 }

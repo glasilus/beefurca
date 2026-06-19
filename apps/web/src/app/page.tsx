@@ -5,11 +5,18 @@ import { useRouter } from "next/navigation";
 import { FractalAvatar } from "../components/FractalAvatar";
 import { FractalSeal } from "../components/FractalSeal";
 import { BracketCanvas } from "../components/BracketCanvas";
+import { FractalMedallion } from "../components/Fractal";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { Button } from "../components/ui/Button";
+import { Window, Card } from "../components/ui/Window";
+import { Table } from "../components/ui/Table";
+import { Badge } from "../components/ui/Badge";
 import { Trophy, Shield, Users, Stack as Layers, Pulse as Activity, Calendar } from "@phosphor-icons/react";
 
 export default function Home() {
   const router = useRouter();
+
+  const LOGO_OPTS = { cre: 0.285, cim: 0.01, hue: 0, span: 360, lift: 0.4 } as const;
 
   // Mock data for the demonstration
   const mockTournaments = [
@@ -94,25 +101,47 @@ export default function Home() {
     { id: "p4", nicknameSnapshot: "Iron_Valkyrie", teamSnapshot: null },
   ];
 
+  const leaderboardColumns = [
+    { key: "rank", header: "Rank", numeric: true, render: (row: typeof mockLeaderboard[number]) => <span className="font-bold">{row.rank}</span> },
+    { key: "name", header: "Player", render: (row: typeof mockLeaderboard[number]) => <span className="font-semibold">{row.name}</span> },
+    { key: "elo", header: "ELO", numeric: true, render: (row: typeof mockLeaderboard[number]) => <span className="font-bold text-[var(--status-done)]">{row.elo}</span> },
+    { key: "winrate", header: "Winrate", numeric: true },
+  ];
+
+  const typeTone = (type: string) => {
+    if (type === "PRO") return "danger" as const;
+    if (type === "AMATEUR") return "accent" as const;
+    return "draft" as const;
+  };
+
   return (
-    <div className="min-h-screen bg-obsidian-base text-white transition-colors duration-300">
+    <div className="min-h-screen text-[var(--text)] transition-colors duration-300">
       {/* Navbar */}
-      <header className="border-b border-obsidian-border bg-obsidian-panel/50 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex justify-between items-center">
+      <header className="border-b border-[var(--border)] brushed pinstripe sticky top-0 z-40" style={{ boxShadow: "0 1px 0 var(--gloss) inset, 0 4px 18px var(--shadow)" }}>
+        <div className="max-w-7xl mx-auto px-6 h-[62px] flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-gradient-to-br from-activeGrad-start via-activeGrad-mid to-activeGrad-end flex items-center justify-center font-bold text-white shadow-lg">
-              B
-            </div>
-            <span className="font-pixel text-2xl tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">
+            <span className="relative w-8 h-8 rounded-[9px] overflow-hidden flex-none shadow-[inset_0_1px_0_rgba(255,255,255,.85),0_1px_3px_var(--shadow)]">
+              <FractalMedallion
+                seed="beefurca"
+                size={32}
+                shape="rounded"
+                opts={LOGO_OPTS}
+              />
+              <span className="absolute inset-0 grid place-items-center font-bold text-white text-[17px] [text-shadow:0_1px_3px_rgba(0,0,0,.7),0_0_1px_rgba(0,0,0,.9)] z-10">
+                B
+              </span>
+              <span className="absolute left-[8%] right-[8%] top-[4%] h-[42%] rounded-[9px] bg-gradient-to-b from-white/55 to-transparent pointer-events-none z-20" />
+            </span>
+            <span className="font-display font-extrabold text-[22px] tracking-[.02em] text-[var(--text)]">
               BEEFURCA
             </span>
           </div>
 
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <button onClick={() => router.push("/login")} className="text-xs font-bold uppercase tracking-wider bg-activeGrad-start hover:bg-red-600 text-white px-4 py-2 rounded shadow-md transition">
+            <Button variant="gel" size="sm" onClick={() => router.push("/login")}>
               Войти / Регистрация
-            </button>
+            </Button>
           </div>
         </div>
       </header>
@@ -120,68 +149,69 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Hero Section */}
         <section className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-300 to-slate-500">
+          <div className="flex justify-center mb-6">
+            <FractalMedallion seed="beefurca" size={80} opts={LOGO_OPTS} />
+          </div>
+          <h1 className="font-display font-extrabold text-[clamp(28px,5vw,48px)] tracking-tight mb-4 text-[var(--text)]">
             Экосистема турниров нового поколения
           </h1>
-          <p className="max-w-2xl mx-auto text-slate-400 text-base md:text-lg mb-8">
+          <p className="max-w-2xl mx-auto text-[var(--text-muted)] text-base md:text-lg mb-8">
             Отказ от бумажных АРМ. Самообслуживание игроков, строгий судейский надзор и сквозной ELO-рейтинг для любых соревновательных дисциплин.
           </p>
           <div className="flex justify-center gap-4">
-            <button onClick={() => router.push("/login")} className="px-6 py-3 bg-activeGrad-start hover:bg-red-600 rounded text-sm font-bold uppercase tracking-wider transition shadow-lg">
-              Начать — войти
-            </button>
-            <button onClick={() => router.push("/login")} className="px-6 py-3 border border-obsidian-border hover:bg-white/5 rounded text-sm font-bold uppercase tracking-wider transition">
+            <Button variant="gel" onClick={() => router.push("/login")}>
+              Начать -- войти
+            </Button>
+            <Button variant="secondary" onClick={() => router.push("/login")}>
               Создать аккаунт
-            </button>
+            </Button>
           </div>
-          <p className="text-[10px] text-slate-600 font-mono uppercase tracking-widest mt-6">
-            Разделы ниже — демонстрация интерфейса
+          <p className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest mt-6">
+            Разделы ниже -- демонстрация интерфейса
           </p>
         </section>
 
         {/* Feature Cards Grid */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          <div className="component-card-dark p-6">
-            <div className="w-10 h-10 rounded bg-activeGrad-start/20 text-activeGrad-start flex items-center justify-center mb-4">
+          <Card>
+            <div className="w-10 h-10 rounded-ctl bg-[color-mix(in_srgb,var(--status-danger)_14%,transparent)] text-[var(--status-danger)] flex items-center justify-center mb-4">
               <Trophy size={20} />
             </div>
-            <h3 className="font-bold text-base mb-2">Три уровня лиг</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Официальные PRO лиги с жестким начислением ELO, Amateur турниры игроков и Sandbox «песочницы» для быстрого учета участников без регистрации.
+            <h3 className="font-bold text-base mb-2 text-[var(--text)]">Три уровня лиг</h3>
+            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+              Официальные PRO лиги с жестким начислением ELO, Amateur турниры игроков и Sandbox "песочницы" для быстрого учета участников без регистрации.
             </p>
-          </div>
+          </Card>
 
-          <div className="component-card-dark p-6">
-            <div className="w-10 h-10 rounded bg-completeGrad-mid/20 text-completeGrad-mid flex items-center justify-center mb-4">
+          <Card>
+            <div className="w-10 h-10 rounded-ctl bg-[color-mix(in_srgb,var(--status-done)_14%,transparent)] text-[var(--status-done)] flex items-center justify-center mb-4">
               <Shield size={20} />
             </div>
-            <h3 className="font-bold text-base mb-2">Контекстное судейство</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <h3 className="font-bold text-base mb-2 text-[var(--text)]">Контекстное судейство</h3>
+            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
               Ввод счета и кастомных полей доступен исключительно назначенным верифицированным судьям. Полная защита от несанкционированных изменений.
             </p>
-          </div>
+          </Card>
 
-          <div className="component-card-dark p-6">
-            <div className="w-10 h-10 rounded bg-purple-500/20 text-purple-400 flex items-center justify-center mb-4">
+          <Card>
+            <div className="w-10 h-10 rounded-ctl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)] flex items-center justify-center mb-4">
               <Layers size={20} />
             </div>
-            <h3 className="font-bold text-base mb-2">Кастомные поля матчей</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <h3 className="font-bold text-base mb-2 text-[var(--text)]">Кастомные поля матчей</h3>
+            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
               Динамический конфигуратор метаданных позволяет добавлять специфичные поля (карты, столы, спектаторские пароли) под любую дисциплину.
             </p>
-          </div>
+          </Card>
         </section>
 
         {/* Interactive Bracket Demo */}
         <section className="mb-16">
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-2">
-              <Activity className="text-activeGrad-start" size={18} />
-              <h2 className="text-xl font-bold uppercase tracking-wider">Интерактивный холст сетки</h2>
+              <Activity className="text-[var(--accent)]" size={18} />
+              <h2 className="font-display font-bold text-xl uppercase tracking-wider text-[var(--text)]">Интерактивный холст сетки</h2>
             </div>
-            <span className="text-[10px] uppercase font-mono bg-obsidian-panel border border-obsidian-border px-2.5 py-1 rounded text-slate-400">
-              Live Demo
-            </span>
+            <Badge tone="live" dot>Live Demo</Badge>
           </div>
           <BracketCanvas matches={demoMatches} participants={demoParticipants} />
         </section>
@@ -191,30 +221,24 @@ export default function Home() {
           {/* Tournament List with Fractal Avatars */}
           <section className="lg:col-span-7">
             <div className="flex items-center gap-2 mb-6">
-              <Calendar className="text-completeGrad-mid" size={18} />
-              <h2 className="text-xl font-bold uppercase tracking-wider">Активные соревнования</h2>
+              <Calendar className="text-[var(--status-done)]" size={18} />
+              <h2 className="font-display font-bold text-xl uppercase tracking-wider text-[var(--text)]">Активные соревнования</h2>
             </div>
             <div className="flex flex-col gap-4">
               {mockTournaments.map((t) => (
-                <div key={t.id} className="component-card-dark p-4 flex gap-4 items-center">
-                  <FractalAvatar seed={t.id} size={54} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2.5 mb-1">
-                      <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded border uppercase ${
-                        t.type === "PRO" 
-                          ? "bg-activeGrad-start/20 text-activeGrad-start border-activeGrad-start" 
-                          : t.type === "AMATEUR"
-                          ? "bg-completeGrad-start/20 text-completeGrad-mid border-completeGrad-start"
-                          : "bg-slate-800 text-slate-400 border-slate-700"
-                      }`}>
-                        {t.type}
-                      </span>
-                      <span className="text-xs text-slate-400 font-medium">{t.discipline}</span>
+                <Card key={t.id}>
+                  <div className="flex gap-4 items-center">
+                    <FractalAvatar seed={t.id} size={54} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2.5 mb-1">
+                        <Badge tone={typeTone(t.type)}>{t.type}</Badge>
+                        <span className="text-xs text-[var(--text-muted)] font-medium">{t.discipline}</span>
+                      </div>
+                      <h4 className="font-bold text-sm text-[var(--text)] truncate">{t.name}</h4>
+                      <p className="text-[10px] text-[var(--text-muted)] mt-1">Начало: {t.date} | Приз: {t.prize}</p>
                     </div>
-                    <h4 className="font-bold text-sm text-slate-100 truncate">{t.name}</h4>
-                    <p className="text-[10px] text-slate-500 mt-1">Начало: {t.date} • Приз: {t.prize}</p>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           </section>
@@ -223,45 +247,32 @@ export default function Home() {
           <section className="lg:col-span-5 flex flex-col gap-8">
             <div>
               <div className="flex items-center gap-2 mb-6">
-                <Users className="text-purple-400" size={18} />
-                <h2 className="text-xl font-bold uppercase tracking-wider">Глобальный рейтинг ELO</h2>
+                <Users className="text-[var(--accent)]" size={18} />
+                <h2 className="font-display font-bold text-xl uppercase tracking-wider text-[var(--text)]">Глобальный рейтинг ELO</h2>
               </div>
-              <div className="component-card-dark overflow-hidden">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-obsidian-border text-slate-400 uppercase font-mono text-[9px] tracking-wider">
-                    <tr>
-                      <th className="p-3 text-center">Rank</th>
-                      <th className="p-3">Player</th>
-                      <th className="p-3 text-right">ELO</th>
-                      <th className="p-3 text-right">Winrate</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-obsidian-border">
-                    {mockLeaderboard.map((row) => (
-                      <tr key={row.rank} className="hover:bg-white/5 transition-colors">
-                        <td className="p-3 text-center font-bold font-mono text-slate-400">{row.rank}</td>
-                        <td className="p-3 font-semibold text-slate-200">{row.name}</td>
-                        <td className="p-3 text-right font-mono font-bold text-completeGrad-mid">{row.elo}</td>
-                        <td className="p-3 text-right font-mono text-slate-300">{row.winrate}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Window title="Рейтинг">
+                <Table
+                  columns={leaderboardColumns}
+                  rows={mockLeaderboard}
+                  rowKey={(row) => row.rank}
+                />
+              </Window>
             </div>
 
             {/* Cryptographic Referee Seal Demo */}
             <div>
-              <h2 className="text-xl font-bold uppercase tracking-wider mb-6 flex items-center gap-2">
-                <Shield className="text-activeGrad-start" size={18} />
+              <h2 className="font-display font-bold text-xl uppercase tracking-wider mb-6 flex items-center gap-2 text-[var(--text)]">
+                <Shield className="text-[var(--accent)]" size={18} />
                 Судейская пломба (Seal)
               </h2>
-              <div className="component-card-dark p-6 flex flex-col items-center justify-center min-h-[200px]">
-                <FractalSeal hash="d3b07384d113edec49eaa6238ad5ff00" size={100} />
-                <p className="text-[10px] text-center text-slate-400 max-w-xs mt-8 leading-relaxed">
-                  Процедурный фрактал верифицирует неизменяемость спортивных результатов и автоматически генерируется при отправке транзакции на сервер.
-                </p>
-              </div>
+              <Window title="Верификация">
+                <div className="flex flex-col items-center justify-center min-h-[200px]">
+                  <FractalSeal hash="d3b07384d113edec49eaa6238ad5ff00" size={100} />
+                  <p className="text-[10px] text-center text-[var(--text-muted)] max-w-xs mt-8 leading-relaxed">
+                    Процедурный фрактал верифицирует неизменяемость спортивных результатов и автоматически генерируется при отправке транзакции на сервер.
+                  </p>
+                </div>
+              </Window>
             </div>
           </section>
         </div>

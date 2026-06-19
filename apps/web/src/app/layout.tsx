@@ -7,6 +7,7 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { Providers } from "../components/Providers";
+import { Aurora } from "../components/Aurora";
 
 const display = Unbounded({
   subsets: ["latin", "cyrillic"],
@@ -52,6 +53,7 @@ export default function RootLayout({
       className={`${display.variable} ${sans.variable} ${cond.variable} ${mono.variable}`}
     >
       <body className="antialiased relative min-h-screen">
+        <Aurora />
         <Providers>
           <main className="relative z-10">{children}</main>
         </Providers>

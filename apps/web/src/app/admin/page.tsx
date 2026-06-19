@@ -10,11 +10,22 @@ import {
   Download,
   Trophy,
   Trash as Trash2,
+  Star,
+  SealCheck,
 } from "@phosphor-icons/react";
 import { API_URL, apiFetch, fetchProfile, setSession } from "../../lib/api";
 import { Nav } from "../../components/Nav";
 import { useToast } from "../../components/Toast";
 import { useConfirm } from "../../components/ConfirmDialog";
+import { Window, Card } from "../../components/ui/Window";
+import { Button } from "../../components/ui/Button";
+import { Badge } from "../../components/ui/Badge";
+import { Table } from "../../components/ui/Table";
+import { Modal } from "../../components/ui/Modal";
+import { Field, Input, Select } from "../../components/ui/Field";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { EmptyState } from "../../components/ui/EmptyState";
+import type { TableColumn } from "../../components/ui/Table";
 
 export default function AdminPanelPage() {
   const router = useRouter();
@@ -174,211 +185,246 @@ export default function AdminPanelPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-obsidian-base flex items-center justify-center text-white">
-        <span className="text-xs font-mono uppercase tracking-widest animate-pulse">Загрузка панели администратора...</span>
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="text-xs font-mono uppercase tracking-widest animate-pulse text-[var(--text-muted)]">Загрузка панели администратора...</span>
       </div>
     );
   }
 
+  const userColumns: TableColumn<any>[] = [
+    {
+      key: "nickname",
+      header: "Пользователь",
+      render: (usr) => (
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="font-bold text-[var(--text)]">{usr.nickname}</span>
+            <Select
+              value={usr.role}
+              onChange={(e) => handleUpdateRole(usr.id, e.target.value)}
+              className="!w-auto !h-7 !text-[10px] !px-1.5 !py-0"
+            >
+              <option value="Player">Player</option>
+              <option value="Organizer">Organizer</option>
+              <option value="Admin">Admin</option>
+            </Select>
+            {usr.isTrusted && <Badge tone="win"><SealCheck size={10} weight="fill" /> Доверенный</Badge>}
+            {usr.isBanned && <Badge tone="danger">Забанен</Badge>}
+          </div>
+          <span className="text-[10px] text-[var(--text-muted)] font-mono truncate block">{usr.email} / {usr.elo} ELO</span>
+        </div>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Действия",
+      render: (usr) => {
+        if (usr.id === profile?.id) return null;
+        return (
+          <div className="flex gap-2 shrink-0">
+            <Button
+              variant={usr.isTrusted ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => handleToggleTrust(usr.id, !usr.isTrusted)}
+            >
+              {usr.isTrusted ? "Снять доверие" : "Доверить"}
+            </Button>
+            <Button
+              variant={usr.isBanned ? "gel" : "danger"}
+              size="sm"
+              onClick={() => handleToggleBan(usr.id, !usr.isBanned)}
+            >
+              {usr.isBanned ? "Разбанить" : "Забанить"}
+            </Button>
+            <Button variant="danger" size="sm" onClick={() => handleSoftDelete(usr.id, usr.nickname)}>
+              <Trash2 size={12} />
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const tournamentColumns: TableColumn<any>[] = [
+    { key: "name", header: "Название", render: (t) => <span className="font-bold text-[var(--text)]">{t.name}</span> },
+    { key: "disciplineName", header: "Дисциплина", render: (t) => <span className="font-mono text-[var(--text-muted)]">{t.disciplineName}</span> },
+    { key: "tournamentType", header: "Тип", render: (t) => <span className="font-mono text-[var(--text-muted)]">{t.tournamentType}</span> },
+    { key: "bracketType", header: "Сетка", render: (t) => <span className="font-mono text-[var(--text-muted)]">{t.bracketType}</span> },
+    {
+      key: "status",
+      header: "Статус",
+      render: (t) => {
+        if (t.isCompleted) return <Badge tone="draft">Завершён</Badge>;
+        if (t.isStarted) return <Badge tone="live" dot>Активен</Badge>;
+        return <Badge tone="win">Регистрация</Badge>;
+      },
+    },
+    {
+      key: "action",
+      header: "Действие",
+      render: (t) => (
+        <Button variant="secondary" size="sm" onClick={() => router.push(`/tournaments/${t.id}`)}>
+          Перейти
+        </Button>
+      ),
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-obsidian-base text-white pb-16 relative">
-      <div className="absolute inset-0 dither-overlay z-0" />
+    <div className="min-h-screen pb-16 relative">
       <Nav active="admin" profile={profile} />
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-12">
-          <h2 className="text-2xl font-bold tracking-wider uppercase flex items-center gap-2.5">
-            <Shield className="text-activeGrad-start" size={24} />
-            Панель управления системой
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <PageHeader
+            title="Панель управления системой"
+            eyebrow="Администрирование"
+            actions={
+              <Badge tone="accent">
+                <Shield size={12} weight="fill" /> Администратор
+              </Badge>
+            }
+          />
+          <p className="text-xs text-[var(--text-muted)] -mt-4 mb-6">
             Дисциплины, управление пользователями (роли, бан, доверие, удаление) и выгрузка Excel-отчётов.
           </p>
         </div>
 
         {/* Users */}
         <div className="lg:col-span-7 flex flex-col gap-6">
-          <div className="component-card-dark p-6">
-            <h3 className="text-sm uppercase font-mono tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-              <Users size={16} className="text-purple-400" />
-              Пользователи в системе ({usersList.length})
-            </h3>
-            <div className="overflow-y-auto max-h-[460px] pr-2 flex flex-col gap-3">
-              {usersList.map((usr) => (
-                <div key={usr.id} className="p-3 bg-obsidian-input border border-obsidian-border rounded flex justify-between items-center text-xs gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-bold text-slate-200">{usr.nickname}</span>
-                      <select value={usr.role} onChange={(e) => handleUpdateRole(usr.id, e.target.value)} className="bg-slate-800 text-[10px] text-slate-300 border border-slate-700 rounded px-1.5 py-0.5 font-mono cursor-pointer focus:outline-none">
-                        <option value="Player">Player</option>
-                        <option value="Organizer">Organizer</option>
-                        <option value="Admin">Admin</option>
-                      </select>
-                      {usr.isTrusted && (<span className="text-[7px] uppercase font-mono px-1 py-0.5 rounded bg-green-950/20 text-green-400 border border-green-900 font-bold">Доверенный</span>)}
-                      {usr.isBanned && (<span className="text-[7px] uppercase font-mono px-1 py-0.5 rounded bg-red-950/20 text-red-400 border border-red-900 font-bold">Забанен</span>)}
-                    </div>
-                    <span className="text-[10px] text-slate-500 font-mono truncate block">{usr.email} • {usr.elo} ELO</span>
-                  </div>
-
-                  {usr.id !== profile?.id && (
-                    <div className="flex gap-2 shrink-0">
-                      <button
-                        onClick={() => handleToggleTrust(usr.id, !usr.isTrusted)}
-                        className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition border ${usr.isTrusted ? "bg-yellow-950/20 text-yellow-400 border-yellow-900" : "bg-green-950/20 text-green-400 border-green-900"}`}
-                      >
-                        {usr.isTrusted ? "Снять доверие" : "Доверить"}
-                      </button>
-                      <button
-                        onClick={() => handleToggleBan(usr.id, !usr.isBanned)}
-                        className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition ${usr.isBanned ? "bg-green-700 hover:bg-green-600 text-white" : "bg-red-700 hover:bg-red-600 text-white"}`}
-                      >
-                        {usr.isBanned ? "Разбанить" : "Забанить"}
-                      </button>
-                      <button onClick={() => handleSoftDelete(usr.id, usr.nickname)} className="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border border-red-900/60 text-red-400 hover:bg-red-950/20">
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
+          <Window title={`Пользователи в системе (${usersList.length})`} status="done">
+            <div className="flex items-center gap-2 mb-4">
+              <Users size={16} className="text-[var(--accent)]" />
+              <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">
+                Управление пользователями
+              </span>
             </div>
-          </div>
+            <div className="overflow-y-auto max-h-[460px] pr-2">
+              <Table
+                columns={userColumns}
+                rows={usersList}
+                rowKey={(row) => row.id}
+              />
+            </div>
+          </Window>
         </div>
 
         {/* Disciplines + Reports */}
         <div className="lg:col-span-5 flex flex-col gap-6">
-          <div className="component-card-dark p-6">
-            <h3 className="text-sm uppercase font-mono tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-              <Plus size={16} className="text-activeGrad-start" />
-              Добавить дисциплину
-            </h3>
+          <Window title="Добавить дисциплину">
+            <div className="flex items-center gap-2 mb-4">
+              <Plus size={16} className="text-[var(--accent)]" />
+              <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Новая дисциплина</span>
+            </div>
             <form onSubmit={handleCreateDiscipline} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">Название *</label>
-                <input type="text" required placeholder="Например: Counter-Strike 2" className="h-9 bg-obsidian-input border border-obsidian-border rounded px-3 text-xs text-white" value={newDiscName} onChange={(e) => setNewDiscName(e.target.value)} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">Формат игры *</label>
-                <select className="h-9 bg-obsidian-input border border-obsidian-border rounded px-2 text-xs text-white" value={newDiscGameType} onChange={(e) => setNewDiscGameType(e.target.value)}>
+              <Field label="Название *">
+                <Input type="text" required placeholder="Например: Counter-Strike 2" value={newDiscName} onChange={(e) => setNewDiscName(e.target.value)} />
+              </Field>
+              <Field label="Формат игры *">
+                <Select value={newDiscGameType} onChange={(e) => setNewDiscGameType(e.target.value)}>
                   <option value="SINGLE">Одиночная (1v1)</option>
                   <option value="TEAM">Командная (Team Roster)</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">Описание правил</label>
-                <textarea placeholder="Базовые правила..." rows={2} className="bg-obsidian-input border border-obsidian-border rounded p-2.5 text-xs text-white focus:outline-none focus:border-activeGrad-start" value={newDiscRules} onChange={(e) => setNewDiscRules(e.target.value)} />
-              </div>
-              <button type="submit" className="h-9 bg-activeGrad-start hover:bg-red-600 rounded text-xs font-bold uppercase tracking-wider text-white transition mt-2">Сохранить дисциплину</button>
+                </Select>
+              </Field>
+              <Field label="Описание правил">
+                <textarea
+                  placeholder="Базовые правила..."
+                  rows={2}
+                  className="w-full p-2.5 text-[14px] font-sans text-[var(--text)] bg-[var(--panel-sunken)] border border-[var(--border)] rounded-ctl shadow-[inset_0_2px_4px_rgba(0,0,0,.12)] outline-none focus:border-[var(--accent)] focus:shadow-[inset_0_2px_4px_rgba(0,0,0,.12),0_0_0_3px_color-mix(in_srgb,var(--accent)_30%,transparent)] placeholder:text-[var(--text-muted)]"
+                  value={newDiscRules}
+                  onChange={(e) => setNewDiscRules(e.target.value)}
+                />
+              </Field>
+              <Button type="submit" variant="gel" size="sm">Сохранить дисциплину</Button>
             </form>
-          </div>
+          </Window>
 
           {/* Список дисциплин с возможностью промоута до официальной */}
-          <div className="component-card-dark p-6">
-            <h3 className="text-sm uppercase font-mono tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-              <Trophy size={16} className="text-completeGrad-mid" />
-              Справочник дисциплин ({disciplinesList.length})
-            </h3>
+          <Window title={`Справочник дисциплин (${disciplinesList.length})`}>
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy size={16} className="text-[var(--accent)]" />
+              <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Дисциплины</span>
+            </div>
             <div className="flex flex-col gap-2 max-h-[260px] overflow-y-auto pr-1">
               {disciplinesList.map((d) => (
-                <div key={d.id} className="flex justify-between items-center p-2 bg-obsidian-input border border-obsidian-border rounded text-xs">
-                  <div className="min-w-0">
-                    <span className="font-semibold text-slate-200">{d.name}</span>
-                    <span className="text-[9px] text-slate-500 font-mono ml-2">
+                <div key={d.id} className="flex justify-between items-center p-2.5 bg-[var(--panel-sunken)] border border-[var(--hairline)] rounded-ctl text-xs">
+                  <div className="min-w-0 flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-[var(--text)]">{d.name}</span>
+                    <span className="text-[10px] text-[var(--text-muted)] font-mono">
                       {d.gameType === "TEAM" ? "командная" : "одиночная"}
                     </span>
                     {d.isOfficial && (
-                      <span className="text-[7px] uppercase font-mono px-1 py-0.5 rounded bg-completeGrad-start/10 text-completeGrad-mid border border-completeGrad-start/30 font-bold ml-2">★ офиц.</span>
+                      <Badge tone="done">
+                        <Star size={10} weight="fill" /> офиц.
+                      </Badge>
                     )}
                   </div>
-                  <button
+                  <Button
+                    variant={d.isOfficial ? "secondary" : "ghost"}
+                    size="sm"
                     onClick={() => handleToggleOfficial(d.id, !d.isOfficial)}
-                    className={`px-2 py-1 rounded text-[9px] font-bold uppercase tracking-wider border shrink-0 ${
-                      d.isOfficial
-                        ? "border-slate-700 text-slate-400 hover:bg-white/5"
-                        : "border-completeGrad-start/40 text-completeGrad-mid hover:bg-completeGrad-start/10"
-                    }`}
                   >
                     {d.isOfficial ? "Понизить" : "Сделать офиц."}
-                  </button>
+                  </Button>
                 </div>
               ))}
               {disciplinesList.length === 0 && (
-                <div className="text-[10px] text-slate-500 italic font-mono text-center py-2">Дисциплин пока нет</div>
+                <EmptyState title="Нет дисциплин" hint="Дисциплин пока нет" seed="disc-empty" />
               )}
             </div>
-          </div>
+          </Window>
 
-          <div className="component-card-dark p-6">
-            <h3 className="text-sm uppercase font-mono tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-              <FileSpreadsheet size={16} className="text-green-400" />
-              Агрегированные Excel-отчёты
-            </h3>
-            <div className="flex flex-col gap-3 pb-4 mb-4 border-b border-obsidian-border/50">
-              <span className="text-xs font-bold text-slate-300 font-mono">Популярность дисциплин</span>
+          <Window title="Агрегированные Excel-отчёты">
+            <div className="flex items-center gap-2 mb-4">
+              <FileSpreadsheet size={16} className="text-[var(--status-win)]" />
+              <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Отчёты</span>
+            </div>
+            <div className="flex flex-col gap-3 pb-4 mb-4 border-b border-[var(--hairline)]">
+              <span className="text-xs font-bold text-[var(--text)] font-mono">Популярность дисциплин</span>
               <div className="grid grid-cols-2 gap-2">
-                <input type="date" className="h-8 bg-obsidian-input border border-obsidian-border rounded px-2 text-[10px] text-white font-mono" value={popReportStart} onChange={(e) => setPopReportStart(e.target.value)} />
-                <input type="date" className="h-8 bg-obsidian-input border border-obsidian-border rounded px-2 text-[10px] text-white font-mono" value={popReportEnd} onChange={(e) => setPopReportEnd(e.target.value)} />
+                <Input type="date" className="h-8 text-[10px] font-mono" value={popReportStart} onChange={(e) => setPopReportStart(e.target.value)} />
+                <Input type="date" className="h-8 text-[10px] font-mono" value={popReportEnd} onChange={(e) => setPopReportEnd(e.target.value)} />
               </div>
-              <button onClick={handleDownloadPopularityReport} className="h-8 bg-green-700 hover:bg-green-600 rounded text-[10px] font-bold uppercase tracking-wider text-white flex items-center justify-center gap-2 transition"><Download size={12} />Скачать отчёт</button>
+              <Button variant="gel" size="sm" onClick={handleDownloadPopularityReport} leftIcon={<Download size={12} />}>
+                Скачать отчёт
+              </Button>
             </div>
             <div className="flex flex-col gap-3">
-              <span className="text-xs font-bold text-slate-300 font-mono">Индивидуальный отчёт игрока</span>
-              <select className="h-8 bg-obsidian-input border border-obsidian-border rounded px-2 text-[10px] text-white" value={playerReportUserId} onChange={(e) => setPlayerReportUserId(e.target.value)}>
+              <span className="text-xs font-bold text-[var(--text)] font-mono">Индивидуальный отчёт игрока</span>
+              <Select className="h-8 text-[10px]" value={playerReportUserId} onChange={(e) => setPlayerReportUserId(e.target.value)}>
                 <option value="">-- Выберите игрока --</option>
                 {usersList.map((u) => (<option key={u.id} value={u.id}>{u.nickname} ({u.role})</option>))}
-              </select>
+              </Select>
               <div className="grid grid-cols-2 gap-2">
-                <input type="date" className="h-8 bg-obsidian-input border border-obsidian-border rounded px-2 text-[10px] text-white font-mono" value={playerReportStart} onChange={(e) => setPlayerReportStart(e.target.value)} />
-                <input type="date" className="h-8 bg-obsidian-input border border-obsidian-border rounded px-2 text-[10px] text-white font-mono" value={playerReportEnd} onChange={(e) => setPlayerReportEnd(e.target.value)} />
+                <Input type="date" className="h-8 text-[10px] font-mono" value={playerReportStart} onChange={(e) => setPlayerReportStart(e.target.value)} />
+                <Input type="date" className="h-8 text-[10px] font-mono" value={playerReportEnd} onChange={(e) => setPlayerReportEnd(e.target.value)} />
               </div>
-              <button onClick={handleDownloadPlayerReport} className="h-8 bg-green-700 hover:bg-green-600 rounded text-[10px] font-bold uppercase tracking-wider text-white flex items-center justify-center gap-2 transition"><Download size={12} />Сформировать отчёт</button>
+              <Button variant="gel" size="sm" onClick={handleDownloadPlayerReport} leftIcon={<Download size={12} />}>
+                Сформировать отчёт
+              </Button>
             </div>
-          </div>
+          </Window>
         </div>
 
         {/* Tournaments */}
         <div className="lg:col-span-12 mt-6">
-          <div className="component-card-dark p-6">
-            <h3 className="text-sm uppercase font-mono tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-              <Trophy size={16} className="text-completeGrad-mid" />
-              Все турниры ({tournamentsList.length})
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-obsidian-border text-slate-400 uppercase font-mono text-[9px] tracking-wider">
-                  <tr>
-                    <th className="p-3.5">Название</th>
-                    <th className="p-3.5">Дисциплина</th>
-                    <th className="p-3.5">Тип</th>
-                    <th className="p-3.5">Сетка</th>
-                    <th className="p-3.5 text-center">Статус</th>
-                    <th className="p-3.5 text-right pr-6">Действие</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-obsidian-border">
-                  {tournamentsList.map((t) => {
-                    let statusLabel = "Регистрация";
-                    let statusColor = "bg-green-950/20 text-green-400 border border-green-900";
-                    if (t.isCompleted) { statusLabel = "Завершён"; statusColor = "bg-slate-900 text-slate-400 border border-slate-700"; }
-                    else if (t.isStarted) { statusLabel = "Активен"; statusColor = "bg-activeGrad-start/20 text-activeGrad-start border border-activeGrad-start"; }
-                    return (
-                      <tr key={t.id} className="hover:bg-white/5 transition-colors">
-                        <td className="p-3.5 font-bold text-slate-200">{t.name}</td>
-                        <td className="p-3.5 font-mono text-slate-400">{t.disciplineName}</td>
-                        <td className="p-3.5 font-mono text-slate-400">{t.tournamentType}</td>
-                        <td className="p-3.5 font-mono text-slate-400">{t.bracketType}</td>
-                        <td className="p-3.5 text-center"><span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded border uppercase ${statusColor}`}>{statusLabel}</span></td>
-                        <td className="p-3.5 text-right pr-6">
-                          <button onClick={() => router.push(`/tournaments/${t.id}`)} className="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-[10px] font-bold uppercase tracking-wider text-slate-300 hover:text-white transition">Перейти</button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {tournamentsList.length === 0 && (<tr><td colSpan={6} className="p-8 text-center text-slate-500 font-mono italic">В системе пока нет турниров.</td></tr>)}
-                </tbody>
-              </table>
+          <Window title={`Все турниры (${tournamentsList.length})`} status={tournamentsList.some(t => t.isStarted && !t.isCompleted) ? "live" : null}>
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy size={16} className="text-[var(--accent)]" />
+              <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Все турниры</span>
             </div>
-          </div>
+            <div className="overflow-x-auto">
+              {tournamentsList.length > 0 ? (
+                <Table
+                  columns={tournamentColumns}
+                  rows={tournamentsList}
+                  rowKey={(row) => row.id}
+                />
+              ) : (
+                <EmptyState title="Нет турниров" hint="В системе пока нет турниров." seed="tournaments-admin-empty" />
+              )}
+            </div>
+          </Window>
         </div>
       </div>
     </div>

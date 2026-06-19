@@ -8,6 +8,15 @@ import { Nav } from "../../components/Nav";
 import { apiFetch, fetchProfile, setSession, clearSession } from "../../lib/api";
 import { useToast } from "../../components/Toast";
 import { useConfirm } from "../../components/ConfirmDialog";
+import { Window, Card } from "../../components/ui/Window";
+import { Button } from "../../components/ui/Button";
+import { Badge } from "../../components/ui/Badge";
+import { Table } from "../../components/ui/Table";
+import { Modal } from "../../components/ui/Modal";
+import { Field, Input } from "../../components/ui/Field";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { EmptyState } from "../../components/ui/EmptyState";
+import type { TableColumn } from "../../components/ui/Table";
 import {
   Trophy,
   Users,
@@ -16,6 +25,7 @@ import {
   TrendUp as TrendingUp,
   PencilSimple,
   DiscordLogo,
+  Check,
 } from "@phosphor-icons/react";
 
 export default function DashboardPage() {
@@ -158,7 +168,7 @@ export default function DashboardPage() {
   };
 
   const handleDisbandTeam = async (teamId: string, teamName: string) => {
-    if (!(await confirm(`Распустить команду «${teamName}»? Действие необратимо.`))) return;
+    if (!(await confirm(`Распустить команду \"${teamName}\"? Действие необратимо.`))) return;
     try {
       const res = await apiFetch(`/users/teams/${teamId}`, { method: "DELETE" });
       const data = await res.json();
@@ -234,116 +244,108 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-obsidian-base flex items-center justify-center text-white">
-        <span className="text-xs font-mono uppercase tracking-widest animate-pulse">Загрузка кабинета...</span>
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="text-xs font-mono uppercase tracking-widest animate-pulse text-[var(--text-muted)]">Загрузка кабинета...</span>
       </div>
     );
   }
 
   const isCaptain = (team: any) => team.captainId === profile?.id;
 
+  const disciplineColumns: TableColumn<any>[] = [
+    { key: "disciplineName", header: "Дисциплина", render: (row: any) => <span className="font-semibold">{row.disciplineName}</span> },
+    { key: "matchesCount", header: "Матчи", numeric: true },
+    { key: "winsCount", header: "Победы", numeric: true, render: (row: any) => <span className="text-[var(--status-win)]">{row.winsCount}</span> },
+    { key: "losses", header: "Поражения", numeric: true, render: (row: any) => <span className="text-[var(--status-danger)]">{row.matchesCount - row.winsCount}</span> },
+    { key: "winrate", header: "Винрейт", numeric: true, render: (row: any) => <span>{row.matchesCount > 0 ? `${Math.round((row.winsCount / row.matchesCount) * 100)}%` : "0%"}</span> },
+    { key: "eloDelta", header: "ELO Delta", numeric: true, render: (row: any) => <span className={`font-bold ${row.eloDelta >= 0 ? "text-[var(--status-win)]" : "text-[var(--status-danger)]"}`}>{row.eloDelta >= 0 ? `+${row.eloDelta}` : row.eloDelta}</span> },
+  ];
+
   return (
-    <div className="min-h-screen bg-obsidian-base text-white pb-16 relative">
-      <div className="absolute inset-0 dither-overlay z-0" />
+    <div className="min-h-screen pb-16 relative">
       <Nav active="dashboard" profile={profile} />
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 flex flex-col gap-8">
           {/* Profile */}
-          <div className="component-card-dark p-6 flex items-center gap-6">
-            <FractalAvatar seed={profile?.id} size={70} />
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className="text-lg font-bold text-slate-100">{profile?.nickname}</span>
-                <span className="text-[8px] bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded uppercase font-bold text-slate-400">{profile?.role}</span>
-                {profile?.discordLinked && (
-                  <span className="text-[8px] bg-[#5865F2]/20 border border-[#5865F2]/50 px-1.5 py-0.5 rounded uppercase font-bold text-[#aab2ff] flex items-center gap-1">
-                    <DiscordLogo size={10} weight="fill" /> Discord
-                  </span>
+          <Window title="Профиль">
+            <div className="flex items-center gap-6">
+              <FractalAvatar seed={profile?.id} size={70} />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="text-lg font-bold text-[var(--text)]">{profile?.nickname}</span>
+                  <Badge tone="draft">{profile?.role}</Badge>
+                  {profile?.discordLinked && (
+                    <Badge tone="accent">
+                      <DiscordLogo size={10} weight="fill" /> Discord
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-[var(--text-muted)]">{profile?.email}</p>
+                {(profile?.fullName || profile?.phone) && (
+                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                    {profile?.fullName}{profile?.fullName && profile?.phone ? " | " : ""}{profile?.phone}
+                  </p>
                 )}
-              </div>
-              <p className="text-xs text-slate-400">{profile?.email}</p>
-              {(profile?.fullName || profile?.phone) && (
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  {profile?.fullName}{profile?.fullName && profile?.phone ? " • " : ""}{profile?.phone}
-                </p>
-              )}
-              <div className="flex gap-6 mt-3">
-                <div>
-                  <span className="text-[10px] uppercase font-mono text-slate-500 block">Рейтинг ELO</span>
-                  <span className="text-sm font-bold text-completeGrad-mid">{profile?.elo} очков</span>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-mono text-slate-500 block">Участник с</span>
-                  <span className="text-xs text-slate-300 font-semibold">{new Date(profile?.createdAt).toLocaleDateString("ru-RU")}</span>
+                <div className="flex gap-6 mt-3">
+                  <div>
+                    <span className="text-[10px] uppercase font-cond text-[var(--text-muted)] block">Рейтинг ELO</span>
+                    <span className="text-sm font-bold text-[var(--status-done)]">{profile?.elo} очков</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-cond text-[var(--text-muted)] block">Участник с</span>
+                    <span className="text-xs text-[var(--text)] font-semibold">{new Date(profile?.createdAt).toLocaleDateString("ru-RU")}</span>
+                  </div>
                 </div>
               </div>
+              <div className="flex flex-col gap-2">
+                <Button variant="secondary" size="sm" leftIcon={<PencilSimple size={12} />} onClick={openEdit}>
+                  Изменить
+                </Button>
+                <Button variant="danger" size="sm" leftIcon={<Trash2 size={12} />} onClick={handleDeleteAccount}>
+                  Удалить
+                </Button>
+              </div>
             </div>
-            <div className="flex flex-col gap-2">
-              <button onClick={openEdit} className="px-3 py-1.5 rounded border border-obsidian-border hover:bg-white/5 text-[10px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                <PencilSimple size={12} /> Изменить
-              </button>
-              <button onClick={handleDeleteAccount} className="px-3 py-1.5 rounded border border-red-900/60 text-red-400 hover:bg-red-950/20 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                <Trash2 size={12} /> Удалить
-              </button>
-            </div>
-          </div>
+          </Window>
 
           <EloChart history={eloHistory} />
 
           {/* Discipline stats */}
-          <div className="component-card-dark p-6">
-            <h3 className="text-sm uppercase font-mono tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-              <TrendingUp size={16} className="text-completeGrad-mid" />
-              Статистика по дисциплинам
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-obsidian-border text-slate-400 uppercase font-mono text-[9px] tracking-wider">
-                  <tr>
-                    <th className="p-3">Дисциплина</th>
-                    <th className="p-3 text-center">Матчи</th>
-                    <th className="p-3 text-center">Победы</th>
-                    <th className="p-3 text-center">Поражения</th>
-                    <th className="p-3 text-center">Винрейт</th>
-                    <th className="p-3 text-right">ELO Δ</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-obsidian-border">
-                  {disciplineStats.map((row: any) => {
-                    const winrate = row.matchesCount > 0 ? `${Math.round((row.winsCount / row.matchesCount) * 100)}%` : "0%";
-                    const losses = row.matchesCount - row.winsCount;
-                    return (
-                      <tr key={row.disciplineId} className="hover:bg-white/5 transition-colors">
-                        <td className="p-3 font-semibold text-slate-200">{row.disciplineName}</td>
-                        <td className="p-3 text-center font-mono">{row.matchesCount}</td>
-                        <td className="p-3 text-center font-mono text-green-400">{row.winsCount}</td>
-                        <td className="p-3 text-center font-mono text-red-400">{losses}</td>
-                        <td className="p-3 text-center font-mono">{winrate}</td>
-                        <td className={`p-3 text-right font-mono font-bold ${row.eloDelta >= 0 ? "text-green-400" : "text-red-400"}`}>
-                          {row.eloDelta >= 0 ? `+${row.eloDelta}` : row.eloDelta}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {disciplineStats.length === 0 && (
-                    <tr><td colSpan={6} className="p-6 text-center text-slate-500 italic font-mono">Пока нет сыгранных матчей в официальных дисциплинах.</td></tr>
-                  )}
-                </tbody>
-              </table>
+          <Window title="Статистика по дисциплинам" status={disciplineStats.length > 0 ? "done" : null}>
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp size={16} className="text-[var(--status-done)]" />
+              <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Статистика по дисциплинам</span>
             </div>
-          </div>
+            {disciplineStats.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table
+                  columns={disciplineColumns}
+                  rows={disciplineStats}
+                  rowKey={(row) => row.disciplineId}
+                />
+              </div>
+            ) : (
+              <EmptyState
+                title="Нет сыгранных матчей"
+                hint="Пока нет сыгранных матчей в официальных дисциплинах."
+                seed="stats-empty"
+              />
+            )}
+          </Window>
 
           {/* Teams */}
           <div>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm uppercase font-mono tracking-wider text-slate-400 flex items-center gap-2">
-                <Users size={16} className="text-purple-400" />
-                Мои команды
-              </h3>
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-[var(--accent)]" />
+                <span className="font-cond font-semibold uppercase tracking-[.06em] text-[12px] text-[var(--text-muted)]">Мои команды</span>
+              </div>
               <form onSubmit={handleCreateTeam} className="flex gap-2">
-                <input type="text" required placeholder="Название новой команды" className="h-8 bg-obsidian-input border border-obsidian-border rounded px-3 text-xs text-white focus:outline-none" value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} />
-                <button type="submit" className="h-8 w-8 bg-activeGrad-start hover:bg-red-600 rounded flex items-center justify-center text-white"><Plus size={16} /></button>
+                <Input type="text" required placeholder="Название новой команды" className="h-8 w-auto" value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} />
+                <Button variant="gel" size="sm" type="submit" leftIcon={<Plus size={14} />}>
+                  Создать
+                </Button>
               </form>
             </div>
 
@@ -352,15 +354,15 @@ export default function DashboardPage() {
                 const members = teamMembers[team.teamId] || [];
                 const captain = isCaptain(team);
                 return (
-                  <div key={team.teamId} className="component-card-dark p-5">
+                  <Window key={team.teamId} title={team.teamName}>
                     <div className="flex justify-between items-center mb-4">
-                      <h4 className="font-bold text-sm text-slate-200">{team.teamName}</h4>
+                      <h4 className="font-bold text-sm text-[var(--text)]">{team.teamName}</h4>
                       <div className="flex items-center gap-2">
-                        <span className="text-[8px] uppercase font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">{captain ? "Капитан" : "Состав"}</span>
+                        <Badge tone={captain ? "accent" : "draft"}>{captain ? "Капитан" : "Состав"}</Badge>
                         {captain ? (
-                          <button onClick={() => handleDisbandTeam(team.teamId, team.teamName)} className="text-[8px] uppercase font-mono px-2 py-0.5 rounded border border-red-900/60 text-red-400 hover:bg-red-950/20">Распустить</button>
+                          <Button variant="danger" size="sm" onClick={() => handleDisbandTeam(team.teamId, team.teamName)}>Распустить</Button>
                         ) : (
-                          <button onClick={() => handleLeaveTeam(team.teamId)} className="text-[8px] uppercase font-mono px-2 py-0.5 rounded border border-red-900/60 text-red-400 hover:bg-red-950/20">Выйти</button>
+                          <Button variant="danger" size="sm" onClick={() => handleLeaveTeam(team.teamId)}>Выйти</Button>
                         )}
                       </div>
                     </div>
@@ -368,37 +370,48 @@ export default function DashboardPage() {
                     {captain && (
                       <div className="flex flex-col gap-2 mb-4">
                         <div className="flex gap-2">
-                          <input type="text" placeholder="Никнейм игрока..." className="h-7 flex-1 bg-obsidian-input border border-obsidian-border rounded px-2.5 text-xs text-white focus:outline-none" value={newMemberNickname[team.teamId] || ""} onChange={(e) => setNewMemberNickname((prev) => ({ ...prev, [team.teamId]: e.target.value }))} />
-                          <button onClick={() => handleAddMember(team.teamId)} className="h-7 px-3 bg-completeGrad-start hover:bg-blue-600 rounded text-[10px] font-bold uppercase tracking-wider text-white">Добавить</button>
+                          <Input type="text" placeholder="Никнейм игрока..." className="h-7 flex-1" value={newMemberNickname[team.teamId] || ""} onChange={(e) => setNewMemberNickname((prev) => ({ ...prev, [team.teamId]: e.target.value }))} />
+                          <Button variant="gel" size="sm" onClick={() => handleAddMember(team.teamId)}>Добавить</Button>
                         </div>
-                        <button onClick={() => handleCopyTeamInvite(team.teamId)} className="h-7 px-3 border border-obsidian-border hover:bg-white/5 rounded text-[10px] font-bold uppercase tracking-wider text-slate-300">
-                          {copiedTeamId === team.teamId ? "✓ Ссылка скопирована" : "Пригласить по ссылке"}
-                        </button>
+                        <Button variant="secondary" size="sm" onClick={() => handleCopyTeamInvite(team.teamId)}>
+                          {copiedTeamId === team.teamId ? (
+                            <><Check size={12} /> Ссылка скопирована</>
+                          ) : "Пригласить по ссылке"}
+                        </Button>
                       </div>
                     )}
 
                     {/* Roster */}
                     <div className="flex flex-col gap-1.5">
                       {members.map((mem) => (
-                        <div key={mem.playerId} className="flex justify-between items-center text-xs px-2 py-1.5 bg-obsidian-input border border-obsidian-border rounded">
-                          <span className="text-slate-300">
+                        <div key={mem.playerId} className="flex justify-between items-center text-xs px-2 py-1.5 bg-[var(--panel-sunken)] border border-[var(--hairline)] rounded-ctl">
+                          <span className="text-[var(--text)]">
                             {mem.nickname}
-                            {mem.playerId === team.captainId && <span className="text-[8px] text-yellow-400 ml-2 font-mono uppercase">капитан</span>}
+                            {mem.playerId === team.captainId && <span className="text-[8px] text-[var(--status-live)] ml-2 font-cond uppercase">капитан</span>}
                           </span>
                           {captain && mem.playerId !== team.captainId && (
-                            <button onClick={() => handleRemoveMember(team.teamId, mem.playerId)} className="p-1 text-red-400 hover:bg-white/5 rounded"><Trash2 size={12} /></button>
+                            <button onClick={() => handleRemoveMember(team.teamId, mem.playerId)} className="p-1 text-[var(--status-danger)] hover:bg-[color-mix(in_srgb,var(--status-danger)_10%,transparent)] rounded">
+                              <Trash2 size={12} />
+                            </button>
                           )}
                         </div>
                       ))}
                       {members.length === 0 && (
-                        <span className="text-[10px] text-slate-500 italic font-mono">Состав пуст</span>
+                        <span className="text-[10px] text-[var(--text-muted)] italic font-mono">Состав пуст</span>
                       )}
                     </div>
-                  </div>
+                  </Window>
                 );
               })}
               {joinedTeams.length === 0 && (
-                <div className="md:col-span-2 component-card-dark p-6 text-center text-slate-500 text-xs font-mono">Вы пока не состоите ни в одной команде. Создайте свою!</div>
+                <div className="md:col-span-2">
+                  <EmptyState
+                    title="Нет команд"
+                    hint="Вы пока не состоите ни в одной команде. Создайте свою!"
+                    seed="teams-empty"
+                    action={<Button variant="gel" size="sm" leftIcon={<Plus size={14} />} onClick={() => document.querySelector<HTMLInputElement>('input[placeholder="Название новой команды"]')?.focus()}>Создать команду</Button>}
+                  />
+                </div>
               )}
             </div>
           </div>
@@ -406,59 +419,63 @@ export default function DashboardPage() {
 
         {/* Tournament history */}
         <div className="lg:col-span-4">
-          <h3 className="text-sm uppercase font-mono tracking-wider text-slate-400 mb-6 flex items-center gap-2">
-            <Trophy size={16} className="text-activeGrad-start" />
-            История турниров ({tournamentsHistory.length})
-          </h3>
+          <div className="flex items-center gap-2 mb-6">
+            <Trophy size={16} className="text-[var(--accent)]" />
+            <span className="font-cond font-semibold uppercase tracking-[.06em] text-[12px] text-[var(--text-muted)]">
+              История турниров ({tournamentsHistory.length})
+            </span>
+          </div>
           <div className="flex flex-col gap-4">
             {tournamentsHistory.map((h) => (
-              <div key={h.participantId} className="component-card-dark p-4">
+              <Card key={h.participantId}>
                 <div className="flex justify-between items-start mb-2">
-                  <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded border uppercase ${h.status === "APPROVED" ? "bg-green-950/20 text-green-400 border-green-900" : h.status === "PENDING" ? "bg-yellow-950/20 text-yellow-400 border-yellow-900" : "bg-red-950/20 text-red-400 border-red-900"}`}>
-                    {h.status === "APPROVED" ? "Принят" : h.status === "PENDING" ? "Заявка" : "Отклонён"}
-                  </span>
-                  <span className="text-[8px] text-slate-500 font-mono">{new Date(h.joinedAt).toLocaleDateString("ru-RU")}</span>
+                  <Badge tone={h.status === "APPROVED" ? "win" : h.status === "PENDING" ? "live" : "danger"}>
+                    {h.status === "APPROVED" ? "Принят" : h.status === "PENDING" ? "Заявка" : "Отклонен"}
+                  </Badge>
+                  <span className="text-[8px] text-[var(--text-muted)] font-mono">{new Date(h.joinedAt).toLocaleDateString("ru-RU")}</span>
                 </div>
-                <h4 onClick={() => router.push(`/tournaments/${h.tournamentId}`)} className="font-bold text-xs text-slate-200 hover:text-completeGrad-mid hover:underline cursor-pointer">{h.tournamentName}</h4>
-                <div className="flex justify-between items-center mt-2.5 pt-2.5 border-t border-obsidian-border text-[9px] text-slate-500 font-medium">
+                <h4 onClick={() => router.push(`/tournaments/${h.tournamentId}`)} className="font-bold text-xs text-[var(--text)] hover:text-[var(--accent)] hover:underline cursor-pointer">{h.tournamentName}</h4>
+                <div className="flex justify-between items-center mt-2.5 pt-2.5 border-t border-[var(--hairline)] text-[9px] text-[var(--text-muted)] font-medium">
                   <span>{h.disciplineName}</span>
                   <span className="uppercase">{h.bracketType}</span>
                 </div>
-              </div>
+              </Card>
             ))}
             {tournamentsHistory.length === 0 && (
-              <div className="component-card-dark p-6 text-center text-slate-500 text-xs font-mono">Вы пока не подавали заявок на участие.</div>
+              <EmptyState
+                title="Нет заявок"
+                hint="Вы пока не подавали заявок на участие."
+                seed="history-empty"
+              />
             )}
           </div>
         </div>
       </div>
 
       {/* Edit profile modal */}
-      {editOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md component-card-dark p-6">
-            <h4 className="font-bold text-sm text-slate-200 border-b border-obsidian-border pb-3 mb-4 uppercase tracking-wider">Редактирование профиля</h4>
-            <form onSubmit={handleSaveProfile} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">ФИО</label>
-                <input type="text" className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3.5 text-xs text-white" value={editFullName} onChange={(e) => setEditFullName(e.target.value)} placeholder="Иванов Иван Иванович" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">Контактный телефон</label>
-                <input type="tel" className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3.5 text-xs text-white" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+7 ..." />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">Новый пароль (оставьте пустым, чтобы не менять)</label>
-                <input type="password" minLength={6} className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3.5 text-xs text-white" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="Минимум 6 символов" />
-              </div>
-              <div className="flex gap-3 mt-2">
-                <button type="button" onClick={() => setEditOpen(false)} className="h-10 flex-1 border border-obsidian-border hover:bg-white/5 rounded text-xs font-bold uppercase tracking-wider text-slate-400">Отмена</button>
-                <button type="submit" className="h-10 flex-1 bg-activeGrad-start hover:bg-red-600 rounded text-xs font-bold uppercase tracking-wider text-white shadow-lg">Сохранить</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={editOpen}
+        title="Редактирование профиля"
+        onClose={() => setEditOpen(false)}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setEditOpen(false)}>Отмена</Button>
+            <Button variant="gel" type="submit" form="edit-profile-form">Сохранить</Button>
+          </>
+        }
+      >
+        <form id="edit-profile-form" onSubmit={handleSaveProfile} className="flex flex-col gap-4">
+          <Field label="ФИО">
+            <Input type="text" value={editFullName} onChange={(e) => setEditFullName(e.target.value)} placeholder="Иванов Иван Иванович" />
+          </Field>
+          <Field label="Контактный телефон">
+            <Input type="tel" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+7 ..." />
+          </Field>
+          <Field label="Новый пароль (оставьте пустым, чтобы не менять)">
+            <Input type="password" minLength={6} value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="Минимум 6 символов" />
+          </Field>
+        </form>
+      </Modal>
     </div>
   );
 }

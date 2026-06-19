@@ -2,11 +2,45 @@
 
 import React, { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { Sun, Moon } from "@phosphor-icons/react";
+import { Button } from "./ui/Button";
+
+/* SVG icons from design-preview.html */
+const SunIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5" />
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M21 12.5A8.5 8.5 0 1 1 11.5 3 6.5 6.5 0 0 0 21 12.5z" />
+  </svg>
+);
 
 /**
- * Переключатель тёмной/светлой темы. До монтирования рендерим плейсхолдер,
- * т.к. реальная тема известна только на клиенте (иначе hydration mismatch).
+ * Theme toggle button. Shows sun in dark mode and moon in light mode.
+ * Renders a placeholder before client mount to avoid hydration mismatch.
  */
 export const ThemeToggle: React.FC<{ className?: string }> = ({ className }) => {
   const { resolvedTheme, setTheme } = useTheme();
@@ -15,22 +49,26 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className }) => 
 
   const isDark = resolvedTheme === "dark";
 
-  const base =
-    "flex items-center justify-center w-8 h-8 rounded border border-obsidian-border text-[var(--text-muted)] hover:text-[var(--text-core)] hover:bg-white/5 transition";
-
   if (!mounted) {
-    return <div className={`${base} ${className || ""}`} aria-hidden />;
+    return (
+      <span
+        className={["inline-flex w-8 h-8", className].filter(Boolean).join(" ")}
+        aria-hidden
+      />
+    );
   }
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
+      size="sm"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className={`${base} ${className || ""}`}
       aria-label={isDark ? "Включить светлую тему" : "Включить тёмную тему"}
       title={isDark ? "Светлая тема" : "Тёмная тема"}
+      className={className}
+      style={{ width: 32, height: 32, padding: 0 }}
     >
-      {isDark ? <Sun size={16} /> : <Moon size={16} />}
-    </button>
+      {isDark ? <SunIcon /> : <MoonIcon />}
+    </Button>
   );
 };

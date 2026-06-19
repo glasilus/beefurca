@@ -13,7 +13,7 @@ keys/
 *.log
 .pnpm-debug.log*
 .turbo/
-docs/node_modules
+docs/
 .next
 dist
 .turbo

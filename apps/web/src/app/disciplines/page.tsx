@@ -2,9 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Trophy, Pulse as Activity, Medal as Award, ArrowRight } from "@phosphor-icons/react";
+import { Trophy, Pulse as Activity, Medal as Award, ArrowRight, Star, SealCheck } from "@phosphor-icons/react";
 import { apiFetch, fetchProfile, setSession } from "../../lib/api";
 import { Nav } from "../../components/Nav";
+import { Window, Card } from "../../components/ui/Window";
+import { Button } from "../../components/ui/Button";
+import { Badge } from "../../components/ui/Badge";
+import { Table } from "../../components/ui/Table";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { FractalMedallion } from "../../components/Fractal";
+import type { TableColumn } from "../../components/ui/Table";
 
 export default function DisciplinesPage() {
   const router = useRouter();
@@ -68,50 +76,91 @@ export default function DisciplinesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-obsidian-base flex items-center justify-center text-white">
-        <span className="text-xs font-mono uppercase tracking-widest animate-pulse">Загрузка дисциплин...</span>
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="text-xs font-mono uppercase tracking-widest animate-pulse text-[var(--text-muted)]">Загрузка дисциплин...</span>
       </div>
     );
   }
 
-  const renderTournamentCard = (t: any, accent: string) => (
-    <div key={t.id} className={`component-card-dark p-4 flex flex-col justify-between min-h-[130px] border ${accent}`}>
-      <div>
-        <span className="text-[7px] bg-slate-800 border border-slate-700 px-1 py-0.5 rounded font-mono text-slate-400 font-bold uppercase mb-2 inline-block">{t.tournamentType}</span>
-        <h5 className="font-bold text-xs text-slate-200 line-clamp-2">{t.name}</h5>
+  const leaderboardColumns: TableColumn<any>[] = [
+    {
+      key: "rank",
+      header: "Место",
+      numeric: true,
+      render: (_row, index) => <span className="font-mono font-bold text-[var(--text-muted)]">{index + 1}</span>,
+    },
+    {
+      key: "nickname",
+      header: "Никнейм",
+      render: (row) => <span className="font-semibold text-[var(--text)]">{row.nickname}</span>,
+    },
+    {
+      key: "elo",
+      header: "Рейтинг ELO",
+      numeric: true,
+      render: (row) => <span className="font-mono font-bold text-[var(--status-done)]">{row.elo}</span>,
+    },
+  ];
+
+  const planned = tournaments.filter((t) => !t.isStarted && !t.isCompleted);
+  const active = tournaments.filter((t) => t.isStarted && !t.isCompleted);
+  const completed = tournaments.filter((t) => t.isCompleted);
+
+  const renderTournamentCard = (t: any) => (
+    <Card key={t.id}>
+      <div className="flex flex-col justify-between min-h-[110px]">
+        <div>
+          <Badge tone="draft" className="mb-2">{t.tournamentType}</Badge>
+          <h5 className="font-bold text-xs text-[var(--text)] line-clamp-2">{t.name}</h5>
+        </div>
+        <div className="mt-4 pt-3 border-t border-[var(--hairline)] flex items-center justify-between">
+          <span className="text-[9px] text-[var(--text-muted)] font-mono">{new Date(t.startDate).toLocaleDateString("ru-RU")}</span>
+          <Button variant="secondary" size="sm" onClick={() => router.push(`/tournaments/${t.id}`)}>
+            <span>Открыть</span><ArrowRight size={10} />
+          </Button>
+        </div>
       </div>
-      <div className="mt-4 pt-3 border-t border-obsidian-border/50 flex items-center justify-between">
-        <span className="text-[8px] text-slate-500 font-mono">{new Date(t.startDate).toLocaleDateString("ru-RU")}</span>
-        <button onClick={() => router.push(`/tournaments/${t.id}`)} className="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-[9px] font-bold uppercase text-slate-300 hover:text-white transition flex items-center gap-1">
-          <span>Открыть</span><ArrowRight size={10} />
-        </button>
-      </div>
-    </div>
+    </Card>
   );
 
   return (
-    <div className="min-h-screen bg-obsidian-base text-white pb-16 relative">
-      <div className="absolute inset-0 dither-overlay z-0" />
+    <div className="min-h-screen pb-16 relative">
       <Nav active="disciplines" profile={profile} />
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-4 flex flex-col gap-6">
           <div>
-            <h3 className="text-sm uppercase font-mono tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-              <Activity size={16} className="text-activeGrad-start" />
-              Список дисциплин
-            </h3>
+            <div className="flex items-center gap-2 mb-4">
+              <Activity size={16} className="text-[var(--accent)]" />
+              <span className="font-cond font-semibold uppercase tracking-[.06em] text-[12px] text-[var(--text-muted)]">Список дисциплин</span>
+            </div>
             <div className="flex flex-col gap-3">
               {disciplines.map((disc) => (
-                <div key={disc.id} onClick={() => selectDiscipline(disc)} className={`component-card-dark p-4 cursor-pointer border transition-all ${selectedDiscipline?.id === disc.id ? "border-activeGrad-start bg-activeGrad-start/5" : "border-obsidian-border hover:border-slate-700"}`}>
-                  <h4 className="font-bold text-sm text-slate-200">{disc.name}</h4>
-                  <div className="flex justify-between items-center mt-2.5 text-[9px] text-slate-500 font-mono">
-                    <span>{disc.gameType === "TEAM" ? "Командная" : "Одиночная"}</span>
+                <Card
+                  key={disc.id}
+                  onClick={() => selectDiscipline(disc)}
+                  className={`cursor-pointer transition-all ${selectedDiscipline?.id === disc.id ? "!border-[var(--accent)] ring-1 ring-[var(--accent)]" : "hover:border-[var(--text-muted)]"}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <FractalMedallion seed={disc.name} size={40} />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-sm text-[var(--text)]">{disc.name}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                          {disc.gameType === "TEAM" ? "Командная" : "Одиночная"}
+                        </span>
+                        {disc.isOfficial ? (
+                          <Badge tone="done"><Star size={9} weight="fill" /> Официальная</Badge>
+                        ) : (
+                          <Badge tone="draft">Пользовательская</Badge>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </Card>
               ))}
               {disciplines.length === 0 && (
-                <div className="component-card-dark p-6 text-center text-slate-500 text-xs font-mono">Дисциплины пока не зарегистрированы.</div>
+                <EmptyState title="Нет дисциплин" hint="Дисциплины пока не зарегистрированы." seed="disc-empty" />
               )}
             </div>
           </div>
@@ -120,94 +169,84 @@ export default function DisciplinesPage() {
         <div className="lg:col-span-8 flex flex-col gap-8">
           {selectedDiscipline && (
             <>
-              <div className="component-card-dark p-6">
-                <div className="flex items-center gap-2.5 mb-2">
-                  <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 uppercase font-mono text-slate-400">
+              <Window title={selectedDiscipline.name} status={selectedDiscipline.isOfficial ? "done" : "draft"}>
+                <div className="flex items-center gap-2.5 mb-3">
+                  <Badge tone="draft">
                     {selectedDiscipline.gameType === "TEAM" ? "Командный формат" : "Одиночный формат"}
-                  </span>
-                  <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded border uppercase font-mono ${
-                    selectedDiscipline.isOfficial
-                      ? "border-completeGrad-start/30 bg-completeGrad-start/10 text-completeGrad-mid"
-                      : "border-slate-700 bg-slate-800 text-slate-400"
-                  }`}>
-                    {selectedDiscipline.isOfficial ? "★ Официальная" : "Пользовательская"}
-                  </span>
+                  </Badge>
+                  {selectedDiscipline.isOfficial ? (
+                    <Badge tone="done"><SealCheck size={10} weight="fill" /> Официальная</Badge>
+                  ) : (
+                    <Badge tone="draft">Пользовательская</Badge>
+                  )}
                 </div>
-                <h3 className="text-xl font-bold text-slate-100">{selectedDiscipline.name}</h3>
+                <h3 className="text-xl font-display font-bold text-[var(--text)]">{selectedDiscipline.name}</h3>
                 {selectedDiscipline.rules && (
-                  <div className="mt-4 pt-4 border-t border-obsidian-border text-xs text-slate-400 leading-relaxed">
-                    <h5 className="font-bold font-mono text-slate-300 mb-2 uppercase text-[9px]">Правила и регламент:</h5>
+                  <div className="mt-4 pt-4 border-t border-[var(--hairline)] text-xs text-[var(--text-muted)] leading-relaxed">
+                    <h5 className="font-bold font-cond text-[var(--text)] mb-2 uppercase text-[10px]">Правила и регламент:</h5>
                     <p>{selectedDiscipline.rules}</p>
                   </div>
                 )}
-              </div>
+              </Window>
 
-              <div>
-                <h3 className="text-sm uppercase font-mono tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-                  <Award size={16} className="text-completeGrad-mid" />
-                  Рейтинг игроков в дисциплине
-                </h3>
-                <div className="component-card-dark overflow-hidden">
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-obsidian-border text-slate-400 uppercase font-mono text-[9px] tracking-wider">
-                      <tr>
-                        <th className="p-3.5 text-center w-16">Место</th>
-                        <th className="p-3.5">Никнейм</th>
-                        <th className="p-3.5 text-right pr-6">Рейтинг ELO</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-obsidian-border">
-                      {leaderboardLoading ? (
-                        <tr><td colSpan={3} className="p-8 text-center text-slate-500 font-mono italic">Загрузка...</td></tr>
-                      ) : leaderboard.map((row, index) => (
-                        <tr key={row.id} className="hover:bg-white/5 transition-colors">
-                          <td className="p-3.5 text-center font-mono font-bold text-slate-400">{index + 1}</td>
-                          <td className="p-3.5 font-semibold text-slate-200">{row.nickname}</td>
-                          <td className="p-3.5 text-right font-mono font-bold text-completeGrad-mid pr-6">{row.elo}</td>
-                        </tr>
-                      ))}
-                      {!leaderboardLoading && leaderboard.length === 0 && (
-                        <tr><td colSpan={3} className="p-8 text-center text-slate-500 font-mono italic">В этой дисциплине пока нет рейтинговых игроков.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
+              <Window title="Рейтинг игроков в дисциплине">
+                <div className="flex items-center gap-2 mb-4">
+                  <Award size={16} className="text-[var(--status-done)]" />
+                  <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Рейтинг ELO</span>
                 </div>
-              </div>
+                {leaderboardLoading ? (
+                  <span className="text-xs text-[var(--text-muted)] font-mono italic">Загрузка...</span>
+                ) : leaderboard.length > 0 ? (
+                  <Table
+                    columns={leaderboardColumns}
+                    rows={leaderboard}
+                    rowKey={(row) => row.id}
+                  />
+                ) : (
+                  <EmptyState
+                    title="Нет рейтинговых игроков"
+                    hint="В этой дисциплине пока нет рейтинговых игроков."
+                    seed="leaderboard-empty"
+                  />
+                )}
+              </Window>
 
-              <div className="mt-8 border-t border-obsidian-border/50 pt-8">
-                <h3 className="text-sm uppercase font-mono tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-                  <Trophy size={16} className="text-activeGrad-start" />
-                  Турниры дисциплины
-                </h3>
+              <div className="border-t border-[var(--hairline)] pt-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <Trophy size={16} className="text-[var(--accent)]" />
+                  <span className="font-cond font-semibold uppercase tracking-[.06em] text-[12px] text-[var(--text-muted)]">
+                    Турниры дисциплины
+                  </span>
+                </div>
                 {tournamentsLoading ? (
-                  <div className="component-card-dark p-8 text-center text-slate-500 font-mono italic text-xs">Загрузка турниров...</div>
+                  <span className="text-xs text-[var(--text-muted)] font-mono italic">Загрузка турниров...</span>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="flex flex-col gap-4">
-                      <h4 className="text-xs uppercase font-mono tracking-wider text-green-400 font-bold border-b border-green-900/40 pb-2">
-                        Запланированные ({tournaments.filter((t) => !t.isStarted && !t.isCompleted).length})
+                      <h4 className="text-xs uppercase font-cond tracking-[.06em] text-[var(--status-win)] font-bold border-b border-[color-mix(in_srgb,var(--status-win)_30%,transparent)] pb-2">
+                        Запланированные ({planned.length})
                       </h4>
                       <div className="flex flex-col gap-3">
-                        {tournaments.filter((t) => !t.isStarted && !t.isCompleted).map((t) => renderTournamentCard(t, "border-obsidian-border bg-obsidian-panel/20"))}
-                        {tournaments.filter((t) => !t.isStarted && !t.isCompleted).length === 0 && (<div className="text-[10px] text-slate-600 italic font-mono py-2 text-center">Нет запланированных</div>)}
+                        {planned.map((t) => renderTournamentCard(t))}
+                        {planned.length === 0 && (<span className="text-[10px] text-[var(--text-muted)] italic font-mono py-2 text-center">Нет запланированных</span>)}
                       </div>
                     </div>
                     <div className="flex flex-col gap-4">
-                      <h4 className="text-xs uppercase font-mono tracking-wider text-activeGrad-start font-bold border-b border-activeGrad-start/40 pb-2">
-                        Идут сейчас ({tournaments.filter((t) => t.isStarted && !t.isCompleted).length})
+                      <h4 className="text-xs uppercase font-cond tracking-[.06em] text-[var(--status-live)] font-bold border-b border-[color-mix(in_srgb,var(--status-live)_30%,transparent)] pb-2">
+                        Идут сейчас ({active.length})
                       </h4>
                       <div className="flex flex-col gap-3">
-                        {tournaments.filter((t) => t.isStarted && !t.isCompleted).map((t) => renderTournamentCard(t, "border-activeGrad-start bg-activeGrad-start/5"))}
-                        {tournaments.filter((t) => t.isStarted && !t.isCompleted).length === 0 && (<div className="text-[10px] text-slate-600 italic font-mono py-2 text-center">Нет активных</div>)}
+                        {active.map((t) => renderTournamentCard(t))}
+                        {active.length === 0 && (<span className="text-[10px] text-[var(--text-muted)] italic font-mono py-2 text-center">Нет активных</span>)}
                       </div>
                     </div>
                     <div className="flex flex-col gap-4">
-                      <h4 className="text-xs uppercase font-mono tracking-wider text-slate-400 font-bold border-b border-slate-800 pb-2">
-                        Завершённые ({tournaments.filter((t) => t.isCompleted).length})
+                      <h4 className="text-xs uppercase font-cond tracking-[.06em] text-[var(--text-muted)] font-bold border-b border-[var(--hairline)] pb-2">
+                        Завершённые ({completed.length})
                       </h4>
                       <div className="flex flex-col gap-3">
-                        {tournaments.filter((t) => t.isCompleted).map((t) => renderTournamentCard(t, "border-slate-800 bg-slate-900/20 opacity-75 hover:opacity-100 transition-opacity"))}
-                        {tournaments.filter((t) => t.isCompleted).length === 0 && (<div className="text-[10px] text-slate-600 italic font-mono py-2 text-center">Нет завершённых</div>)}
+                        {completed.map((t) => renderTournamentCard(t))}
+                        {completed.length === 0 && (<span className="text-[10px] text-[var(--text-muted)] italic font-mono py-2 text-center">Нет завершённых</span>)}
                       </div>
                     </div>
                   </div>

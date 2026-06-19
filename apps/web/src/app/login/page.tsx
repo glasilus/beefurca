@@ -2,9 +2,15 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { WarningOctagon, DiscordLogo } from "@phosphor-icons/react";
+import { WarningOctagon, DiscordLogo, CheckCircle } from "@phosphor-icons/react";
 import { API_URL, apiFetch, setSession } from "../../lib/api";
 import { ThemeToggle } from "../../components/ThemeToggle";
+import { FractalMedallion } from "../../components/Fractal";
+import { Window } from "../../components/ui/Window";
+import { Button } from "../../components/ui/Button";
+import { Field, Input } from "../../components/ui/Field";
+
+const LOGO_OPTS = { cre: 0.285, cim: 0.01, hue: 0, span: 360, lift: 0.4 } as const;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -68,136 +74,122 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-obsidian-base flex flex-col justify-center items-center px-4 relative">
-      <div className="absolute inset-0 dither-overlay z-0" />
+    <div className="min-h-screen flex flex-col justify-center items-center px-4 relative">
       <div className="absolute top-4 right-4 z-20">
         <ThemeToggle />
       </div>
 
-      <div className="relative z-10 w-full max-w-md component-card-dark p-8">
-        <h2 className="text-5xl font-pixel text-center tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-activeGrad-start via-activeGrad-mid to-activeGrad-end mb-1">
-          BEEFURCA
-        </h2>
-        <p className="text-[10px] text-center font-mono uppercase tracking-widest text-slate-500 mb-8">
-          {isRegister ? "Создание учетной записи" : "Авторизация в системе"}
-        </p>
+      <Window title={isRegister ? "Регистрация" : "Авторизация"} className="relative z-10 w-full max-w-md">
+        {/* Logo fractal */}
+        <div className="flex flex-col items-center mb-6">
+          <FractalMedallion seed="beefurca" size={56} opts={LOGO_OPTS} />
+          <h2 className="font-display font-extrabold text-2xl tracking-[.02em] text-[var(--text)] mt-3">
+            BEEFURCA
+          </h2>
+          <p className="text-[10px] font-cond uppercase tracking-widest text-[var(--text-muted)] mt-1">
+            {isRegister ? "Создание учетной записи" : "Авторизация в системе"}
+          </p>
+        </div>
 
         {error && (
-          <div className="flex gap-2 p-3.5 mb-6 text-xs border border-red-950/60 bg-red-950/20 text-red-400 rounded">
+          <div className="flex gap-2 p-3.5 mb-6 text-xs border border-[var(--status-danger)] bg-[color-mix(in_srgb,var(--status-danger)_10%,transparent)] text-[var(--status-danger)] rounded-ctl">
             <WarningOctagon size={16} className="shrink-0" />
             <span>{error}</span>
           </div>
         )}
         {info && (
-          <div className="flex gap-2 p-3.5 mb-6 text-xs border border-green-950/60 bg-green-950/20 text-green-400 rounded">
+          <div className="flex gap-2 p-3.5 mb-6 text-xs border border-[var(--status-win)] bg-[color-mix(in_srgb,var(--status-win)_10%,transparent)] text-[var(--status-win)] rounded-ctl">
+            <CheckCircle size={16} className="shrink-0" />
             <span>{info}</span>
           </div>
         )}
 
         {/* Вход через Discord */}
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          className="w-full mb-5"
+          leftIcon={<DiscordLogo size={18} weight="fill" />}
           onClick={handleDiscordLogin}
-          className="w-full h-11 mb-5 flex items-center justify-center gap-2 rounded bg-[#5865F2] hover:bg-[#4752c4] text-white text-xs font-bold uppercase tracking-widest transition shadow-lg"
         >
-          <DiscordLogo size={18} weight="fill" />
           Войти через Discord
-        </button>
+        </Button>
 
         <div className="flex items-center gap-3 mb-5">
-          <div className="flex-1 h-px bg-obsidian-border" />
-          <span className="text-[9px] font-mono uppercase tracking-widest text-slate-600">
+          <div className="flex-1 h-px bg-[var(--hairline)]" />
+          <span className="text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
             или по почте
           </span>
-          <div className="flex-1 h-px bg-obsidian-border" />
+          <div className="flex-1 h-px bg-[var(--hairline)]" />
         </div>
 
         <form onSubmit={handleAuth} className="flex flex-col gap-4">
           {isRegister && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">
-                Никнейм *
-              </label>
-              <input
+            <Field label="Никнейм *">
+              <Input
                 type="text"
                 required
                 minLength={2}
-                className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3.5 text-xs text-white focus:outline-none focus:border-activeGrad-start"
                 placeholder="Пример: Cyber_Knight"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
               />
-            </div>
+            </Field>
           )}
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">
-              Электронная почта *
-            </label>
-            <input
+          <Field label="Электронная почта *">
+            <Input
               type="email"
               required
-              className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3.5 text-xs text-white focus:outline-none focus:border-activeGrad-start"
               placeholder="name@domain.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-          </div>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">
-              Пароль *
-            </label>
-            <input
+          <Field label="Пароль *">
+            <Input
               type="password"
               required
               minLength={6}
-              className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3.5 text-xs text-white focus:outline-none focus:border-activeGrad-start"
               placeholder="Минимум 6 символов"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-          </div>
+          </Field>
 
           {isRegister && (
             <>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">
-                  ФИО (необязательно)
-                </label>
-                <input
+              <Field label="ФИО (необязательно)">
+                <Input
                   type="text"
-                  className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3.5 text-xs text-white focus:outline-none focus:border-activeGrad-start"
                   placeholder="Иванов Иван Иванович"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                 />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase font-mono">
-                  Контактный телефон (необязательно)
-                </label>
-                <input
+              </Field>
+              <Field label="Контактный телефон (необязательно)">
+                <Input
                   type="tel"
-                  className="h-10 bg-obsidian-input border border-obsidian-border rounded px-3.5 text-xs text-white focus:outline-none focus:border-activeGrad-start"
                   placeholder="+7 ..."
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />
-              </div>
+              </Field>
             </>
           )}
 
-          <button
+          <Button
+            variant="gel"
+            className="w-full mt-4"
             type="submit"
+            loading={loading}
             disabled={loading}
-            className="h-11 mt-4 bg-activeGrad-start hover:bg-red-600 rounded text-xs font-bold uppercase tracking-widest text-white shadow-lg transition flex items-center justify-center disabled:opacity-60"
           >
-            {loading ? "Загрузка..." : isRegister ? "Зарегистрироваться" : "Войти в систему"}
-          </button>
+            {isRegister ? "Зарегистрироваться" : "Войти в систему"}
+          </Button>
         </form>
 
-        <div className="flex flex-col items-center mt-8 pt-6 border-t border-obsidian-border text-xs text-slate-400 gap-2">
+        <div className="flex flex-col items-center mt-8 pt-6 border-t border-[var(--hairline)] text-xs text-[var(--text-muted)] gap-2">
           <span>{isRegister ? "Уже есть аккаунт?" : "Еще нет учетной записи?"}</span>
           <button
             onClick={() => {
@@ -205,12 +197,12 @@ export default function LoginPage() {
               setError("");
               setInfo("");
             }}
-            className="text-completeGrad-mid font-semibold hover:underline"
+            className="text-[var(--accent)] font-semibold hover:underline"
           >
             {isRegister ? "Войти в систему" : "Создать аккаунт"}
           </button>
         </div>
-      </div>
+      </Window>
     </div>
   );
 }

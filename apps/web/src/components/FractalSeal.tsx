@@ -1,43 +1,50 @@
+"use client";
+
 import React from "react";
+import { Fractal } from "./Fractal";
 
 interface FractalSealProps {
-  hash: string; // The SHA/UUID signature of the match completion transaction
+  hash: string;
   size?: number;
 }
 
 /**
- * Referee Seal component (Судейская пломба).
- * Displays a spinning, glowing vector mandala representing a cryptographically
- * verified match result transaction.
+ * Referee Seal (Sudeyskaya plomba).
+ * Fractal center with concentric status-colored rings.
+ * Spin animation respects prefers-reduced-motion via CSS.
  */
-export const FractalSeal: React.FC<FractalSealProps> = ({ hash, size = 120 }) => {
-  // Generate deterministic rotation and color from transaction hash
+export const FractalSeal: React.FC<FractalSealProps> = ({
+  hash,
+  size = 120,
+}) => {
   const rotAngle = hash ? hash.charCodeAt(hash.length - 1) * 3 : 45;
-  const isAltColor = hash ? hash.charCodeAt(0) % 2 === 0 : false;
-
-  const sealColorClass = isAltColor 
-    ? "stroke-completeGrad-mid" 
-    : "stroke-activeGrad-start";
-
-  const glowColor = isAltColor ? "#00E5FF" : "#FF1F44";
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      {/* Glow shadow backdrop */}
-      <div 
-        className="absolute inset-0 rounded-full blur-xl opacity-20 animate-pulse"
-        style={{ backgroundColor: glowColor }}
+    <div
+      className="relative flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
+      {/* Glow halo -- accent / done */}
+      <div
+        className="absolute inset-0 rounded-full opacity-20 blur-xl motion-safe:animate-pulse"
+        style={{ backgroundColor: "var(--status-done)" }}
       />
 
       <svg
         width="100%"
         height="100%"
         viewBox="0 0 100 100"
-        className="relative transform animate-spin"
+        className="relative motion-safe:animate-spin"
         style={{ animationDuration: "12s" }}
       >
         <defs>
-          <filter id="seal-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <filter
+            id={`seal-glow-${hash?.slice(0, 6)}`}
+            x="-20%"
+            y="-20%"
+            width="140%"
+            height="140%"
+          >
             <feGaussianBlur stdDeviation="1.5" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
@@ -52,20 +59,20 @@ export const FractalSeal: React.FC<FractalSealProps> = ({ hash, size = 120 }) =>
           cy="50"
           r="45"
           fill="none"
-          className={sealColorClass}
+          stroke="var(--accent)"
           strokeWidth="1.5"
           strokeDasharray="4, 4"
-          filter="url(#seal-glow)"
+          filter={`url(#seal-glow-${hash?.slice(0, 6)})`}
         />
 
         {/* Inner Octagram */}
         <polygon
           points="50,15 62,38 85,38 73,61 75,85 50,73 25,85 27,61 15,38 38,38"
           fill="none"
-          className="stroke-completeGrad-start"
+          stroke="var(--status-done)"
           strokeWidth="1"
           transform={`rotate(${rotAngle} 50 50)`}
-          filter="url(#seal-glow)"
+          filter={`url(#seal-glow-${hash?.slice(0, 6)})`}
         />
 
         {/* Rotating gear spikes */}
@@ -77,20 +84,20 @@ export const FractalSeal: React.FC<FractalSealProps> = ({ hash, size = 120 }) =>
               y1="5"
               x2="50"
               y2="10"
-              className={sealColorClass}
+              stroke="var(--accent)"
               strokeWidth="2"
               transform={`rotate(${i * 30} 50 50)`}
             />
           ))}
         </g>
 
-        {/* Inner core grid */}
+        {/* Inner core ring */}
         <circle
           cx="50"
           cy="50"
           r="25"
           fill="none"
-          stroke="rgba(255, 255, 255, 0.1)"
+          stroke="var(--hairline)"
           strokeWidth="0.8"
         />
 
@@ -98,14 +105,30 @@ export const FractalSeal: React.FC<FractalSealProps> = ({ hash, size = 120 }) =>
         <path
           d="M40,51 L47,58 L60,42"
           fill="none"
-          stroke="#FFFFFF"
+          stroke="var(--text)"
           strokeWidth="3.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          filter="url(#seal-glow)"
+          filter={`url(#seal-glow-${hash?.slice(0, 6)})`}
         />
       </svg>
-      
+
+      {/* Fractal center overlay */}
+      <span
+        className="absolute"
+        style={{
+          width: size * 0.38,
+          height: size * 0.38,
+          borderRadius: "50%",
+          overflow: "hidden",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+        }}
+      >
+        <Fractal seed={hash || "seal"} size={Math.round(size * 0.38)} />
+      </span>
+
       {/* Static text seal info */}
       <span className="absolute bottom-[-24px] text-[9px] font-mono tracking-widest text-text-muted opacity-80 uppercase">
         VERIFIED {hash ? hash.slice(0, 8) : "00000000"}

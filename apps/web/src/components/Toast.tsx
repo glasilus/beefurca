@@ -19,9 +19,9 @@ import {
 export type ToastVariant = "success" | "error" | "info" | "warning";
 
 export interface ToastOptions {
-  /** Длительность показа в мс. 0 — не закрывать автоматически. По умолчанию 4000. */
+  /** Display duration in ms. 0 = do not auto-close. Default 4000. */
   duration?: number;
-  /** Заголовок над текстом (опционально). */
+  /** Optional title above the message. */
   title?: string;
 }
 
@@ -51,12 +51,28 @@ export function useToast(): ToastApi {
 
 const VARIANT_META: Record<
   ToastVariant,
-  { icon: React.ReactNode; accent: string; role: "status" | "alert" }
+  { icon: React.ReactNode; color: string; role: "status" | "alert" }
 > = {
-  success: { icon: <CheckCircle size={18} weight="fill" />, accent: "text-green-400", role: "status" },
-  error: { icon: <XCircle size={18} weight="fill" />, accent: "text-red-400", role: "alert" },
-  info: { icon: <Info size={18} weight="fill" />, accent: "text-completeGrad-mid", role: "status" },
-  warning: { icon: <WarningCircle size={18} weight="fill" />, accent: "text-yellow-400", role: "alert" },
+  success: {
+    icon: <CheckCircle size={18} weight="fill" />,
+    color: "var(--status-win)",
+    role: "status",
+  },
+  error: {
+    icon: <XCircle size={18} weight="fill" />,
+    color: "var(--status-danger)",
+    role: "alert",
+  },
+  info: {
+    icon: <Info size={18} weight="fill" />,
+    color: "var(--status-done)",
+    role: "status",
+  },
+  warning: {
+    icon: <WarningCircle size={18} weight="fill" />,
+    color: "var(--status-live)",
+    role: "alert",
+  },
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -84,10 +100,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       }
       return id;
     },
-    [dismiss]
+    [dismiss],
   );
 
-  // Чистим таймеры при размонтировании
   useEffect(() => {
     const map = timers.current;
     return () => {
@@ -108,7 +123,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      {/* Контейнер тостов */}
+      {/* Toast container */}
       <div
         className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 w-[min(92vw,360px)] pointer-events-none"
         aria-live="polite"
@@ -119,18 +134,27 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <div
               key={t.id}
               role={meta.role}
-              className="pointer-events-auto component-card-dark p-3.5 flex items-start gap-3 shadow-xl animate-toast-in"
+              className="pointer-events-auto frost border border-[var(--border)] rounded-card p-3.5 flex items-start gap-3 shadow-xl animate-toast-in"
             >
-              <span className={`shrink-0 mt-0.5 ${meta.accent}`}>{meta.icon}</span>
+              <span
+                className="shrink-0 mt-0.5"
+                style={{ color: meta.color }}
+              >
+                {meta.icon}
+              </span>
               <div className="min-w-0 flex-1">
                 {t.title && (
-                  <p className="text-xs font-bold text-[var(--text-core)] mb-0.5">{t.title}</p>
+                  <p className="text-[12px] font-bold text-[var(--text)] mb-0.5">
+                    {t.title}
+                  </p>
                 )}
-                <p className="text-xs text-[var(--text-muted)] leading-snug break-words">{t.message}</p>
+                <p className="text-[12px] text-[var(--text-muted)] leading-snug break-words">
+                  {t.message}
+                </p>
               </div>
               <button
                 onClick={() => dismiss(t.id)}
-                className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-core)] transition p-0.5 rounded"
+                className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text)] transition p-0.5 rounded"
                 aria-label="Закрыть уведомление"
               >
                 <X size={14} />

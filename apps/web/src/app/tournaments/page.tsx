@@ -2,9 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MagnifyingGlass as Search, Calendar, ArrowRight } from "@phosphor-icons/react";
+import { MagnifyingGlass as Search, Calendar, ArrowRight, Lock } from "@phosphor-icons/react";
 import { apiFetch, fetchProfile, setSession } from "../../lib/api";
 import { Nav } from "../../components/Nav";
+import { FractalMedallion } from "../../components/Fractal";
+import { Window, Card } from "../../components/ui/Window";
+import { Button } from "../../components/ui/Button";
+import { Badge, tournamentStatusTone } from "../../components/ui/Badge";
+import { Field, Input, Select } from "../../components/ui/Field";
+import { Tabs } from "../../components/ui/Tabs";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { EmptyState } from "../../components/ui/EmptyState";
 
 export default function TournamentsListPage() {
   const router = useRouter();
@@ -61,103 +69,126 @@ export default function TournamentsListPage() {
     return matchesSearch && matchesDiscipline && matchesType && matchesStatus;
   });
 
+  const statusTabs = [
+    { value: "", label: "Все статусы" },
+    { value: "pending", label: "Регистрация" },
+    { value: "started", label: "Идут сейчас" },
+    { value: "completed", label: "Завершенные" },
+  ];
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-obsidian-base flex items-center justify-center text-white">
-        <span className="text-xs font-mono uppercase tracking-widest animate-pulse">Загрузка турниров...</span>
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="text-xs font-mono uppercase tracking-widest animate-pulse text-[var(--text-muted)]">Загрузка турниров...</span>
       </div>
     );
   }
 
+  const getStatusBadge = (t: any) => {
+    if (t.isCompleted) return { label: "Завершен", tone: "done" as const };
+    if (t.isStarted) return { label: "Идет сейчас", tone: "live" as const };
+    return { label: "Регистрация", tone: "win" as const };
+  };
+
   return (
-    <div className="min-h-screen bg-obsidian-base text-white pb-16 relative">
-      <div className="absolute inset-0 dither-overlay z-0" />
+    <div className="min-h-screen pb-16 relative">
       <Nav active="tournaments" profile={profile} />
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 mt-12">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold tracking-wider uppercase">Каталог турниров</h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Найдите соревнование, откройте его страницу и подайте заявку на участие.
-          </p>
-        </div>
+        <PageHeader
+          title="Каталог турниров"
+          eyebrow="Соревнования"
+        />
+        <p className="text-xs text-[var(--text-muted)] mt-[-16px] mb-6">
+          Найдите соревнование, откройте его страницу и подайте заявку на участие.
+        </p>
 
-        <div className="component-card-dark p-6 mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[9px] font-bold text-slate-500 uppercase font-mono">Поиск по названию</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 text-slate-500" size={14} />
-              <input type="text" placeholder="Поиск..." className="w-full h-9 bg-obsidian-input border border-obsidian-border rounded pl-9 pr-3 text-xs text-white focus:outline-none focus:border-activeGrad-start" value={search} onChange={(e) => setSearch(e.target.value)} />
-            </div>
+        {/* Filters */}
+        <Window title="Фильтры" className="mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Field label="Поиск по названию">
+              <div className="relative">
+                <Search className="absolute left-3 top-[11px] text-[var(--text-muted)]" size={14} />
+                <Input type="text" placeholder="Поиск..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+              </div>
+            </Field>
+            <Field label="Дисциплина">
+              <Select value={selectedDiscipline} onChange={(e) => setSelectedDiscipline(e.target.value)}>
+                <option value="">Все дисциплины</option>
+                {disciplinesList.map((d) => (<option key={d.id} value={d.name}>{d.name}</option>))}
+              </Select>
+            </Field>
+            <Field label="Уровень лиги">
+              <Select value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
+                <option value="">Все уровни</option>
+                <option value="PRO">PRO Лиги</option>
+                <option value="AMATEUR">Amateur Турниры</option>
+                <option value="SANDBOX">Sandbox Песочницы</option>
+              </Select>
+            </Field>
+            <Field label="Статус">
+              <Select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
+                <option value="">Все статусы</option>
+                <option value="pending">Ожидают старта (регистрация)</option>
+                <option value="started">Идут сейчас</option>
+                <option value="completed">Завершенные</option>
+              </Select>
+            </Field>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[9px] font-bold text-slate-500 uppercase font-mono">Дисциплина</label>
-            <select className="h-9 bg-obsidian-input border border-obsidian-border rounded px-3 text-xs text-white focus:outline-none focus:border-activeGrad-start" value={selectedDiscipline} onChange={(e) => setSelectedDiscipline(e.target.value)}>
-              <option value="">Все дисциплины</option>
-              {disciplinesList.map((d) => (<option key={d.id} value={d.name}>{d.name}</option>))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[9px] font-bold text-slate-500 uppercase font-mono">Уровень лиги</label>
-            <select className="h-9 bg-obsidian-input border border-obsidian-border rounded px-3 text-xs text-white focus:outline-none focus:border-activeGrad-start" value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
-              <option value="">Все уровни</option>
-              <option value="PRO">PRO Лиги</option>
-              <option value="AMATEUR">Amateur Турниры</option>
-              <option value="SANDBOX">Sandbox Песочницы</option>
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[9px] font-bold text-slate-500 uppercase font-mono">Статус</label>
-            <select className="h-9 bg-obsidian-input border border-obsidian-border rounded px-3 text-xs text-white focus:outline-none focus:border-activeGrad-start" value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
-              <option value="">Все статусы</option>
-              <option value="pending">Ожидают старта (регистрация)</option>
-              <option value="started">Идут сейчас</option>
-              <option value="completed">Завершённые</option>
-            </select>
-          </div>
-        </div>
+        </Window>
+
+        <Tabs
+          items={statusTabs}
+          value={selectedStatus}
+          onChange={setSelectedStatus}
+          className="mb-6"
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTournaments.map((t) => {
-            let statusBadge = "Регистрация";
-            let statusColor = "bg-green-950/20 text-green-400 border-green-900";
-            if (t.isCompleted) {
-              statusBadge = "Завершён";
-              statusColor = "bg-slate-900 text-slate-400 border-slate-700";
-            } else if (t.isStarted) {
-              statusBadge = "Идёт сейчас";
-              statusColor = "bg-activeGrad-start/20 text-activeGrad-start border-activeGrad-start";
-            }
+            const status = getStatusBadge(t);
             return (
-              <div key={t.id} className="component-card-dark p-5 flex flex-col justify-between min-h-[180px]">
+              <Card key={t.id} className="flex flex-col justify-between min-h-[180px]">
                 <div>
                   <div className="flex justify-between items-start mb-3">
-                    <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded border uppercase ${statusColor}`}>{statusBadge}</span>
+                    <Badge tone={status.tone} dot={status.tone === "live"}>{status.label}</Badge>
                     <div className="flex items-center gap-1.5">
                       {t.isPrivate && (
-                        <span className="text-[8px] bg-purple-950/30 border border-purple-800 px-1.5 py-0.5 rounded font-mono text-purple-300 font-bold uppercase">🔒 Приватный</span>
+                        <Badge tone="accent">
+                          <Lock size={10} weight="bold" /> Приватный
+                        </Badge>
                       )}
-                      <span className="text-[8px] bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded font-mono text-slate-400 font-bold">{t.tournamentType}</span>
+                      <Badge tone="draft">{t.tournamentType}</Badge>
                     </div>
                   </div>
-                  <h4 className="font-bold text-sm text-slate-100 mb-1 leading-snug line-clamp-2">{t.name}</h4>
-                  <p className="text-[10px] text-slate-400 font-mono mb-4">{t.disciplineName}</p>
+                  <div className="flex items-center gap-3 mb-2">
+                    <FractalMedallion seed={t.id || t.name} size={36} />
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-bold text-sm text-[var(--text)] mb-1 leading-snug line-clamp-2">{t.name}</h4>
+                      <p className="text-[10px] text-[var(--text-muted)] font-mono">{t.disciplineName}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="border-t border-obsidian-border pt-3 flex justify-between items-center mt-auto">
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono">
+                <div className="border-t border-[var(--hairline)] pt-3 flex justify-between items-center mt-auto">
+                  <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)] font-mono">
                     <Calendar size={12} />
                     <span>{new Date(t.startDate).toLocaleDateString("ru-RU")}</span>
                   </div>
-                  <button onClick={() => router.push(`/tournaments/${t.id}`)} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-completeGrad-mid hover:underline">
-                    <span>Открыть</span>
-                    <ArrowRight size={12} />
-                  </button>
+                  <Button variant="ghost" size="sm" onClick={() => router.push(`/tournaments/${t.id}`)}>
+                    Открыть <ArrowRight size={12} />
+                  </Button>
                 </div>
-              </div>
+              </Card>
             );
           })}
           {filteredTournaments.length === 0 && (
-            <div className="col-span-full component-card-dark p-12 text-center text-slate-500 text-xs font-mono">Турниров по заданным фильтрам не найдено.</div>
+            <div className="col-span-full">
+              <EmptyState
+                title="Турниров не найдено"
+                hint="Турниров по заданным фильтрам не найдено."
+                seed="tournaments-empty"
+              />
+            </div>
           )}
         </div>
       </div>
