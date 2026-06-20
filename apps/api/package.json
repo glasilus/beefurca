@@ -14,6 +14,7 @@
     "@beefurca/excel-generator": "workspace:*",
     "@beefurca/shared-types": "workspace:*",
     "@elysiajs/cors": "^1.0.2",
+    "@elysiajs/node": "^1.4.5",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.30.1",

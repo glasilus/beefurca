@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { node } from "@elysiajs/node";
 import { cors } from "@elysiajs/cors";
 import dotenv from "dotenv";
 import { authRoutes } from "./routes/auth";
@@ -22,7 +23,9 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS ||
   .map((o) => o.trim())
   .filter(Boolean);
 
-const app = new Elysia()
+// adapter: node() — Elysia рассчитан на Bun; этот адаптер позволяет запускать
+// его под Node.js (иначе app.listen() падает: "WebStandard does not support listen").
+const app = new Elysia({ adapter: node() })
   .use(cors({
     origin: allowedOrigins,
     credentials: true,

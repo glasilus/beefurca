@@ -38,6 +38,9 @@ importers:
       '@elysiajs/cors':
         specifier: ^1.0.2
         version: 1.4.2(elysia@1.4.28)
+      '@elysiajs/node':
+        specifier: ^1.4.5
+        version: 1.4.5(elysia@1.4.28)
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -1727,6 +1730,16 @@ packages:
       elysia: '>= 1.4.0'
     dependencies:
       elysia: 1.4.28(@sinclair/typebox@0.34.49)(exact-mirror@1.1.1)(file-type@22.0.1)(openapi-types@12.1.3)(typescript@5.9.3)
+    dev: false
+
+  /@elysiajs/node@1.4.5(elysia@1.4.28):
+    resolution: {integrity: sha512-K58HEre7RQWZOkLcMNl2RFnuZFzmUUyxHRBSfC2XaJz4j2AjrpHKu/f26tN9LRi3nx1L0PbH22vgZ4O2Fqppbw==}
+    peerDependencies:
+      elysia: '>= 1.4.0'
+    dependencies:
+      crossws: 0.4.6(srvx@0.11.17)
+      elysia: 1.4.28(@sinclair/typebox@0.34.49)(exact-mirror@1.1.1)(file-type@22.0.1)(openapi-types@12.1.3)(typescript@5.9.3)
+      srvx: 0.11.17
     dev: false
 
   /@esbuild-kit/core-utils@3.3.2:
@@ -5041,6 +5054,17 @@ packages:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
+    dev: false
+
+  /crossws@0.4.6(srvx@0.11.17):
+    resolution: {integrity: sha512-/Wxe9Z007EbJ496j88nToZEvyPZ8PY/wjZJ18Agh/GCA9cYHyLbxtrpdFlFzAw3TV20F0SUYGl0g6PzChbwUrg==}
+    peerDependencies:
+      srvx: '>=0.11.5'
+    peerDependenciesMeta:
+      srvx:
+        optional: true
+    dependencies:
+      srvx: 0.11.17
     dev: false
 
   /crypt@0.0.2:
@@ -9676,6 +9700,12 @@ packages:
 
   /sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
+    dev: false
+
+  /srvx@0.11.17:
+    resolution: {integrity: sha512-43yM4luKfCJamyCMhrUeHUPOrf8TdZe7kN8s5zayZCH5OeprYqi49Aso5ZvHXR4aB+DHaRNO/diNFgZSMNG8Xw==}
+    engines: {node: '>=20.16.0'}
+    hasBin: true
     dev: false
 
   /ssri@8.0.1:
