@@ -66,6 +66,8 @@ export interface WindowProps extends React.HTMLAttributes<HTMLDivElement> {
   status?: WindowStatus;
   lights?: boolean;
   frosted?: boolean;
+  /** Если задан — красный «светофор» становится кнопкой закрытия (× при наведении). */
+  onClose?: () => void;
   children: React.ReactNode;
 }
 
@@ -74,6 +76,7 @@ export const Window: React.FC<WindowProps> = ({
   status = null,
   lights = true,
   frosted = true,
+  onClose,
   children,
   className,
   ...rest
@@ -94,8 +97,26 @@ export const Window: React.FC<WindowProps> = ({
       {(title || lights) && (
         <div className="titlebar brushed">
           {lights && (
-            <div className="flex gap-[7px]">
-              <Light color="r" on={r} />
+            <div className="flex gap-[7px] group">
+              {onClose ? (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Закрыть — на главную"
+                  title="На главную"
+                  className="relative w-3 h-3 rounded-full grid place-items-center cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,.7),inset_0_-1px_1px_rgba(0,0,0,.25)]"
+                  style={{
+                    background:
+                      "radial-gradient(circle at 35% 30%, #ff9a93, var(--status-danger))",
+                  }}
+                >
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[9px] leading-none font-bold text-[rgba(80,0,0,.75)]">
+                    ×
+                  </span>
+                </button>
+              ) : (
+                <Light color="r" on={r} />
+              )}
               <Light color="y" on={y} />
               <Light color="g" on={g} />
             </div>

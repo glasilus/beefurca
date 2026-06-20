@@ -34,6 +34,7 @@ const config: Config = {
         sans: ["var(--font-sans)", "sans-serif"],
         cond: ["var(--font-cond)", "sans-serif"],
         mono: ["var(--font-mono)", "monospace"],
+        score: ["var(--font-score)", "var(--font-display)", "sans-serif"],
       },
       borderRadius: {
         ctl: "6px",

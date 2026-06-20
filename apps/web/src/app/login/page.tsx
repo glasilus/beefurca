@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 import { WarningOctagon, DiscordLogo, CheckCircle } from "@phosphor-icons/react";
 import { API_URL, apiFetch, setSession } from "../../lib/api";
 import { ThemeToggle } from "../../components/ThemeToggle";
-import { FractalMedallion } from "../../components/Fractal";
+import { Logo } from "../../components/Logo";
 import { Window } from "../../components/ui/Window";
 import { Button } from "../../components/ui/Button";
 import { Field, Input } from "../../components/ui/Field";
 
-const LOGO_OPTS = { cre: 0.285, cim: 0.01, hue: 0, span: 360, lift: 0.4 } as const;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -79,11 +78,23 @@ export default function LoginPage() {
         <ThemeToggle />
       </div>
 
-      <Window title={isRegister ? "Регистрация" : "Авторизация"} className="relative z-10 w-full max-w-md">
+      <Window
+        title={isRegister ? "Регистрация" : "Авторизация"}
+        onClose={() => router.push("/")}
+        className="relative z-10 w-full max-w-md"
+      >
         {/* Logo fractal */}
         <div className="flex flex-col items-center mb-6">
-          <FractalMedallion seed="beefurca" size={56} opts={LOGO_OPTS} />
-          <h2 className="font-display font-extrabold text-2xl tracking-[.02em] text-[var(--text)] mt-3">
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            aria-label="На главную"
+            title="На главную"
+            className="cursor-pointer rounded-[14px] transition-transform hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            <Logo size={60} />
+          </button>
+          <h2 className="font-score text-2xl tracking-[.04em] text-[var(--text)] mt-3">
             BEEFURCA
           </h2>
           <p className="text-[10px] font-cond uppercase tracking-widest text-[var(--text-muted)] mt-1">

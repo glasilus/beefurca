@@ -5,6 +5,7 @@ import {
   Fira_Sans_Condensed,
   IBM_Plex_Mono,
 } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "../components/Providers";
 import { Aurora } from "../components/Aurora";
@@ -33,6 +34,12 @@ const mono = IBM_Plex_Mono({
   variable: "--font-mono",
   display: "swap",
 });
+// Grafmassa — фирменный дисплейный шрифт логотипа и счёта (как на фавиконе).
+const score = localFont({
+  src: "../../public/fonts/Grafmassa-Regular.ttf",
+  variable: "--font-score",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Beefurca | Tournament Hub",
@@ -50,7 +57,7 @@ export default function RootLayout({
     <html
       lang="ru"
       suppressHydrationWarning
-      className={`${display.variable} ${sans.variable} ${cond.variable} ${mono.variable}`}
+      className={`${display.variable} ${sans.variable} ${cond.variable} ${mono.variable} ${score.variable}`}
     >
       <body className="antialiased relative min-h-screen">
         <Aurora />

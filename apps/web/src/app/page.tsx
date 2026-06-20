@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FractalAvatar } from "../components/FractalAvatar";
 import { FractalSeal } from "../components/FractalSeal";
 import { BracketCanvas } from "../components/BracketCanvas";
-import { FractalMedallion } from "../components/Fractal";
+import { Logo } from "../components/Logo";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Button } from "../components/ui/Button";
 import { Window, Card } from "../components/ui/Window";
@@ -16,7 +16,6 @@ import { Trophy, Shield, Users, Stack as Layers, Pulse as Activity, Calendar } f
 export default function Home() {
   const router = useRouter();
 
-  const LOGO_OPTS = { cre: 0.285, cim: 0.01, hue: 0, span: 360, lift: 0.4 } as const;
 
   // Mock data for the demonstration
   const mockTournaments = [
@@ -117,22 +116,11 @@ export default function Home() {
   return (
     <div className="min-h-screen text-[var(--text)] transition-colors duration-300">
       {/* Navbar */}
-      <header className="border-b border-[var(--border)] brushed pinstripe sticky top-0 z-40" style={{ boxShadow: "0 1px 0 var(--gloss) inset, 0 4px 18px var(--shadow)" }}>
+      <header className="app-header sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-[62px] flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <span className="relative w-8 h-8 rounded-[9px] overflow-hidden flex-none shadow-[inset_0_1px_0_rgba(255,255,255,.85),0_1px_3px_var(--shadow)]">
-              <FractalMedallion
-                seed="beefurca"
-                size={32}
-                shape="rounded"
-                opts={LOGO_OPTS}
-              />
-              <span className="absolute inset-0 grid place-items-center font-bold text-white text-[17px] [text-shadow:0_1px_3px_rgba(0,0,0,.7),0_0_1px_rgba(0,0,0,.9)] z-10">
-                B
-              </span>
-              <span className="absolute left-[8%] right-[8%] top-[4%] h-[42%] rounded-[9px] bg-gradient-to-b from-white/55 to-transparent pointer-events-none z-20" />
-            </span>
-            <span className="font-display font-extrabold text-[22px] tracking-[.02em] text-[var(--text)]">
+            <Logo size={34} />
+            <span className="font-score text-[22px] tracking-[.04em] text-[var(--text)]">
               BEEFURCA
             </span>
           </div>
@@ -150,7 +138,7 @@ export default function Home() {
         {/* Hero Section */}
         <section className="text-center mb-16">
           <div className="flex justify-center mb-6">
-            <FractalMedallion seed="beefurca" size={80} opts={LOGO_OPTS} />
+            <Logo size={84} />
           </div>
           <h1 className="font-display font-extrabold text-[clamp(28px,5vw,48px)] tracking-tight mb-4 text-[var(--text)]">
             Экосистема турниров нового поколения

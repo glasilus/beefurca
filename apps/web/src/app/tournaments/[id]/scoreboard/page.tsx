@@ -154,11 +154,11 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
                 {/* DIGITS SCORE BOARD */}
                 <div className="flex flex-col items-center justify-center px-6">
                   <div className="flex items-center justify-center gap-6 font-display">
-                    <span className="text-7xl md:text-9xl font-mono font-bold text-[var(--text)]">
+                    <span className="text-7xl md:text-9xl font-score font-bold text-[var(--text)]">
                       {featuredMatch.score1 !== null ? featuredMatch.score1 : "0"}
                     </span>
                     <span className="text-5xl md:text-7xl text-[var(--text-muted)] animate-pulse motion-reduce:animate-none">:</span>
-                    <span className="text-7xl md:text-9xl font-mono font-bold text-[var(--text)]">
+                    <span className="text-7xl md:text-9xl font-score font-bold text-[var(--text)]">
                       {featuredMatch.score2 !== null ? featuredMatch.score2 : "0"}
                     </span>
                   </div>

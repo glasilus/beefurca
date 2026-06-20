@@ -48,6 +48,38 @@ export interface FractalOpts {
   hue?: number;
   span?: number;
   lift?: number;
+  /** Optional 3-stop hex gradient (e.g. brand logo colors). Overrides HSL hue coloring. */
+  palette?: [string, string, string];
+  /**
+   * How a `palette` is mapped onto pixels:
+   *  - "escape"   (default): gradient position = fractal escape time (textured, blotchy)
+   *  - "diagonal": gradient position = pixel diagonal (top-left→bottom-right),
+   *                like the favicon's linear gradient; the fractal only softly
+   *                modulates brightness → smooth градиент, узнаваемый как фавикон.
+   */
+  paletteMode?: "escape" | "diagonal";
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const s = hex.replace("#", "");
+  return [
+    parseInt(s.slice(0, 2), 16),
+    parseInt(s.slice(2, 4), 16),
+    parseInt(s.slice(4, 6), 16),
+  ];
+}
+
+/** Interpolate a 3-stop gradient at position t in [0,1]. */
+function grad3(
+  stops: [number, number, number][],
+  t: number,
+): [number, number, number] {
+  const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
+  const seg = t <= 0.5 ? 0 : 1;
+  const u = seg === 0 ? t / 0.5 : (t - 0.5) / 0.5;
+  const a = stops[seg];
+  const b = stops[seg + 1];
+  return [lerp(a[0], b[0], u), lerp(a[1], b[1], u), lerp(a[2], b[2], u)];
 }
 
 export function renderFractal(
@@ -61,6 +93,18 @@ export function renderFractal(
   const hueBase = opts.hue ?? base.hueBase;
   const span = opts.span ?? 330;
   const lift = opts.lift ?? 0.2;
+  const stops = opts.palette
+    ? (opts.palette.map(hexToRgb) as [number, number, number][])
+    : null;
+  const diagonal = stops != null && opts.paletteMode === "diagonal";
+  // Tinted (non-black) core when a brand palette is used.
+  const core: [number, number, number] = stops
+    ? [
+        Math.round(stops[1][0] * 0.16),
+        Math.round(stops[1][1] * 0.16),
+        Math.round(stops[1][2] * 0.16),
+      ]
+    : [8, 10, 18];
   const W = size;
   const H = size;
   const out = new Uint8ClampedArray(W * H * 4);
@@ -79,18 +123,40 @@ export function renderFractal(
         i++;
       }
       const p = (y * W + x) * 4;
-      if (i === maxIter) {
-        out[p] = 8;
-        out[p + 1] = 10;
-        out[p + 2] = 18;
+      if (diagonal && stops) {
+        // Базовый цвет — линейный градиент по диагонали (как у фавикона),
+        // фрактал лишь мягко модулирует яркость → плавный, узнаваемый градиент.
+        const d = (x + y) / (W + H - 2);
+        const [gr, gg, gb] = grad3(stops, d);
+        const t = i / maxIter;
+        // Внутри множества — заметно темнее (силуэт фрактала), снаружи —
+        // лёгкая текстура в пределах ±18% яркости.
+        const f = i === maxIter ? 0.42 : 0.9 + 0.32 * (t - 0.5);
+        out[p] = Math.round(gr * f);
+        out[p + 1] = Math.round(gg * f);
+        out[p + 2] = Math.round(gb * f);
+        out[p + 3] = 255;
+      } else if (i === maxIter) {
+        out[p] = core[0];
+        out[p + 1] = core[1];
+        out[p + 2] = core[2];
         out[p + 3] = 255;
       } else {
         const t = i / maxIter;
-        const hue = (hueBase + t * span) % 360;
-        const [r, g, b] = hsl2rgb(hue, 0.95, Math.min(lift + t * 0.58, 0.82));
-        out[p] = r;
-        out[p + 1] = g;
-        out[p + 2] = b;
+        if (stops) {
+          // Brand 3-stop gradient with depth shading toward the boundary.
+          const [gr, gg, gb] = grad3(stops, t);
+          const f = 0.5 + 0.5 * Math.pow(t, 0.6);
+          out[p] = Math.round(gr * f);
+          out[p + 1] = Math.round(gg * f);
+          out[p + 2] = Math.round(gb * f);
+        } else {
+          const hue = (hueBase + t * span) % 360;
+          const [r, g, b] = hsl2rgb(hue, 0.95, Math.min(lift + t * 0.58, 0.82));
+          out[p] = r;
+          out[p + 1] = g;
+          out[p + 2] = b;
+        }
         out[p + 3] = 255;
       }
     }
