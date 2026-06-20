@@ -30,7 +30,7 @@ RUN npm install -g pnpm@8.15.4
 COPY --from=builder /app ./
 
 EXPOSE 5000
-ENV NODE_ENV=production
-PORT=5000
+ENV NODE_ENV=production \
+    PORT=5000
 
 CMD ["pnpm", "--filter", "api", "start"]

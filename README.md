@@ -149,6 +149,16 @@ pnpm test
 > ⚠️ В проде обязательно задайте свой `BOOTSTRAP_ADMIN_PASSWORD` и реальный
 > `ALLOWED_ORIGINS` (иначе CORS заблокирует фронтенд).
 
+**Переменные фронтендов** (задаются в окружении самих приложений, не в `.env` API):
+
+| Переменная | Где | Назначение |
+|------------|-----|------------|
+| `NEXT_PUBLIC_API_URL` | `apps/web` | Базовый URL API (по умолчанию `http://localhost:5000`). Должен быть задан на этапе **сборки** Next.js |
+
+> Мобильный клиент (`apps/mobile`) сейчас берёт адрес API из константы
+> `API_BASE_URL` в `App.tsx` (`http://localhost:5000`) — перед сборкой
+> поменяйте её на адрес прод-API.
+
 ---
 
 ## 6. Настройка входа через Discord (OAuth2) — пошагово
@@ -301,28 +311,93 @@ FRONTEND_URL=http://localhost:3000
 
 ## 9. Развёртывание (Production)
 
-### Бэкенд (`apps/api`) → Railway
-Деплой через встроенный `Dockerfile` (Node 20). Перед первым запуском задайте
-переменные окружения (раздел 5) и примените схему:
-```bash
-pnpm --filter @beefurca/database db:push
-```
-Обязательные переменные на Railway: `DATABASE_URL`, `REDIS_URL`,
-`BOOTSTRAP_ADMIN_*`, `ALLOWED_ORIGINS`, и блок `DISCORD_*` + `FRONTEND_URL`,
-если используется вход через Discord.
+В репозитории есть два готовых `Dockerfile` (`apps/api/Dockerfile`,
+`apps/web/Dockerfile`, оба multi-stage на `node:20-alpine`), поэтому
+поддерживаются два сценария: **самостоятельный хостинг через Docker** и
+**managed-платформы** (Railway + Vercel). Мобильный клиент собирается через EAS.
 
-### Веб-клиент (`apps/web`) → Vercel
+Независимо от сценария, **порядок один и тот же**:
+
+1. Поднять PostgreSQL 16 и Redis 7 (управляемые сервисы или свои контейнеры).
+2. Задать переменные окружения (раздел 5).
+3. **Один раз** применить схему БД (создаёт/обновляет таблицы):
+   ```bash
+   pnpm --filter @beefurca/database db:push
+   ```
+   Выполняется из окружения, у которого есть доступ к проду по `DATABASE_URL`
+   (локально с прод-`DATABASE_URL`, в CI или в shell контейнера API).
+4. Запустить API, затем веб. RSA-ключи для JWT и bootstrap-админ создаются
+   автоматически при первом старте API (раздел 2).
+
+> Ключи в `keys/` генерируются на диске контейнера. Если инстансов несколько
+> или файловая система эфемерна — сгенерируйте пару RSA один раз и передайте
+> ключи через переменные `JWT_PUBLIC_KEY_PATH`/`JWT_PRIVATE_KEY_PATH`
+> (значениями могут быть и сами PEM-ключи, а не только пути), чтобы все
+> инстансы подписывали и проверяли токены одним ключом.
+
+### Вариант A. Самостоятельный хостинг (Docker)
+
+Сборка и запуск образов вручную (теги — на ваше усмотрение):
+
+```bash
+# Бэкенд
+docker build -f apps/api/Dockerfile -t beefurca-api .
+docker run -d --name beefurca-api -p 5000:5000 --env-file .env beefurca-api
+
+# Веб (NEXT_PUBLIC_API_URL нужен на этапе СБОРКИ — пробрасываем build-arg)
+docker build -f apps/web/Dockerfile \
+  --build-arg NEXT_PUBLIC_API_URL=https://api.example.com \
+  -t beefurca-web .
+docker run -d --name beefurca-web -p 3000:3000 beefurca-web
+```
+
+PostgreSQL и Redis для прод-стенда можно поднять тем же `docker-compose.yml`
+из репозитория (для боевого окружения смените пароль `POSTGRES_PASSWORD` и не
+публикуйте порты 5432/6379 наружу). Применение схемы — шаг 3 выше из shell
+контейнера API:
+```bash
+docker exec -it beefurca-api pnpm --filter @beefurca/database db:push
+```
+
+> `NEXT_PUBLIC_*` встраивается в бандл Next.js при сборке, поэтому менять адрес
+> API «на лету» в готовом образе нельзя — пересоберите `beefurca-web` с новым
+> `NEXT_PUBLIC_API_URL`.
+
+### Вариант B. Managed-платформы
+
+**Бэкенд (`apps/api`) → Railway.** Деплой по `apps/api/Dockerfile`. Задайте
+переменные раздела 5 — обязательны: `DATABASE_URL`, `REDIS_URL`,
+`BOOTSTRAP_ADMIN_*`, `ALLOWED_ORIGINS`; плюс блок `DISCORD_*` + `FRONTEND_URL`,
+если используется вход через Discord. Postgres и Redis удобно поднять плагинами
+Railway и подставить их строки подключения. Схему примените шагом 3 (например,
+локально с прод-`DATABASE_URL`).
+
+**Веб-клиент (`apps/web`) → Vercel.**
 - Root directory: `apps/web`
 - Build command: `pnpm --filter web build`
-- Переменная `NEXT_PUBLIC_API_URL` → домен API на Railway.
-- Домен Vercel добавьте в `ALLOWED_ORIGINS` бэкенда.
+- Environment: `NEXT_PUBLIC_API_URL` → домен API на Railway (Vercel подставит
+  его при сборке).
+- Итоговый домен Vercel **добавьте в `ALLOWED_ORIGINS`** бэкенда (иначе CORS
+  заблокирует запросы), а если включён Discord — он же должен быть в
+  `FRONTEND_URL`.
 
 ### Мобильный клиент (`apps/mobile`) → EAS Build
+
 ```bash
 npm install -g eas-cli
 eas login
 eas build --platform android --profile preview   # готовый APK
 ```
+Перед сборкой укажите адрес прод-API в `API_BASE_URL` (`apps/mobile/App.tsx`).
+
+### Чек-лист перед боевым запуском
+- [ ] Свой `BOOTSTRAP_ADMIN_PASSWORD` (не дефолтный) и смена пароля Postgres.
+- [ ] `ALLOWED_ORIGINS` содержит реальные домены фронтов (не `*`, не localhost).
+- [ ] `NODE_ENV=production` у API.
+- [ ] `NEXT_PUBLIC_API_URL` указывает на прод-API (задан при сборке веба).
+- [ ] Discord Redirect URI совпадает с прод-`DISCORD_REDIRECT_URI` (раздел 6).
+- [ ] Схема БД применена (`db:push`).
+- [ ] Стабильные RSA-ключи JWT при нескольких инстансах API.
 
 ---
 

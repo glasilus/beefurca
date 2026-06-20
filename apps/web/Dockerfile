@@ -13,7 +13,11 @@ COPY packages/shared-types/package.json ./packages/shared-types/
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy codebase and build Next.js app
+# Copy codebase and build Next.js app.
+# NEXT_PUBLIC_* встраивается в бандл на этапе сборки, поэтому пробрасываем
+# адрес API как build-arg (по умолчанию — локальный dev-сервер).
+ARG NEXT_PUBLIC_API_URL=http://localhost:5000
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY . .
 RUN pnpm --filter web build
 
@@ -26,7 +30,7 @@ RUN npm install -g pnpm@8.15.4
 COPY --from=builder /app ./
 
 EXPOSE 3000
-ENV NODE_ENV=production
-PORT=3000
+ENV NODE_ENV=production \
+    PORT=3000
 
 CMD ["pnpm", "--filter", "web", "start"]
