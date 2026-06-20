@@ -1,36 +1,32 @@
-# Build stage
+# ---- Build stage ----
 FROM node:20-alpine AS builder
 WORKDIR /app
 RUN npm install -g pnpm@8.15.4
 
-# Copy monorepo configuration and lockfile
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+# Копируем весь монорепозиторий целиком: так pnpm видит все workspace-пакеты,
+# и lockfile сходится с воркспейсом (иначе --frozen-lockfile падает).
+COPY . .
 
-# Copy package descriptors for caching layer
-COPY apps/web/package.json ./apps/web/
-COPY packages/shared-types/package.json ./packages/shared-types/
-
-# Install dependencies
+# Ставим все зависимости (включая dev — нужны для сборки Next.js).
 RUN pnpm install --frozen-lockfile
 
-# Copy codebase and build Next.js app.
-# NEXT_PUBLIC_* встраивается в бандл на этапе сборки, поэтому пробрасываем
-# адрес API как build-arg (по умолчанию — локальный dev-сервер).
+# Адрес API вшивается в бандл Next.js на этапе СБОРКИ, поэтому пробрасываем его
+# build-аргументом (по умолчанию — локальный dev-сервер).
 ARG NEXT_PUBLIC_API_URL=http://localhost:5000
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-COPY . .
-RUN pnpm --filter web build
 
-# Runner stage
+# Собираем только веб и его workspace-зависимости.
+RUN pnpm exec turbo run build --filter=web
+
+# ---- Runner stage ----
 FROM node:20-alpine AS runner
 WORKDIR /app
 RUN npm install -g pnpm@8.15.4
-
-# Copy built outputs and dependencies
-COPY --from=builder /app ./
-
-EXPOSE 3000
 ENV NODE_ENV=production \
     PORT=3000
 
+# Переносим собранный код и установленные зависимости из build-стадии.
+COPY --from=builder /app ./
+
+EXPOSE 3000
 CMD ["pnpm", "--filter", "web", "start"]
