@@ -137,8 +137,8 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
       // из JS при XSS; клиент дополнительно получает accessToken в теле ответа
       // для использования в заголовке Authorization.
       set.headers["set-cookie"] = [
-        `access_token=${accessToken}; Path=/; HttpOnly; Secure; Max-Age=900; SameSite=Lax`,
-        `refresh_token=${refreshToken}; Path=/; HttpOnly; Secure; Max-Age=604800; SameSite=Lax`,
+        `access_token=${accessToken}; Path=/; HttpOnly; Secure; Max-Age=900; SameSite=None`,
+        `refresh_token=${refreshToken}; Path=/; HttpOnly; Secure; Max-Age=604800; SameSite=None`,
       ];
 
       return {
@@ -210,8 +210,8 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
 
       // Update cookies (оба httpOnly+secure)
       set.headers["set-cookie"] = [
-        `access_token=${newAccessToken}; Path=/; HttpOnly; Secure; Max-Age=900; SameSite=Lax`,
-        `refresh_token=${newRefreshToken}; Path=/; HttpOnly; Secure; Max-Age=604800; SameSite=Lax`,
+        `access_token=${newAccessToken}; Path=/; HttpOnly; Secure; Max-Age=900; SameSite=None`,
+        `refresh_token=${newRefreshToken}; Path=/; HttpOnly; Secure; Max-Age=604800; SameSite=None`,
       ];
 
       return {
@@ -347,8 +347,8 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
 
         set.headers["set-cookie"] = [
           "oauth_state=; Path=/; Max-Age=0",
-          `access_token=${accessToken}; Path=/; HttpOnly; Secure; Max-Age=900; SameSite=Lax`,
-          `refresh_token=${refreshToken}; Path=/; HttpOnly; Secure; Max-Age=604800; SameSite=Lax`,
+          `access_token=${accessToken}; Path=/; HttpOnly; Secure; Max-Age=900; SameSite=None`,
+          `refresh_token=${refreshToken}; Path=/; HttpOnly; Secure; Max-Age=604800; SameSite=None`,
         ];
 
         set.status = 302;

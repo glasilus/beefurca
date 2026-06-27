@@ -67,9 +67,8 @@ export default function LoginPage() {
   };
 
   const handleDiscordLogin = () => {
-    // Браузерный редирект (не fetch): бэкенд уведёт на согласие Discord,
-    // а после — обратно на /dashboard с установленной cookie-сессией.
-    window.location.href = `${API_URL}/auth/discord`;
+    // replace предотвращает двойной запрос при Next.js prefetch/router interception.
+    window.location.replace(`${API_URL}/auth/discord`);
   };
 
   return (
