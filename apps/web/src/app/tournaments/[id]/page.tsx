@@ -502,7 +502,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
     <div className="min-h-screen pb-16 relative">
       {/* Header */}
       <header className="relative z-10 brushed pinstripe border-b border-[var(--border)]" style={{ boxShadow: "0 1px 0 var(--gloss) inset, 0 4px 18px var(--shadow)" }}>
-        <div className="max-w-7xl mx-auto px-6 h-[62px] flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-[62px] flex justify-between items-center">
           <Button variant="ghost" size="sm" onClick={() => router.push("/tournaments")}>
             &larr; К списку турниров
           </Button>
@@ -516,7 +516,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
         </div>
       </header>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-12 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
         {/* Tournament Header */}
         <div className="lg:col-span-12">
           <Window title={tournament?.name} status={tournamentStatus as "live" | "done" | "draft"}>

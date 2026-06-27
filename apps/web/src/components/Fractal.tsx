@@ -38,25 +38,16 @@ export const Fractal: React.FC<FractalProps> = ({
         height: size,
         borderRadius: "inherit",
         overflow: "hidden",
+        background: "var(--panel-sunken)",
       }}
     >
-      {dataUrl ? (
+      {dataUrl && (
         <img
           alt=""
           src={dataUrl}
           width={size}
           height={size}
           style={{ display: "block", width: "100%", height: "100%" }}
-        />
-      ) : (
-        <span
-          style={{
-            display: "block",
-            width: "100%",
-            height: "100%",
-            background: "var(--panel-sunken)",
-            borderRadius: "inherit",
-          }}
         />
       )}
     </span>

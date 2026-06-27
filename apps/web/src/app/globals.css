@@ -314,3 +314,15 @@
   .aurora::before, .aurora::after { animation: none !important; }
   .animate-spin { animation: none !important; }
 }
+
+/* ================================================================
+   Mobile touch improvements
+   ================================================================ */
+@media (max-width: 768px) {
+  /* Smooth scrolling on touch */
+  .overflow-x-auto,
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+

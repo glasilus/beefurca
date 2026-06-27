@@ -274,7 +274,7 @@ export default function AdminPanelPage() {
     <div className="min-h-screen pb-16 relative">
       <Nav active="admin" profile={profile} />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-12 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
         <div className="lg:col-span-12">
           <PageHeader
             title="Панель управления системой"

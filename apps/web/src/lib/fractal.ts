@@ -58,6 +58,11 @@ export interface FractalOpts {
    *                modulates brightness → smooth градиент, узнаваемый как фавикон.
    */
   paletteMode?: "escape" | "diagonal";
+  /**
+   * When true (default), pixels inside the set (never escaped) are transparent (alpha=0)
+   * so the container background shows through — avoids dark squares in light theme.
+   */
+  transparentCore?: boolean;
 }
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -97,7 +102,8 @@ export function renderFractal(
     ? (opts.palette.map(hexToRgb) as [number, number, number][])
     : null;
   const diagonal = stops != null && opts.paletteMode === "diagonal";
-  // Tinted (non-black) core when a brand palette is used.
+  const transparentCore = opts.transparentCore !== false; // default true
+  // Tinted (non-black) core when a brand palette is used (only used when transparentCore=false).
   const core: [number, number, number] = stops
     ? [
         Math.round(stops[1][0] * 0.16),
@@ -129,18 +135,24 @@ export function renderFractal(
         const d = (x + y) / (W + H - 2);
         const [gr, gg, gb] = grad3(stops, d);
         const t = i / maxIter;
-        // Внутри множества — заметно темнее (силуэт фрактала), снаружи —
-        // лёгкая текстура в пределах ±18% яркости.
         const f = i === maxIter ? 0.42 : 0.9 + 0.32 * (t - 0.5);
-        out[p] = Math.round(gr * f);
-        out[p + 1] = Math.round(gg * f);
-        out[p + 2] = Math.round(gb * f);
-        out[p + 3] = 255;
+        if (i === maxIter && transparentCore) {
+          out[p + 3] = 0; // transparent core
+        } else {
+          out[p] = Math.round(gr * f);
+          out[p + 1] = Math.round(gg * f);
+          out[p + 2] = Math.round(gb * f);
+          out[p + 3] = 255;
+        }
       } else if (i === maxIter) {
-        out[p] = core[0];
-        out[p + 1] = core[1];
-        out[p + 2] = core[2];
-        out[p + 3] = 255;
+        if (transparentCore) {
+          out[p + 3] = 0; // transparent core — container bg shows through
+        } else {
+          out[p] = core[0];
+          out[p + 1] = core[1];
+          out[p + 2] = core[2];
+          out[p + 3] = 255;
+        }
       } else {
         const t = i / maxIter;
         if (stops) {

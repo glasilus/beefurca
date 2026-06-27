@@ -117,7 +117,7 @@ export default function Home() {
     <div className="min-h-screen text-[var(--text)] transition-colors duration-300">
       {/* Navbar */}
       <header className="app-header sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 h-[62px] flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-[62px] flex justify-between items-center">
           <div className="flex items-center gap-3">
             <Logo size={34} />
             <span className="font-score text-[22px] tracking-[.04em] text-[var(--text)]">
@@ -134,28 +134,28 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Hero Section */}
-        <section className="text-center mb-16">
-          <div className="flex justify-center mb-6">
-            <Logo size={84} />
+        <section className="text-center mb-10 sm:mb-16">
+          <div className="flex justify-center mb-4 sm:mb-6">
+            <Logo size={72} />
           </div>
-          <h1 className="font-display font-extrabold text-[clamp(28px,5vw,48px)] tracking-tight mb-4 text-[var(--text)]">
+          <h1 className="font-display font-extrabold text-[clamp(24px,5vw,48px)] tracking-tight mb-4 text-[var(--text)]">
             Экосистема турниров нового поколения
           </h1>
-          <p className="max-w-2xl mx-auto text-[var(--text-muted)] text-base md:text-lg mb-8">
+          <p className="max-w-2xl mx-auto text-[var(--text-muted)] text-sm sm:text-base md:text-lg mb-6 sm:mb-8 px-2">
             Отказ от бумажных АРМ. Самообслуживание игроков, строгий судейский надзор и сквозной ELO-рейтинг для любых соревновательных дисциплин.
           </p>
-          <div className="flex justify-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
             <Button variant="gel" onClick={() => router.push("/login")}>
-              Начать -- войти
+              Начать — войти
             </Button>
             <Button variant="secondary" onClick={() => router.push("/login")}>
               Создать аккаунт
             </Button>
           </div>
           <p className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-widest mt-6">
-            Разделы ниже -- демонстрация интерфейса
+            Разделы ниже — демонстрация интерфейса
           </p>
         </section>
 

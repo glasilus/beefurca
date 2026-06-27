@@ -571,5 +571,49 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         page: t.Optional(t.String()),
       }),
     }
+  )
+  // Public player profile — no auth required
+  .get(
+    "/:id/public",
+    async ({ params, set }) => {
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE.test(params.id)) {
+        set.status = 404;
+        return { error: "Player not found" };
+      }
+
+      try {
+        const [usr] = await db
+          .select({
+            id: users.id,
+            nickname: users.nickname,
+            role: users.role,
+            createdAt: users.createdAt,
+            isDeleted: users.isDeleted,
+            isBanned: users.isBanned,
+          })
+          .from(users)
+          .where(eq(users.id, params.id))
+          .limit(1);
+
+        if (!usr || usr.isDeleted || usr.isBanned) {
+          set.status = 404;
+          return { error: "Player not found" };
+        }
+
+        return {
+          id: usr.id,
+          nickname: usr.nickname,
+          role: usr.role,
+          createdAt: usr.createdAt,
+        };
+      } catch {
+        set.status = 404;
+        return { error: "Player not found" };
+      }
+    },
+    {
+      params: t.Object({ id: t.String() }),
+    }
   );
 

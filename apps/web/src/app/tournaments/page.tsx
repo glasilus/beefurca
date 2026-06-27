@@ -94,7 +94,7 @@ export default function TournamentsListPage() {
     <div className="min-h-screen pb-16 relative">
       <Nav active="tournaments" profile={profile} />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 mt-12">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-12">
         <PageHeader
           title="Каталог турниров"
           eyebrow="Соревнования"
@@ -105,7 +105,7 @@ export default function TournamentsListPage() {
 
         {/* Filters */}
         <Window title="Фильтры" className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <Field label="Поиск по названию">
               <div className="relative">
                 <Search className="absolute left-3 top-[11px] text-[var(--text-muted)]" size={14} />

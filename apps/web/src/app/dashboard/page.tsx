@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { EloChart } from "../../components/EloChart";
+import { StatsCharts } from "../../components/StatsCharts";
 import { FractalAvatar } from "../../components/FractalAvatar";
 import { Nav } from "../../components/Nav";
 import { apiFetch, fetchProfile, setSession, clearSession } from "../../lib/api";
@@ -26,6 +27,7 @@ import {
   PencilSimple,
   DiscordLogo,
   Check,
+  UserCircle,
 } from "@phosphor-icons/react";
 
 export default function DashboardPage() {
@@ -252,27 +254,31 @@ export default function DashboardPage() {
 
   const isCaptain = (team: any) => team.captainId === profile?.id;
 
+  const avgElo = disciplineStats.length > 0
+    ? Math.round(disciplineStats.reduce((a: number, s: any) => a + 1000 + s.eloDelta, 0) / disciplineStats.length)
+    : null;
+
   const disciplineColumns: TableColumn<any>[] = [
     { key: "disciplineName", header: "Дисциплина", render: (row: any) => <span className="font-semibold">{row.disciplineName}</span> },
+    { key: "currentElo", header: "ELO", numeric: true, render: (row: any) => <span className="font-bold font-mono text-[var(--status-done)]">{1000 + row.eloDelta}</span> },
     { key: "matchesCount", header: "Матчи", numeric: true },
     { key: "winsCount", header: "Победы", numeric: true, render: (row: any) => <span className="text-[var(--status-win)]">{row.winsCount}</span> },
-    { key: "losses", header: "Поражения", numeric: true, render: (row: any) => <span className="text-[var(--status-danger)]">{row.matchesCount - row.winsCount}</span> },
-    { key: "winrate", header: "Винрейт", numeric: true, render: (row: any) => <span>{row.matchesCount > 0 ? `${Math.round((row.winsCount / row.matchesCount) * 100)}%` : "0%"}</span> },
-    { key: "eloDelta", header: "ELO Delta", numeric: true, render: (row: any) => <span className={`font-bold ${row.eloDelta >= 0 ? "text-[var(--status-win)]" : "text-[var(--status-danger)]"}`}>{row.eloDelta >= 0 ? `+${row.eloDelta}` : row.eloDelta}</span> },
+    { key: "winrate", header: "WR%", numeric: true, render: (row: any) => <span>{row.matchesCount > 0 ? `${Math.round((row.winsCount / row.matchesCount) * 100)}%` : "—"}</span> },
+    { key: "eloDelta", header: "Δ ELO", numeric: true, render: (row: any) => <span className={`font-bold ${row.eloDelta >= 0 ? "text-[var(--status-win)]" : "text-[var(--status-danger)]"}`}>{row.eloDelta >= 0 ? `+${row.eloDelta}` : row.eloDelta}</span> },
   ];
 
   return (
     <div className="min-h-screen pb-16 relative">
       <Nav active="dashboard" profile={profile} />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-12 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
         <div className="lg:col-span-8 flex flex-col gap-8">
           {/* Profile */}
           <Window title="Профиль">
-            <div className="flex items-center gap-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
               <FractalAvatar seed={profile?.id} size={70} />
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <div className="flex-1 text-center sm:text-left">
+                <div className="flex items-center gap-2 mb-1 flex-wrap justify-center sm:justify-start">
                   <span className="text-lg font-bold text-[var(--text)]">{profile?.nickname}</span>
                   <Badge tone="draft">{profile?.role}</Badge>
                   {profile?.discordLinked && (
@@ -287,20 +293,35 @@ export default function DashboardPage() {
                     {profile?.fullName}{profile?.fullName && profile?.phone ? " | " : ""}{profile?.phone}
                   </p>
                 )}
-                <div className="flex gap-6 mt-3">
+                <div className="flex gap-4 sm:gap-6 mt-3 flex-wrap justify-center sm:justify-start">
                   <div>
-                    <span className="text-[10px] uppercase font-cond text-[var(--text-muted)] block">Рейтинг ELO</span>
-                    <span className="text-sm font-bold text-[var(--status-done)]">{profile?.elo} очков</span>
+                    <span className="text-[10px] uppercase font-cond text-[var(--text-muted)] block">Среднее ELO</span>
+                    {avgElo !== null
+                      ? <span className="text-sm font-bold text-[var(--status-done)]">{avgElo}</span>
+                      : <span className="text-xs text-[var(--text-muted)] font-mono">—</span>
+                    }
+                    {disciplineStats.length > 0 && (
+                      <span className="text-[9px] text-[var(--text-muted)] font-cond block">по {disciplineStats.length} дисц.</span>
+                    )}
                   </div>
                   <div>
                     <span className="text-[10px] uppercase font-cond text-[var(--text-muted)] block">Участник с</span>
                     <span className="text-xs text-[var(--text)] font-semibold">{new Date(profile?.createdAt).toLocaleDateString("ru-RU")}</span>
                   </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-cond text-[var(--text-muted)] block">Матчей</span>
+                    <span className="text-xs text-[var(--text)] font-semibold font-mono">
+                      {disciplineStats.reduce((a: number, s: any) => a + s.matchesCount, 0)}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex sm:flex-col gap-2 flex-wrap justify-center">
                 <Button variant="secondary" size="sm" leftIcon={<PencilSimple size={12} />} onClick={openEdit}>
                   Изменить
+                </Button>
+                <Button variant="ghost" size="sm" leftIcon={<UserCircle size={12} />} onClick={() => router.push(`/players/${profile?.id}`)}>
+                  Публичный
                 </Button>
                 <Button variant="danger" size="sm" leftIcon={<Trash2 size={12} />} onClick={handleDeleteAccount}>
                   Удалить
@@ -308,6 +329,8 @@ export default function DashboardPage() {
               </div>
             </div>
           </Window>
+
+          <StatsCharts disciplineStats={disciplineStats} />
 
           <EloChart history={eloHistory} />
 
