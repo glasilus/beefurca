@@ -2,19 +2,18 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { apiFetch, fetchProfile, setSession } from "../../../lib/api";
+import { apiFetch, fetchProfile } from "../../../lib/api";
 import { Nav } from "../../../components/Nav";
 import { FractalAvatar } from "../../../components/FractalAvatar";
 import { EloChart } from "../../../components/EloChart";
 import { StatsCharts } from "../../../components/StatsCharts";
-import { Window, Card } from "../../../components/ui/Window";
+import { Window } from "../../../components/ui/Window";
 import { Button } from "../../../components/ui/Button";
 import { Badge } from "../../../components/ui/Badge";
 import { Table } from "../../../components/ui/Table";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import type { TableColumn } from "../../../components/ui/Table";
 import {
-  Trophy,
   TrendUp as TrendingUp,
   ArrowLeft,
   Calendar,
@@ -29,7 +28,6 @@ export default function PlayerProfilePage() {
   const [player, setPlayer] = useState<any>(null);
   const [eloHistory, setEloHistory] = useState<any[]>([]);
   const [disciplineStats, setDisciplineStats] = useState<any[]>([]);
-  const [tournaments, setTournaments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -38,27 +36,36 @@ export default function PlayerProfilePage() {
     const { signal } = controller;
 
     (async () => {
-      const prof = await fetchProfile();
-      if (signal.aborted) return;
-      if (!prof) { router.push("/login"); return; }
-      setMyProfile(prof);
-      setSession(prof);
+      try {
+        // Публичные данные грузятся без авторизации
+        const [pubRes, eloRes, statsRes] = await Promise.all([
+          apiFetch(`/users/${playerId}/public`, { signal } as any),
+          apiFetch(`/users/${playerId}/elo-history`, { signal } as any),
+          apiFetch(`/users/${playerId}/discipline-stats`, { signal } as any),
+        ]);
 
-      const [pubRes, eloRes, statsRes] = await Promise.all([
-        apiFetch(`/users/${playerId}/public`, { signal } as any),
-        apiFetch(`/users/${playerId}/elo-history`, { signal } as any),
-        apiFetch(`/users/${playerId}/discipline-stats`, { signal } as any),
-      ]);
+        if (signal.aborted) return;
 
-      if (signal.aborted) return;
-      if (!pubRes.ok) { setNotFound(true); setLoading(false); return; }
+        if (!pubRes.ok) {
+          setNotFound(true);
+          return;
+        }
 
-      const pubData = await pubRes.json();
-      setPlayer(pubData);
-      if (eloRes.ok) setEloHistory(await eloRes.json());
-      if (statsRes.ok) setDisciplineStats(await statsRes.json());
+        const pubData = await pubRes.json();
+        if (signal.aborted) return;
+        setPlayer(pubData);
+        if (eloRes.ok) setEloHistory(await eloRes.json());
+        if (statsRes.ok) setDisciplineStats(await statsRes.json());
 
-      setLoading(false);
+        // Определяем, чей это профиль (необязательно — для "это вы" бейджа)
+        const prof = await fetchProfile().catch(() => null);
+        if (!signal.aborted && prof) setMyProfile(prof);
+      } catch (err: any) {
+        if (signal.aborted) return;
+        setNotFound(true);
+      } finally {
+        if (!signal.aborted) setLoading(false);
+      }
     })();
 
     return () => controller.abort();
@@ -110,7 +117,6 @@ export default function PlayerProfilePage() {
       <Nav active="tournaments" profile={myProfile} />
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 mt-8">
-        {/* Back */}
         <Button
           variant="ghost"
           size="sm"
@@ -140,7 +146,7 @@ export default function PlayerProfilePage() {
               </div>
 
               {/* Key stats */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                 <div className="bg-[var(--panel-sunken)] rounded-lg px-3 py-2 text-center">
                   <div className="text-[10px] font-cond uppercase text-[var(--text-muted)] mb-0.5">Среднее ELO</div>
                   <div className="text-lg font-mono font-bold text-[var(--status-done)]">
@@ -166,19 +172,16 @@ export default function PlayerProfilePage() {
           </div>
         </Window>
 
-        {/* Visual stats charts */}
         {disciplineStats.length > 0 && (
           <div className="mt-8">
             <StatsCharts disciplineStats={disciplineStats} />
           </div>
         )}
 
-        {/* ELO history */}
         <div className="mt-8">
           <EloChart history={eloHistory} />
         </div>
 
-        {/* Discipline stats table */}
         <div className="mt-8">
           <Window title="Статистика по дисциплинам" status={disciplineStats.length > 0 ? "done" : null}>
             <div className="flex items-center gap-2 mb-4">

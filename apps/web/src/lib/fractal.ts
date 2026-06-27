@@ -102,7 +102,7 @@ export function renderFractal(
     ? (opts.palette.map(hexToRgb) as [number, number, number][])
     : null;
   const diagonal = stops != null && opts.paletteMode === "diagonal";
-  const transparentCore = opts.transparentCore !== false; // default true
+  const transparentCore = opts.transparentCore === true; // default false — opt-in only
   // Tinted (non-black) core when a brand palette is used (only used when transparentCore=false).
   const core: [number, number, number] = stops
     ? [

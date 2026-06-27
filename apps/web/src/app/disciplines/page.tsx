@@ -128,11 +128,18 @@ export default function DisciplinesPage() {
       <Nav active="disciplines" profile={profile} />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-12 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
+        <div className="lg:col-span-12">
+          <PageHeader
+            title="Дисциплины"
+            eyebrow="Каталог"
+          />
+        </div>
+
         <div className="lg:col-span-4 flex flex-col gap-6">
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Activity size={16} className="text-[var(--accent)]" />
-              <span className="font-cond font-semibold uppercase tracking-[.06em] text-[12px] text-[var(--text-muted)]">Список дисциплин</span>
+              <span className="font-cond font-semibold uppercase tracking-[.06em] text-[12px] text-[var(--text-muted)]">Выберите дисциплину</span>
             </div>
             <div className="flex flex-col gap-3">
               {disciplines.map((disc) => (
@@ -221,7 +228,7 @@ export default function DisciplinesPage() {
                 {tournamentsLoading ? (
                   <span className="text-xs text-[var(--text-muted)] font-mono italic">Загрузка турниров...</span>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                     <div className="flex flex-col gap-4">
                       <h4 className="text-xs uppercase font-cond tracking-[.06em] text-[var(--status-win)] font-bold border-b border-[color-mix(in_srgb,var(--status-win)_30%,transparent)] pb-2">
                         Запланированные ({planned.length})

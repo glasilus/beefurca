@@ -211,7 +211,7 @@ export default function AdminPanelPage() {
             {usr.isTrusted && <Badge tone="win"><SealCheck size={10} weight="fill" /> Доверенный</Badge>}
             {usr.isBanned && <Badge tone="danger">Забанен</Badge>}
           </div>
-          <span className="text-[10px] text-[var(--text-muted)] font-mono truncate block">{usr.email} / {usr.elo} ELO</span>
+          <span className="text-[10px] text-[var(--text-muted)] font-mono truncate block">{usr.email} / ELO по дисциплинам</span>
         </div>
       ),
     },

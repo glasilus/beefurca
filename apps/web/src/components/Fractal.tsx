@@ -38,7 +38,7 @@ export const Fractal: React.FC<FractalProps> = ({
         height: size,
         borderRadius: "inherit",
         overflow: "hidden",
-        background: "var(--panel-sunken)",
+        background: "transparent",
       }}
     >
       {dataUrl && (

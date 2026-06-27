@@ -529,6 +529,12 @@ export const userRoutes = new Elysia({ prefix: "/users" })
   .get(
     "/disciplines/:disciplineId/leaderboard",
     async ({ params, query, set }) => {
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE.test(params.disciplineId)) {
+        set.status = 400;
+        return { error: "Invalid discipline ID" };
+      }
+
       const page = query.page ? Number(query.page) || 1 : 1;
       const pageSize = 50;
       const cacheKey = `leaderboard:${params.disciplineId}:${page}`;
@@ -537,28 +543,24 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         return JSON.parse(cached);
       }
 
-      const leaderboard = await db
-        .select({
-          id: users.id,
-          nickname: users.nickname,
-          elo: users.elo,
-        })
-        .from(users)
-        .where(
-          and(
-            eq(users.isDeleted, false),
-            eq(users.isBanned, false),
-            sql`users.id IN (
-              SELECT DISTINCT user_id 
-              FROM tournament_participants tp
-              INNER JOIN tournaments t ON tp.tournament_id = t.id
-              WHERE t.discipline_id = ${params.disciplineId}::uuid AND tp.user_id IS NOT NULL
-            )`
-          )
-        )
-        .orderBy(sql`users.elo DESC`)
-        .limit(pageSize)
-        .offset((page - 1) * pageSize);
+      const offset = (page - 1) * pageSize;
+      // Дисциплинарное ELO через JOIN: один запрос вместо N коррелированных подзапросов.
+      // LEFT JOIN matches/elo_history чтобы пользователи без сыгранных матчей тоже попали в список.
+      const leaderboard = await db.execute(sql`
+        SELECT
+          u.id,
+          u.nickname,
+          1000 + COALESCE(SUM(eh.new_elo - eh.old_elo), 0)::int AS elo
+        FROM users u
+        INNER JOIN tournament_participants tp ON tp.user_id = u.id
+        INNER JOIN tournaments t ON tp.tournament_id = t.id AND t.discipline_id = ${params.disciplineId}::uuid
+        LEFT JOIN matches m ON m.tournament_id = t.id AND m.played_at IS NOT NULL
+        LEFT JOIN elo_history eh ON eh.user_id = u.id AND eh.match_id = m.id
+        WHERE u.is_deleted = false AND u.is_banned = false
+        GROUP BY u.id, u.nickname
+        ORDER BY elo DESC
+        LIMIT ${pageSize} OFFSET ${offset}
+      `);
 
       await redis.setex(cacheKey, 300, JSON.stringify(leaderboard));
       return leaderboard;
