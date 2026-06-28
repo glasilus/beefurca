@@ -631,6 +631,11 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         return { error: "Need at least 2 approved participants to start." };
       }
 
+      if (tournament.bracketType === "DOUBLE_ELIM" && approved.length < 3) {
+        set.status = 400;
+        return { error: "Double Elimination requires at least 3 participants." };
+      }
+
       const enginePlayers = approved.map((ap) => ({
         id: ap.id,
         name: ap.teamSnapshot || ap.nicknameSnapshot,
