@@ -12,6 +12,7 @@ import {
   Trash as Trash2,
   Star,
   SealCheck,
+  PencilSimple,
 } from "@phosphor-icons/react";
 import { API_URL, apiFetch, fetchProfile, setSession } from "../../lib/api";
 import { Nav } from "../../components/Nav";
@@ -41,6 +42,10 @@ export default function AdminPanelPage() {
   const [newDiscName, setNewDiscName] = useState("");
   const [newDiscGameType, setNewDiscGameType] = useState("SINGLE");
   const [newDiscRules, setNewDiscRules] = useState("");
+
+  const [editDisc, setEditDisc] = useState<any>(null);
+  const [editDiscName, setEditDiscName] = useState("");
+  const [editDiscRules, setEditDiscRules] = useState("");
 
   const [popReportStart, setPopReportStart] = useState("");
   const [popReportEnd, setPopReportEnd] = useState("");
@@ -141,6 +146,52 @@ export default function AdminPanelPage() {
         setNewDiscRules("");
         loadAdminData();
       } else toast.error(data.error || "Не удалось создать дисциплину");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleOpenEdit = (d: any) => {
+    setEditDisc(d);
+    setEditDiscName(d.name);
+    setEditDiscRules(d.rules ?? "");
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editDisc || !editDiscName.trim()) return;
+    try {
+      const res = await apiFetch(`/admin/disciplines/${editDisc.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: editDiscName.trim(),
+          rules: editDiscRules.trim() || "",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setEditDisc(null);
+        loadAdminData();
+        toast.success("Дисциплина обновлена");
+      } else {
+        toast.error(data.error || "Не удалось обновить дисциплину");
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleDeleteDiscipline = async (id: string, name: string) => {
+    if (!(await confirm(`Удалить дисциплину «${name}»? Это действие необратимо.`))) return;
+    try {
+      const res = await apiFetch(`/admin/disciplines/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok) {
+        loadAdminData();
+        toast.success(data.message);
+      } else {
+        toast.error(data.error || "Не удалось удалить дисциплину");
+      }
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -345,27 +396,48 @@ export default function AdminPanelPage() {
               <Trophy size={16} className="text-[var(--accent)]" />
               <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Дисциплины</span>
             </div>
-            <div className="flex flex-col gap-2 max-h-[260px] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto pr-1">
               {disciplinesList.map((d) => (
-                <div key={d.id} className="flex justify-between items-center p-2.5 bg-[var(--panel-sunken)] border border-[var(--hairline)] rounded-ctl text-xs">
-                  <div className="min-w-0 flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-[var(--text)]">{d.name}</span>
-                    <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                      {d.gameType === "TEAM" ? "командная" : "одиночная"}
-                    </span>
-                    {d.isOfficial && (
-                      <Badge tone="done">
-                        <Star size={10} weight="fill" /> офиц.
-                      </Badge>
+                <div key={d.id} className="flex justify-between items-start p-2.5 bg-[var(--panel-sunken)] border border-[var(--hairline)] rounded-ctl text-xs gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-[var(--text)]">{d.name}</span>
+                      <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                        {d.gameType === "TEAM" ? "командная" : "одиночная"}
+                      </span>
+                      {d.isOfficial && (
+                        <Badge tone="done">
+                          <Star size={10} weight="fill" /> офиц.
+                        </Badge>
+                      )}
+                    </div>
+                    {d.rules && (
+                      <p className="text-[10px] text-[var(--text-muted)] mt-1 line-clamp-1">{d.rules}</p>
                     )}
                   </div>
-                  <Button
-                    variant={d.isOfficial ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => handleToggleOfficial(d.id, !d.isOfficial)}
-                  >
-                    {d.isOfficial ? "Понизить" : "Сделать офиц."}
-                  </Button>
+                  <div className="flex gap-1 shrink-0">
+                    <Button
+                      variant={d.isOfficial ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => handleToggleOfficial(d.id, !d.isOfficial)}
+                    >
+                      {d.isOfficial ? "Понизить" : "Офиц."}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleOpenEdit(d)}
+                    >
+                      <PencilSimple size={12} />
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleDeleteDiscipline(d.id, d.name)}
+                    >
+                      <Trash2 size={12} />
+                    </Button>
+                  </div>
                 </div>
               ))}
               {disciplinesList.length === 0 && (
@@ -405,6 +477,39 @@ export default function AdminPanelPage() {
             </div>
           </Window>
         </div>
+
+        {/* Edit discipline modal */}
+        {editDisc && (
+          <Modal open={!!editDisc} onClose={() => setEditDisc(null)} title={`Редактировать дисциплину`}>
+            <form onSubmit={handleSaveEdit} className="flex flex-col gap-4">
+              <Field label="Название *">
+                <Input
+                  type="text"
+                  required
+                  value={editDiscName}
+                  onChange={(e) => setEditDiscName(e.target.value)}
+                />
+              </Field>
+              <Field label="Правила и регламент">
+                <textarea
+                  rows={4}
+                  className="w-full p-2.5 text-[14px] font-sans text-[var(--text)] bg-[var(--panel-sunken)] border border-[var(--border)] rounded-ctl shadow-[inset_0_2px_4px_rgba(0,0,0,.12)] outline-none focus:border-[var(--accent)] focus:shadow-[inset_0_2px_4px_rgba(0,0,0,.12),0_0_0_3px_color-mix(in_srgb,var(--accent)_30%,transparent)] placeholder:text-[var(--text-muted)]"
+                  value={editDiscRules}
+                  onChange={(e) => setEditDiscRules(e.target.value)}
+                  placeholder="Базовые правила..."
+                />
+              </Field>
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setEditDisc(null)}>
+                  Отмена
+                </Button>
+                <Button type="submit" variant="gel" size="sm">
+                  Сохранить
+                </Button>
+              </div>
+            </form>
+          </Modal>
+        )}
 
         {/* Tournaments */}
         <div className="lg:col-span-12 mt-6">

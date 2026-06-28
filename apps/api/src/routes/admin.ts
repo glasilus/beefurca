@@ -8,7 +8,7 @@ import {
   matches,
   eloHistory,
 } from "@beefurca/database";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, count } from "drizzle-orm";
 import { authPlugin, checkRole, revokeAllUserTokens } from "../middleware/auth";
 import {
   generateDisciplinePopularityReport,
@@ -63,7 +63,97 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
       }),
     }
   )
-  // 1b. Promote/demote discipline to official (Admin only)
+  // 1b. Edit discipline name and/or rules (Admin only)
+  .put(
+    "/disciplines/:id",
+    async ({ user, params, body, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { error: "Unauthorized" };
+      }
+      checkRole(user, ["Admin"], set);
+
+      const updateData: { name?: string; rules?: string | null } = {};
+      if (body.name !== undefined) {
+        // Check uniqueness only if name actually changes
+        const [existing] = await db
+          .select({ id: disciplines.id })
+          .from(disciplines)
+          .where(eq(disciplines.name, body.name))
+          .limit(1);
+        if (existing && existing.id !== params.id) {
+          set.status = 400;
+          return { error: "Discipline name is already taken" };
+        }
+        updateData.name = body.name;
+      }
+      if (body.rules !== undefined) updateData.rules = body.rules || null;
+
+      if (Object.keys(updateData).length === 0) {
+        set.status = 400;
+        return { error: "Nothing to update" };
+      }
+
+      const [updated] = await db
+        .update(disciplines)
+        .set(updateData)
+        .where(eq(disciplines.id, params.id))
+        .returning();
+
+      if (!updated) {
+        set.status = 404;
+        return { error: "Discipline not found" };
+      }
+
+      return { message: "Discipline updated", discipline: updated };
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        name: t.Optional(t.String()),
+        rules: t.Optional(t.String()),
+      }),
+    }
+  )
+  // 1c. Delete discipline (Admin only) — blocked if tournaments reference it
+  .delete(
+    "/disciplines/:id",
+    async ({ user, params, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { error: "Unauthorized" };
+      }
+      checkRole(user, ["Admin"], set);
+
+      const [{ value: tourCount }] = await db
+        .select({ value: count() })
+        .from(tournaments)
+        .where(eq(tournaments.disciplineId, params.id));
+
+      if (tourCount > 0) {
+        set.status = 409;
+        return {
+          error: `Нельзя удалить: дисциплина используется в ${tourCount} турнире(ах). Сначала удалите или перепривяжите турниры.`,
+        };
+      }
+
+      const [deleted] = await db
+        .delete(disciplines)
+        .where(eq(disciplines.id, params.id))
+        .returning();
+
+      if (!deleted) {
+        set.status = 404;
+        return { error: "Discipline not found" };
+      }
+
+      return { message: `Дисциплина "${deleted.name}" удалена` };
+    },
+    {
+      params: t.Object({ id: t.String() }),
+    }
+  )
+  // 1d. Promote/demote discipline to official (Admin only)
   .put(
     "/disciplines/:id/official",
     async ({ user, params, body, set }) => {
