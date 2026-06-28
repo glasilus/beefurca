@@ -27,9 +27,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       .filter(Boolean)
       .join(" ")}
   >
-    {/* mix-blend-mode: screen — dark pixels vanish on light bg, colorful ring glows on dark bg */}
-    <div className="absolute inset-0 flex items-center justify-center opacity-[0.08] mix-blend-screen pointer-events-none select-none">
-      <Fractal seed={seed} size={160} />
+    <div className="absolute inset-0 flex items-center justify-center opacity-[0.1] pointer-events-none select-none">
+      <Fractal seed={seed} size={200} opts={{ radialFade: true }} />
     </div>
 
     <h3 className="relative font-display font-bold text-[18px] text-[var(--text)] mb-2">

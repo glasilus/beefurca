@@ -63,6 +63,12 @@ export interface FractalOpts {
    * so the container background shows through — avoids dark squares in light theme.
    */
   transparentCore?: boolean;
+  /**
+   * Apply a smooth radial alpha vignette so the canvas edges fade to fully transparent.
+   * Baked into the PNG alpha channel — eliminates the visible rectangular canvas boundary
+   * in both light and dark themes without any CSS blend-mode tricks.
+   */
+  radialFade?: boolean;
 }
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -170,6 +176,23 @@ export function renderFractal(
           out[p + 2] = b;
         }
         out[p + 3] = 255;
+      }
+
+      // Radial vignette: smoothstep fade from inner→outer radius → alpha=0.
+      // This makes the rectangular canvas boundary fully transparent in both themes.
+      if (opts.radialFade && out[p + 3] > 0) {
+        const dx = (x - W / 2) / (W / 2);
+        const dy = (y - H / 2) / (H / 2);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const inner = 0.68, outer = 0.98;
+        if (dist >= outer) {
+          out[p + 3] = 0;
+        } else if (dist > inner) {
+          const t2 = (dist - inner) / (outer - inner);
+          // smoothstep: t²(3-2t)
+          const smooth = t2 * t2 * (3 - 2 * t2);
+          out[p + 3] = Math.round(out[p + 3] * (1 - smooth));
+        }
       }
     }
   }
