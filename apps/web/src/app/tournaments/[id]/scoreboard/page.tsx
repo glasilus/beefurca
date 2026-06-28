@@ -16,6 +16,7 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
   const [pinnedMatchId, setPinnedMatchId] = useState<string | null>(null);
 
   const [tournament, setTournament] = useState<any>(null);
+  const [disciplineName, setDisciplineName] = useState<string>("");
   const [participants, setParticipants] = useState<any[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
 
@@ -47,6 +48,14 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
         setTournament(data.tournament);
         setParticipants(data.participants || []);
         setMatches(data.matches || []);
+        try {
+          const dRes = await apiFetch("/tournaments/disciplines");
+          if (dRes.ok) {
+            const discs = await dRes.json();
+            const disc = discs.find((d: any) => d.id === data.tournament.disciplineId);
+            if (disc) setDisciplineName(disc.name);
+          }
+        } catch {}
       } else {
         router.push(`/tournaments/${params.id}`);
       }
@@ -122,7 +131,7 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
             {tournament?.name}
           </h2>
           <p className="text-xs text-[var(--text-muted)] mt-2 font-mono uppercase tracking-widest">
-            Дисциплина: {tournament?.disciplineName} / Режим трансляции в реальном времени
+            Дисциплина: {disciplineName || "—"} / Режим трансляции в реальном времени
           </p>
         </div>
 
