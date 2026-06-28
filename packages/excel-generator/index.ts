@@ -3,9 +3,8 @@ import Workbook from "exceljs";
 export interface DisciplineReportItem {
   disciplineName: string;
   tournamentsCount: number;
-  proCount: number;
-  amateurCount: number;
-  sandboxCount: number;
+  officialCount: number; // STANDARD — официальные турниры (влияют на рейтинг)
+  autonomousCount: number; // SANDBOX — автономный учёт
   participantsCount: number;
   avgParticipants: number;
   matchesCount: number;
@@ -31,7 +30,7 @@ export async function generateDisciplinePopularityReport(
   const worksheet = workbook.addWorksheet("Популярность дисциплин");
 
   // Title block
-  worksheet.mergeCells("A1:H1");
+  worksheet.mergeCells("A1:G1");
   const titleCell = worksheet.getCell("A1");
   titleCell.value = `Отчет о популярности дисциплин за период с ${startDateStr} по ${endDateStr}`;
   titleCell.font = { name: "Arial", size: 14, bold: true };
@@ -45,9 +44,8 @@ export async function generateDisciplinePopularityReport(
   const headerRow = worksheet.addRow([
     "Наименование дисциплины",
     "Кол-во турниров",
-    "PRO",
-    "Amateur",
-    "Sandbox",
+    "Официальных",
+    "Автономных",
     "Кол-во участников",
     "Ср. кол-во участников",
     "Сыграно матчей",
@@ -76,9 +74,8 @@ export async function generateDisciplinePopularityReport(
     const row = worksheet.addRow([
       item.disciplineName,
       item.tournamentsCount,
-      item.proCount,
-      item.amateurCount,
-      item.sandboxCount,
+      item.officialCount,
+      item.autonomousCount,
       item.participantsCount,
       item.avgParticipants,
       item.matchesCount,
@@ -93,7 +90,7 @@ export async function generateDisciplinePopularityReport(
       };
       if (colNumber === 1) {
         cell.alignment = { horizontal: "left" };
-      } else if (colNumber === 7) {
+      } else if (colNumber === 6) {
         cell.alignment = { horizontal: "right" };
         cell.numFmt = "0.0"; // среднее число участников
       } else {
@@ -113,9 +110,8 @@ export async function generateDisciplinePopularityReport(
       { formula: `=SUM(C${startRow}:C${endRow})` },
       { formula: `=SUM(D${startRow}:D${endRow})` },
       { formula: `=SUM(E${startRow}:E${endRow})` },
-      { formula: `=SUM(F${startRow}:F${endRow})` },
-      { formula: `=IFERROR(AVERAGE(G${startRow}:G${endRow}),0)` },
-      { formula: `=SUM(H${startRow}:H${endRow})` },
+      { formula: `=IFERROR(AVERAGE(F${startRow}:F${endRow}),0)` },
+      { formula: `=SUM(G${startRow}:G${endRow})` },
     ]);
 
     sumRow.eachCell((cell, colNumber) => {
@@ -131,7 +127,7 @@ export async function generateDisciplinePopularityReport(
         bottom: { style: "double" },
         right: { style: "thin" },
       };
-      if (colNumber === 7) {
+      if (colNumber === 6) {
         cell.alignment = { horizontal: "right" };
         cell.numFmt = "0.0";
       } else if (colNumber > 1) {

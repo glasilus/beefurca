@@ -1,13 +1,9 @@
 import { describe, it, expect } from "bun:test";
 import {
   generateSingleElimination,
-  generateDoubleElimination,
   generateRoundRobin,
-  generateSwissRound1,
-  generateNextSwissRound,
-  calculateBuchholz,
 } from "./index";
-import { Participant, SwissRoundPlayer } from "./types";
+import { Participant } from "./types";
 
 describe("Bracket Engine Tests", () => {
   const participants: Participant[] = [
@@ -43,28 +39,6 @@ describe("Bracket Engine Tests", () => {
     for (const m of round1) {
       expect(m.nextMatchIndex).not.toBeNull();
     }
-  });
-
-  it("should generate Double Elimination bracket", () => {
-    const matches = generateDoubleElimination(participants);
-
-    // For 8 players:
-    // Winners: 7 matches (R1: 4, R2: 2, R3: 1)
-    // Losers: 6 matches (LR1: 2, LR2: 2, LR3: 1, LR4: 1)
-    // Grand Final: 1 match
-    // Reset: 1 match
-    // Total: 15
-    expect(matches.length).toBe(15);
-
-    const winners = matches.filter((m) => m.type === "winners");
-    const losers = matches.filter((m) => m.type === "losers");
-    const gf = matches.filter((m) => m.type === "grand_final");
-    const reset = matches.filter((m) => m.type === "grand_final_reset");
-
-    expect(winners.length).toBe(7);
-    expect(losers.length).toBe(6);
-    expect(gf.length).toBe(1);
-    expect(reset.length).toBe(1);
   });
 
   it("should auto-advance BYE players when participant count is not a power of two", () => {
@@ -181,34 +155,5 @@ describe("Bracket Engine Tests", () => {
 
     const rounds = new Set(matches.map((m) => m.round));
     expect(rounds.size).toBe(7);
-  });
-
-  it("should generate Swiss Round 1 and pair next round with history", () => {
-    const r1Matches = generateSwissRound1(participants);
-    expect(r1Matches.length).toBe(4);
-
-    const players: SwissRoundPlayer[] = [
-      { id: "p1", points: 1, opponents: ["p5"], buchholz: 0 },
-      { id: "p2", points: 1, opponents: ["p6"], buchholz: 0 },
-      { id: "p3", points: 1, opponents: ["p7"], buchholz: 0 },
-      { id: "p4", points: 1, opponents: ["p8"], buchholz: 0 },
-      { id: "p5", points: 0, opponents: ["p1"], buchholz: 0 },
-      { id: "p6", points: 0, opponents: ["p2"], buchholz: 0 },
-      { id: "p7", points: 0, opponents: ["p3"], buchholz: 0 },
-      { id: "p8", points: 0, opponents: ["p4"], buchholz: 0 },
-    ];
-
-    // Verify Buchholz summation
-    players[0].opponents = ["p2"]; // p1 played p2 (who has 1 point)
-    const recalculated = calculateBuchholz(players);
-    expect(recalculated[0].buchholz).toBe(1);
-
-    const r2Matches = generateNextSwissRound(recalculated, 2);
-    expect(r2Matches.length).toBe(4);
-
-    // No player matches themselves
-    for (const match of r2Matches) {
-      expect(match.participant1Id).not.toBe(match.participant2Id);
-    }
   });
 });

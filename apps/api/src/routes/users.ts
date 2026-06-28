@@ -22,8 +22,6 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         phone: users.phone,
         role: users.role,
         elo: users.elo,
-        isTrusted: users.isTrusted,
-        discordLinked: sql<boolean>`(${users.discordId} IS NOT NULL)`,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -126,7 +124,6 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         email: `deleted_${user.id}@deleted.beefurca.local`,
         nickname: `deleted_${user.id.slice(0, 8)}`,
         passwordHash: null,
-        discordId: null,
       })
       .where(eq(users.id, user.id));
 

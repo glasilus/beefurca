@@ -94,20 +94,10 @@ export function calculateTeamEloChange(
 }
 
 /**
- * Returns the K-Factor based on tournament type and organizer trust.
- * - PRO: 32
- * - AMATEUR (trusted organizer): 16
- * - AMATEUR (untrusted organizer) or SANDBOX: 0 (no ELO changes)
+ * Returns the K-Factor based on tournament mode.
+ * - STANDARD: 32 (рейтинг пересчитывается)
+ * - SANDBOX: 0 (автономный учёт, ELO не затрагивается)
  */
-export function getKFactor(
-  tournamentType: "PRO" | "AMATEUR" | "SANDBOX",
-  isOrganizerTrusted: boolean
-): number {
-  if (tournamentType === "PRO") {
-    return 32;
-  }
-  if (tournamentType === "AMATEUR" && isOrganizerTrusted) {
-    return 16;
-  }
-  return 0; // untrusted amateur or sandbox
+export function getKFactor(tournamentType: "STANDARD" | "SANDBOX"): number {
+  return tournamentType === "STANDARD" ? 32 : 0;
 }

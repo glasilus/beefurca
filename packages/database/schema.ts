@@ -5,7 +5,6 @@ import {
   integer,
   boolean,
   timestamp,
-  jsonb,
   uniqueIndex,
   index,
   primaryKey,
@@ -22,17 +21,12 @@ export const users = pgTable(
     // ФИО и телефон — опциональные контактные данные (требование ТЗ кафедры).
     fullName: text("full_name"),
     phone: text("phone"),
-    // passwordHash допускает NULL: пользователи, вошедшие через Discord OAuth,
-    // не имеют локального пароля.
+    // passwordHash допускает NULL: служебные/демо-аккаунты могут не иметь пароля.
     passwordHash: text("password_hash"),
-    // Идентификатор аккаунта Discord (snowflake) для OAuth-входа. NULL для
-    // обычных пользователей. UNIQUE, но допускает несколько NULL в PostgreSQL.
-    discordId: text("discord_id").unique(),
     role: text("role", { enum: ["Player", "Organizer", "Admin"] })
       .default("Player")
       .notNull(),
     elo: integer("elo").default(1000).notNull(),
-    isTrusted: boolean("is_trusted").default(false).notNull(),
     isBanned: boolean("is_banned").default(false).notNull(),
     isDeleted: boolean("is_deleted").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -40,7 +34,6 @@ export const users = pgTable(
   (table) => ({
     nicknameIdx: uniqueIndex("users_nickname_idx").on(table.nickname),
     emailIdx: uniqueIndex("users_email_idx").on(table.email),
-    discordIdx: uniqueIndex("users_discord_id_idx").on(table.discordId),
   })
 );
 
@@ -119,23 +112,21 @@ export const tournaments = pgTable(
     organizerId: uuid("organizer_id")
       .references(() => users.id, { onDelete: "restrict" })
       .notNull(),
+    // Режим: STANDARD (с регистрацией и рейтингом) или SANDBOX (автономный учёт).
     tournamentType: text("tournament_type", {
-      enum: ["PRO", "AMATEUR", "SANDBOX"],
+      enum: ["STANDARD", "SANDBOX"],
     }).notNull(),
+    // Сетка: олимпийская (на вылет) или круговая (каждый с каждым).
     bracketType: text("bracket_type", {
-      enum: ["SINGLE_ELIM", "DOUBLE_ELIM", "ROUND_ROBIN", "SWISS"],
+      enum: ["SINGLE_ELIM", "ROUND_ROBIN"],
     }).notNull(),
     description: text("description"),
     prizePool: text("prize_pool"),
     entryFee: integer("entry_fee").default(0).notNull(), // in cents / local currency
-    customFieldsSchema: jsonb("custom_fields_schema"), // JSON schema configurations
     startDate: timestamp("start_date").notNull(),
     endDate: timestamp("end_date"),
     isStarted: boolean("is_started").default(false).notNull(),
     isCompleted: boolean("is_completed").default(false).notNull(),
-    // Приватный турнир не показывается в публичном каталоге — доступ только по
-    // прямой ссылке (для AMATEUR и PRO). Организатор и админ видят его в каталоге.
-    isPrivate: boolean("is_private").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
@@ -189,11 +180,6 @@ export const matches = pgTable(
     ), // Null if waiting
     round: integer("round").notNull(),
     position: integer("position").notNull(), // index within the round
-    // Секция сетки для визуализации double elimination:
-    // winners | losers | grand_final | grand_final_reset. NULL для остальных форматов.
-    bracketSection: text("bracket_section", {
-      enum: ["winners", "losers", "grand_final", "grand_final_reset"],
-    }),
     score1: integer("score1"),
     score2: integer("score2"),
     winnerId: uuid("winner_id").references(() => tournamentParticipants.id, {
@@ -203,12 +189,8 @@ export const matches = pgTable(
       onDelete: "set null",
     }), // null if referee deleted or sandbox creator
     isTechDefeat: boolean("is_tech_defeat").default(false).notNull(),
-    isVoidDraw: boolean("is_void_draw").default(false).notNull(),
-    customFieldsData: jsonb("custom_fields_data"), // actual fields matching schema
     nextMatchId: uuid("next_match_id"), // self-reference link
     nextMatchIsP1: boolean("next_match_is_p1"), // does winner go to participant1 (true) or participant2 (false) in next match?
-    loserNextMatchId: uuid("loser_next_match_id"), // self-reference link for double elimination losers bracket
-    loserNextMatchIsP1: boolean("loser_next_match_is_p1"), // does loser go to participant1 (true) or participant2 (false)?
     playedAt: timestamp("played_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
@@ -341,11 +323,6 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
     fields: [matches.nextMatchId],
     references: [matches.id],
     relationName: "next_match_link",
-  }),
-  loserNextMatch: one(matches, {
-    fields: [matches.loserNextMatchId],
-    references: [matches.id],
-    relationName: "loser_next_match_link",
   }),
   eloLogs: many(eloHistory),
 }));

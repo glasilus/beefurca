@@ -51,29 +51,15 @@ export const CreateDisciplineInputSchema = z.object({
 });
 export type CreateDisciplineInput = z.infer<typeof CreateDisciplineInputSchema>;
 
-// Custom Fields Schema configuration item
-export const CustomFieldConfigSchema = z.object({
-  name: z
-    .string()
-    .regex(/^[a-z0-9_]+$/, "Field name must be alphanumeric with underscores"),
-  label: z.string().min(1, "Label is required"),
-  type: z.enum(["text", "number"]),
-  required: z.boolean().default(false),
-});
-export type CustomFieldConfig = z.infer<typeof CustomFieldConfigSchema>;
-
-export const CustomFieldsSchemaArray = z.array(CustomFieldConfigSchema);
-
 // Tournament Schemas
-export const TournamentTypeSchema = z.enum(["PRO", "AMATEUR", "SANDBOX"]);
+// Два режима проведения (упрощённая версия):
+//  STANDARD — участники зарегистрированы, влияет на ELO-рейтинг;
+//  SANDBOX  — автономный учёт, имена вводятся текстом, ELO не затрагивается.
+export const TournamentTypeSchema = z.enum(["STANDARD", "SANDBOX"]);
 export type TournamentType = z.infer<typeof TournamentTypeSchema>;
 
-export const BracketTypeSchema = z.enum([
-  "SINGLE_ELIM",
-  "DOUBLE_ELIM",
-  "ROUND_ROBIN",
-  "SWISS",
-]);
+// Две турнирные сетки: олимпийская (на вылет) и круговая (каждый с каждым).
+export const BracketTypeSchema = z.enum(["SINGLE_ELIM", "ROUND_ROBIN"]);
 export type BracketType = z.infer<typeof BracketTypeSchema>;
 
 export const CreateTournamentInputSchema = z.object({
@@ -83,7 +69,6 @@ export const CreateTournamentInputSchema = z.object({
   bracketType: BracketTypeSchema,
   prizePool: z.string().optional(),
   entryFee: z.number().int().nonnegative().default(0), // in cents / local currency
-  customFieldsSchema: CustomFieldsSchemaArray.optional(),
   startDate: z.string().datetime("Invalid ISO date string"),
   endDate: z.string().datetime().optional(),
 });
@@ -95,27 +80,10 @@ export const JoinTournamentInputSchema = z.object({
 });
 export type JoinTournamentInput = z.infer<typeof JoinTournamentInputSchema>;
 
-// Match result input schema (validated dynamically by checking customFieldsData)
+// Match result input schema
 export const SubmitMatchScoreSchema = z.object({
   score1: z.number().int().nonnegative(),
   score2: z.number().int().nonnegative(),
   isTechDefeat: z.boolean().default(false),
-  customFieldsData: z.record(z.any()).optional(), // validated dynamically
 });
 export type SubmitMatchScoreInput = z.infer<typeof SubmitMatchScoreSchema>;
-
-// Dynamic validation builder function
-export function buildDynamicZodSchema(fields: CustomFieldConfig[]) {
-  const shape: Record<string, z.ZodTypeAny> = {};
-  for (const field of fields) {
-    let validator: z.ZodTypeAny =
-      field.type === "number"
-        ? z.coerce.number({ invalid_type_error: `${field.label} must be a number` })
-        : z.string();
-    if (!field.required) {
-      validator = validator.optional();
-    }
-    shape[field.name] = validator;
-  }
-  return z.object(shape);
-}

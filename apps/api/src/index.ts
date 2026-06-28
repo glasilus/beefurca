@@ -7,7 +7,7 @@ import { userRoutes } from "./routes/users";
 import { tournamentRoutes } from "./routes/tournaments";
 import { matchRoutes } from "./routes/matches";
 import { adminRoutes } from "./routes/admin";
-import { bootstrapAdmin } from "./utils/bootstrap";
+import { bootstrapAdmin, seedDemoUsers } from "./utils/bootstrap";
 import { startSseListener } from "./utils/sse";
 
 // Load environment variables
@@ -39,6 +39,7 @@ const app = new Elysia({ adapter: node() })
 
 // Bootstrap first admin account, subscribe to PG LISTEN, then start server
 bootstrapAdmin()
+  .then(() => seedDemoUsers())
   .then(() => startSseListener())
   .then(() => {
     const port = process.env.PORT || 5000;

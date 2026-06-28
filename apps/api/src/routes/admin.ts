@@ -230,40 +230,6 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
       }),
     }
   )
-  // 3. Toggle Trusted Organizer status (Admin only)
-  .put(
-    "/users/:id/trust",
-    async ({ user, params, body, set }) => {
-      if (!user) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-      checkRole(user, ["Admin"], set);
-
-      const [targetUser] = await db
-        .update(users)
-        .set({ isTrusted: body.isTrusted })
-        .where(eq(users.id, params.id))
-        .returning();
-
-      if (!targetUser) {
-        set.status = 404;
-        return { error: "User not found" };
-      }
-
-      return {
-        message: `Organizer ${targetUser.nickname} trust status updated to ${body.isTrusted}.`,
-      };
-    },
-    {
-      params: t.Object({
-        id: t.String(),
-      }),
-      body: t.Object({
-        isTrusted: t.Boolean(),
-      }),
-    }
-  )
   // 4. Generate Discipline Popularity Report (Excel Export, Admin only)
   .get(
     "/reports/popularity",
@@ -282,9 +248,8 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         SELECT
           d.name as "disciplineName",
           COUNT(DISTINCT t.id)::int as "tournamentsCount",
-          COUNT(DISTINCT CASE WHEN t.tournament_type = 'PRO' THEN t.id END)::int as "proCount",
-          COUNT(DISTINCT CASE WHEN t.tournament_type = 'AMATEUR' THEN t.id END)::int as "amateurCount",
-          COUNT(DISTINCT CASE WHEN t.tournament_type = 'SANDBOX' THEN t.id END)::int as "sandboxCount",
+          COUNT(DISTINCT CASE WHEN t.tournament_type = 'STANDARD' THEN t.id END)::int as "officialCount",
+          COUNT(DISTINCT CASE WHEN t.tournament_type = 'SANDBOX' THEN t.id END)::int as "autonomousCount",
           COUNT(DISTINCT tp.id)::int as "participantsCount",
           COALESCE(ROUND(COUNT(DISTINCT tp.id)::numeric / NULLIF(COUNT(DISTINCT t.id), 0), 1), 0)::float as "avgParticipants",
           COUNT(DISTINCT m.id)::int as "matchesCount"
@@ -299,9 +264,8 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
       const formattedData = reportData.map((row: any) => ({
         disciplineName: row.disciplineName,
         tournamentsCount: row.tournamentsCount,
-        proCount: row.proCount,
-        amateurCount: row.amateurCount,
-        sandboxCount: row.sandboxCount,
+        officialCount: row.officialCount,
+        autonomousCount: row.autonomousCount,
         participantsCount: row.participantsCount,
         avgParticipants: row.avgParticipants,
         matchesCount: row.matchesCount,
@@ -423,7 +387,6 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
           email: users.email,
           role: users.role,
           elo: users.elo,
-          isTrusted: users.isTrusted,
           isBanned: users.isBanned,
           createdAt: users.createdAt,
         })
@@ -458,7 +421,6 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
           email: `deleted_${params.id}@deleted.beefurca.local`,
           nickname: `deleted_${params.id.slice(0, 8)}`,
           passwordHash: null,
-          discordId: null,
         })
         .where(eq(users.id, params.id))
         .returning();

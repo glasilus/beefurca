@@ -8,16 +8,12 @@ import {
   users,
   teams,
 } from "@beefurca/database";
-import { eq, and, or, sql, isNull, desc, asc } from "drizzle-orm";
+import { eq, and, sql, isNull, desc, asc } from "drizzle-orm";
 import { authPlugin, checkRole } from "../middleware/auth";
 import { sseManager, SSEClient, publishTournamentUpdate } from "../utils/sse";
 import {
   generateSingleElimination,
-  generateDoubleElimination,
   generateRoundRobin,
-  generateSwissRound1,
-  generateNextSwissRound,
-  calculateBuchholz,
 } from "@beefurca/bracket-engine";
 import Workbook from "exceljs";
 
@@ -84,7 +80,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       }),
     }
   )
-  // 1. Create Tournament (PRO: Organizer/Admin; AMATEUR/SANDBOX: любой пользователь)
+  // 1. Create Tournament (STANDARD: Organizer/Admin; SANDBOX: любой пользователь)
   .post(
     "/",
     async ({ user, body, set }) => {
@@ -93,15 +89,12 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         return { error: "Unauthorized" };
       }
 
-      // Разграничение по типу турнира (мастер-файл / kursovik):
-      //  - PRO создают только Организаторы и Администраторы;
-      //  - AMATEUR и SANDBOX вправе создать любой зарегистрированный пользователь.
-      if (body.tournamentType === "PRO") {
+      // Разграничение по режиму турнира:
+      //  - STANDARD (с регистрацией и рейтингом) создают Организаторы/Администраторы;
+      //  - SANDBOX (автономный учёт) вправе создать любой зарегистрированный пользователь.
+      if (body.tournamentType === "STANDARD") {
         checkRole(user, ["Organizer", "Admin"], set);
-      } else if (
-        body.tournamentType !== "AMATEUR" &&
-        body.tournamentType !== "SANDBOX"
-      ) {
+      } else if (body.tournamentType !== "SANDBOX") {
         set.status = 400;
         return { error: "Invalid tournament type" };
       }
@@ -129,10 +122,8 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
           bracketType: body.bracketType as any,
           prizePool: body.prizePool,
           entryFee: body.entryFee,
-          customFieldsSchema: body.customFieldsSchema || null,
           startDate: new Date(body.startDate),
           endDate: body.endDate ? new Date(body.endDate) : null,
-          isPrivate: body.isPrivate ?? false,
           isStarted: false,
           isCompleted: false,
         })
@@ -151,25 +142,14 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         bracketType: t.String(),
         prizePool: t.Optional(t.String()),
         entryFee: t.Optional(t.Numeric()),
-        customFieldsSchema: t.Optional(t.Any()),
         startDate: t.String(),
         endDate: t.Optional(t.String()),
-        isPrivate: t.Optional(t.Boolean()),
         description: t.Optional(t.String()),
       }),
     }
   )
   // 2. List Tournaments (All roles)
-  .get("/", async ({ user }) => {
-    // Публичный каталог: приватные турниры скрыты. Организатор видит свои
-    // приватные, админ — все.
-    const visibility =
-      user && user.role === "Admin"
-        ? undefined
-        : user
-        ? or(eq(tournaments.isPrivate, false), eq(tournaments.organizerId, user.id))
-        : eq(tournaments.isPrivate, false);
-
+  .get("/", async () => {
     return db
       .select({
         id: tournaments.id,
@@ -180,13 +160,11 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         startDate: tournaments.startDate,
         isStarted: tournaments.isStarted,
         isCompleted: tournaments.isCompleted,
-        isPrivate: tournaments.isPrivate,
         disciplineName: disciplines.name,
         organizerId: tournaments.organizerId,
       })
       .from(tournaments)
-      .innerJoin(disciplines, eq(tournaments.disciplineId, disciplines.id))
-      .where(visibility);
+      .innerJoin(disciplines, eq(tournaments.disciplineId, disciplines.id));
   })
   // 3. Get Tournament Details (Includes participants and matches)
   .get(
@@ -201,32 +179,6 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       if (!tournament) {
         set.status = 404;
         return { error: "Tournament not found" };
-      }
-
-      // Приватный турнир доступен только организатору, администратору и участникам.
-      if (tournament.isPrivate) {
-        if (!user) {
-          set.status = 403;
-          return { error: "Приватный турнир. Войдите в систему для доступа." };
-        }
-        const isOrganizer = tournament.organizerId === user.id;
-        const isAdmin = user.role === "Admin";
-        if (!isOrganizer && !isAdmin) {
-          const [participation] = await db
-            .select({ id: tournamentParticipants.id })
-            .from(tournamentParticipants)
-            .where(
-              and(
-                eq(tournamentParticipants.tournamentId, tournament.id),
-                eq(tournamentParticipants.userId, user.id)
-              )
-            )
-            .limit(1);
-          if (!participation) {
-            set.status = 403;
-            return { error: "Доступ запрещён: приватный турнир." };
-          }
-        }
       }
 
       const participants = await db
@@ -286,7 +238,6 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       if (body.name !== undefined) updateData.name = body.name.trim();
       if (body.description !== undefined) updateData.description = body.description?.trim() || null;
       if (body.prizePool !== undefined) updateData.prizePool = body.prizePool?.trim() || null;
-      if (body.isPrivate !== undefined) updateData.isPrivate = body.isPrivate;
 
       // Даты и взнос можно менять только до старта
       if (!tournament.isStarted) {
@@ -309,7 +260,6 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         name: t.Optional(t.String()),
         description: t.Optional(t.String()),
         prizePool: t.Optional(t.String()),
-        isPrivate: t.Optional(t.Boolean()),
         startDate: t.Optional(t.String()),
         endDate: t.Optional(t.String()),
         entryFee: t.Optional(t.Numeric()),
@@ -425,7 +375,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
           teamId: body.teamId || null,
           nicknameSnapshot: user.nickname,
           teamSnapshot,
-          status: tournament.tournamentType === "AMATEUR" ? "APPROVED" : "PENDING", // Amateur is auto-approved
+          status: "PENDING", // STANDARD-турниры требуют подтверждения организатором
         })
         .returning();
 
@@ -474,7 +424,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         set.status = 400;
         return {
           error:
-            "Manual participant entry is only allowed for SANDBOX tournaments. Use /join for PRO/AMATEUR.",
+            "Manual participant entry is only allowed for SANDBOX tournaments. Use /join for STANDARD.",
         };
       }
 
@@ -667,11 +617,6 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         return { error: "Need at least 2 approved participants to start." };
       }
 
-      if (tournament.bracketType === "DOUBLE_ELIM" && approved.length < 3) {
-        set.status = 400;
-        return { error: "Double Elimination requires at least 3 participants." };
-      }
-
       const enginePlayers = approved.map((ap) => ({
         id: ap.id,
         name: ap.teamSnapshot || ap.nicknameSnapshot,
@@ -682,18 +627,8 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
 
       if (bType === "SINGLE_ELIM") {
         generatedMatches = generateSingleElimination(enginePlayers);
-      } else if (bType === "DOUBLE_ELIM") {
-        generatedMatches = generateDoubleElimination(enginePlayers);
       } else if (bType === "ROUND_ROBIN") {
         generatedMatches = generateRoundRobin(enginePlayers);
-      } else if (bType === "SWISS") {
-        generatedMatches = generateSwissRound1(enginePlayers);
-        // bye-матч (нет соперника) сразу засчитывается как победа без игры
-        for (const m of generatedMatches) {
-          if (m.participant1Id && !m.participant2Id) {
-            m.winnerParticipantId = m.participant1Id;
-          }
-        }
       }
 
       if (generatedMatches.length === 0) {
@@ -717,7 +652,6 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
           tournamentId: tournament.id,
           round: m.round,
           position: m.position,
-          bracketSection: (m.type as any) || null, // winners/losers/grand_final (double elim)
           participant1Id: m.participant1Id,
           participant2Id: m.participant2Id,
           winnerId: m.winnerParticipantId || null,
@@ -733,7 +667,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         // Map arrayIndex -> generated database ID
         const indexToIdMap = insertedMatches.map((im) => im.id);
 
-        // Update links: nextMatchId and loserNextMatchId
+        // Update links: nextMatchId (продвижение победителя по сетке)
         for (let i = 0; i < generatedMatches.length; i++) {
           const gen = generatedMatches[i];
           const dbId = indexToIdMap[i];
@@ -743,10 +677,6 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
             updates.nextMatchId = indexToIdMap[gen.nextMatchIndex];
             updates.nextMatchIsP1 = gen.nextMatchIsP1;
           }
-          if (gen.loserNextMatchIndex !== undefined && gen.loserNextMatchIndex !== null) {
-            updates.loserNextMatchId = indexToIdMap[gen.loserNextMatchIndex];
-            updates.loserNextMatchIsP1 = gen.loserNextMatchIsP1;
-          }
 
           if (Object.keys(updates).length > 0) {
             await tx.update(matches).set(updates).where(eq(matches.id, dbId));
@@ -755,139 +685,6 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       });
 
       return { message: "Tournament started. Bracket generated successfully." };
-    },
-    {
-      params: t.Object({
-        id: t.String(),
-      }),
-    }
-  )
-  // 6b. Generate next Swiss round (Organizer/Admin).
-  // Round Robin генерирует все туры сразу при старте, поэтому эндпоинт — для Swiss.
-  .post(
-    "/:id/next-round",
-    async ({ user, params, set }) => {
-      if (!user) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
-      const [tournament] = await db
-        .select()
-        .from(tournaments)
-        .where(eq(tournaments.id, params.id))
-        .limit(1);
-
-      if (!tournament) {
-        set.status = 404;
-        return { error: "Tournament not found" };
-      }
-
-      if (tournament.organizerId !== user.id && user.role !== "Admin") {
-        set.status = 403;
-        return { error: "Forbidden" };
-      }
-
-      if (tournament.bracketType !== "SWISS") {
-        set.status = 400;
-        return {
-          error: "Next-round generation is only applicable to Swiss tournaments.",
-        };
-      }
-
-      if (!tournament.isStarted) {
-        set.status = 400;
-        return { error: "Tournament has not started yet." };
-      }
-
-      const all = await db
-        .select()
-        .from(matches)
-        .where(eq(matches.tournamentId, tournament.id));
-
-      if (all.length === 0) {
-        set.status = 400;
-        return { error: "No rounds generated yet. Start the tournament first." };
-      }
-
-      const maxRound = Math.max(...all.map((m) => m.round));
-      const currentRound = all.filter((m) => m.round === maxRound);
-
-      // Текущий раунд завершён, если у каждого матча есть результат:
-      // победитель, либо ничья (playedAt без winner), либо bye (нет соперника).
-      const incomplete = currentRound.filter(
-        (m) => !m.winnerId && !m.playedAt && !(m.participant1Id && !m.participant2Id)
-      );
-      if (incomplete.length > 0) {
-        set.status = 400;
-        return {
-          error: `Current round is not complete: ${incomplete.length} match(es) pending.`,
-        };
-      }
-
-      // Очки и история оппонентов по всем сыгранным матчам
-      const participants = await db
-        .select()
-        .from(tournamentParticipants)
-        .where(
-          and(
-            eq(tournamentParticipants.tournamentId, tournament.id),
-            eq(tournamentParticipants.status, "APPROVED")
-          )
-        );
-
-      const players = participants.map((p) => {
-        let points = 0;
-        const opponents: string[] = [];
-        for (const m of all) {
-          const isP1 = m.participant1Id === p.id;
-          const isP2 = m.participant2Id === p.id;
-          if (!isP1 && !isP2) continue;
-
-          // bye — победа без соперника
-          if ((isP1 && !m.participant2Id) || (isP2 && !m.participant1Id)) {
-            points += 1;
-            opponents.push("bye");
-            continue;
-          }
-
-          const oppId = isP1 ? m.participant2Id : m.participant1Id;
-          if (oppId) opponents.push(oppId);
-
-          if (m.winnerId === p.id) points += 1;
-          else if (!m.winnerId && m.playedAt) points += 0.5; // ничья
-        }
-        return { id: p.id, points, opponents, buchholz: 0 };
-      });
-
-      const withBuchholz = calculateBuchholz(players);
-      const nextMatches = generateNextSwissRound(withBuchholz, maxRound + 1);
-
-      if (nextMatches.length === 0) {
-        set.status = 400;
-        return { error: "Could not generate the next round (no valid pairings)." };
-      }
-
-      await db.transaction(async (tx) => {
-        const placeholders = nextMatches.map((m) => ({
-          tournamentId: tournament.id,
-          round: m.round,
-          position: m.position,
-          participant1Id: m.participant1Id,
-          participant2Id: m.participant2Id,
-          // bye в новом раунде сразу засчитывается победой
-          winnerId: m.participant1Id && !m.participant2Id ? m.participant1Id : null,
-          playedAt: m.participant1Id && !m.participant2Id ? new Date() : null,
-          refereeId: tournament.organizerId,
-        }));
-        await tx.insert(matches).values(placeholders);
-      });
-
-      await publishTournamentUpdate(tournament.id);
-
-      return {
-        message: `Swiss round ${maxRound + 1} generated with ${nextMatches.length} matches.`,
-      };
     },
     {
       params: t.Object({
@@ -956,7 +753,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         }
 
         // For SANDBOX tournaments, we register them as approved participants immediately.
-        // For PRO/Amateur, we try to match the Nickname with existing users in DB.
+        // For STANDARD, we try to match the Nickname with existing users in DB.
         const isSandbox = tournament.tournamentType === "SANDBOX";
 
         await db.transaction(async (tx) => {

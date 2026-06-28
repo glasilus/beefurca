@@ -12,7 +12,6 @@ import { eq, and, or, isNull, inArray } from "drizzle-orm";
 import { authPlugin } from "../middleware/auth";
 import { publishTournamentUpdate } from "../utils/sse";
 import { calculateEloChange, calculateTeamEloChange, getKFactor } from "@beefurca/elo-calculator";
-import { buildDynamicZodSchema } from "@beefurca/shared-types";
 import { redis } from "../utils/redis";
 
 export const matchRoutes = new Elysia({ prefix: "/matches" })
@@ -75,19 +74,6 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
         return { error: "Forbidden: You are not authorized to score this match." };
       }
 
-      // Dynamic validation of JSONB custom fields
-      if (tournament.customFieldsSchema && Array.isArray(tournament.customFieldsSchema)) {
-        const customValidator = buildDynamicZodSchema(tournament.customFieldsSchema as any);
-        const parsed = customValidator.safeParse(body.customFieldsData || {});
-        if (!parsed.success) {
-          set.status = 400;
-          return {
-            error: "Custom fields validation failed",
-            details: parsed.error.format(),
-          };
-        }
-      }
-
       // Determine winner
       const score1 = body.score1;
       const score2 = body.score2;
@@ -100,45 +86,12 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
       } else if (score2 > score1) {
         winnerId = match.participant2Id;
         loserId = match.participant1Id;
-      } else {
-        // Ничья в elimination: помечаем текущий матч как архивную ничью (isVoidDraw=true,
-        // связи обнуляются) и вставляем реванш-матч на ту же позицию с теми же связями.
-        // Архивный матч остаётся в истории, но скрыт из сетки и панели судейства.
-        if (tournament.bracketType === "SINGLE_ELIM" || tournament.bracketType === "DOUBLE_ELIM") {
-          await db.transaction(async (tx) => {
-            await tx
-              .update(matches)
-              .set({
-                score1,
-                score2,
-                winnerId: null,
-                isVoidDraw: true,
-                customFieldsData: body.customFieldsData || null,
-                playedAt: new Date(),
-                nextMatchId: null,
-                loserNextMatchId: null,
-              })
-              .where(eq(matches.id, match.id));
-
-            await tx.insert(matches).values({
-              tournamentId: match.tournamentId,
-              round: match.round,
-              position: match.position,
-              bracketSection: match.bracketSection,
-              participant1Id: match.participant1Id,
-              participant2Id: match.participant2Id,
-              refereeId: match.refereeId,
-              nextMatchId: match.nextMatchId,
-              nextMatchIsP1: match.nextMatchIsP1,
-              loserNextMatchId: match.loserNextMatchId,
-              loserNextMatchIsP1: match.loserNextMatchIsP1,
-            });
-          });
-
-          await publishTournamentUpdate(tournament.id);
-          return { message: "Ничья зафиксирована. Реванш создан автоматически." };
-        }
+      } else if (tournament.bracketType === "SINGLE_ELIM") {
+        // В олимпийской системе ничья недопустима: для продвижения по сетке нужен победитель.
+        set.status = 400;
+        return { error: "Ничья недопустима в олимпийской системе. Введите счёт с победителем." };
       }
+      // Круговая система: ничья допустима — матч фиксируется без победителя (winnerId = null).
 
       await db.transaction(async (tx) => {
         // Update match with scores and winner
@@ -148,7 +101,6 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
             score1,
             score2,
             winnerId,
-            customFieldsData: body.customFieldsData || null,
             isTechDefeat: false,
             playedAt: new Date(),
           })
@@ -169,52 +121,8 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
               .where(eq(matches.id, match.nextMatchId));
           }
 
-          // --- MAP LOSER IN DOUBLE ELIMINATION LOSERS BRACKET ---
-          if (match.loserNextMatchId && loserId) {
-            const loserNextMatchCol = match.loserNextMatchIsP1
-              ? "participant1Id"
-              : "participant2Id";
-            await tx
-              .update(matches)
-              .set({ [loserNextMatchCol]: loserId })
-              .where(eq(matches.id, match.loserNextMatchId));
-          }
-
           // Продвижение могло вскрыть bye (мёртвая ветка) — разрешаем цепочкой
           await resolveByeChain(tx, match.nextMatchId);
-          await resolveByeChain(tx, match.loserNextMatchId);
-
-          // Grand Final special case: GFR is only played when the losers finalist
-          // (participant2 of GF) wins and forces a reset. When the winners champion
-          // (participant1) wins outright, void the GFR so it never appears.
-          if (match.bracketSection === "grand_final") {
-            const [gfr] = await tx
-              .select()
-              .from(matches)
-              .where(
-                and(
-                  eq(matches.tournamentId, match.tournamentId),
-                  eq(matches.bracketSection, "grand_final_reset"),
-                ),
-              )
-              .limit(1);
-
-            if (gfr && !gfr.winnerId && !gfr.isVoidDraw) {
-              if (winnerId === match.participant2Id) {
-                // LB finalist won GF → place WB champion (loser) in GFR participant1 for reset
-                await tx
-                  .update(matches)
-                  .set({ participant1Id: loserId })
-                  .where(eq(matches.id, gfr.id));
-              } else {
-                // WB champion won GF → no reset needed, void the GFR
-                await tx
-                  .update(matches)
-                  .set({ isVoidDraw: true })
-                  .where(eq(matches.id, gfr.id));
-              }
-            }
-          }
         }
       });
 
@@ -230,7 +138,6 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
       body: t.Object({
         score1: t.Numeric(),
         score2: t.Numeric(),
-        customFieldsData: t.Optional(t.Any()),
       }),
     }
   )
@@ -327,48 +234,8 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
             .where(eq(matches.id, match.nextMatchId));
         }
 
-        // Map loser in Double Elim
-        if (match.loserNextMatchId) {
-          const loserNextMatchCol = match.loserNextMatchIsP1
-            ? "participant1Id"
-            : "participant2Id";
-          await tx
-            .update(matches)
-            .set({ [loserNextMatchCol]: loserId })
-            .where(eq(matches.id, match.loserNextMatchId));
-        }
-
         // Разрешаем возможные bye, вскрывшиеся после продвижения
         await resolveByeChain(tx, match.nextMatchId);
-        await resolveByeChain(tx, match.loserNextMatchId);
-
-        // Same GF → GFR special handling as in /score
-        if (match.bracketSection === "grand_final") {
-          const [gfr] = await tx
-            .select()
-            .from(matches)
-            .where(
-              and(
-                eq(matches.tournamentId, match.tournamentId),
-                eq(matches.bracketSection, "grand_final_reset"),
-              ),
-            )
-            .limit(1);
-
-          if (gfr && !gfr.winnerId && !gfr.isVoidDraw) {
-            if (winnerId === match.participant2Id) {
-              await tx
-                .update(matches)
-                .set({ participant1Id: loserId })
-                .where(eq(matches.id, gfr.id));
-            } else {
-              await tx
-                .update(matches)
-                .set({ isVoidDraw: true })
-                .where(eq(matches.id, gfr.id));
-            }
-          }
-        }
       });
 
       // Оповещаем все инстансы об изменении сетки (PG NOTIFY → SSE)
@@ -500,62 +367,6 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
       params: t.Object({ id: t.String() }),
       body: t.Object({ score1: t.Numeric(), score2: t.Numeric() }),
     }
-  )
-  .put(
-    "/:id/metadata",
-    async ({ user, params, body, set }) => {
-      if (!user) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
-      const [match] = await db
-        .select()
-        .from(matches)
-        .where(eq(matches.id, params.id))
-        .limit(1);
-
-      if (!match) {
-        set.status = 404;
-        return { error: "Match not found" };
-      }
-
-      const [tournament] = await db
-        .select()
-        .from(tournaments)
-        .where(eq(tournaments.id, match.tournamentId))
-        .limit(1);
-
-      const isCreator = tournament.organizerId === user.id;
-      const isAssignedReferee = match.refereeId === user.id;
-      const isAdmin = user.role === "Admin";
-
-      if (!isCreator && !isAssignedReferee && !isAdmin) {
-        set.status = 403;
-        return { error: "Forbidden: You are not authorized to update this match metadata." };
-      }
-
-      const existingData = (match.customFieldsData as Record<string, any>) || {};
-      const newData = { ...existingData, ...body.customFieldsData };
-
-      await db
-        .update(matches)
-        .set({ customFieldsData: newData })
-        .where(eq(matches.id, match.id));
-
-      // Оповещаем все инстансы об изменении сетки (PG NOTIFY → SSE)
-      await publishTournamentUpdate(tournament.id);
-
-      return { message: "Match metadata updated successfully." };
-    },
-    {
-      params: t.Object({
-        id: t.String(),
-      }),
-      body: t.Object({
-        customFieldsData: t.Any(),
-      }),
-    }
   );
 
 // --- HELPERS ---
@@ -577,7 +388,7 @@ async function resolveByeChain(tx: any, startMatchId: string | null): Promise<vo
       .where(eq(matches.id, currentId))
       .limit(1);
 
-    if (!m || m.winnerId || m.isVoidDraw) break;
+    if (!m || m.winnerId) break;
 
     let soleWinner: string | null = null;
     if (m.participant1Id && !m.participant2Id) soleWinner = m.participant1Id;
@@ -593,13 +404,8 @@ async function resolveByeChain(tx: any, startMatchId: string | null): Promise<vo
       .where(
         and(
           isNull(matches.winnerId),
-          or(
-            and(eq(matches.nextMatchId, m.id), eq(matches.nextMatchIsP1, emptyIsP1)),
-            and(
-              eq(matches.loserNextMatchId, m.id),
-              eq(matches.loserNextMatchIsP1, emptyIsP1)
-            )
-          )
+          eq(matches.nextMatchId, m.id),
+          eq(matches.nextMatchIsP1, emptyIsP1)
         )
       )
       .limit(1);
@@ -627,9 +433,8 @@ async function resolveByeChain(tx: any, startMatchId: string | null): Promise<vo
 /**
  * Начисляет ELO по результату матча и пишет историю в elo_history.
  * Вызывается из /score и /tech-defeat, чтобы оба пути давали одинаковый
- * рейтинговый эффект. Рейтинг меняется только в PRO и в AMATEUR доверенного
- * организатора (kFactor > 0); SANDBOX и недоверенный AMATEUR игнорируются.
- * Доверие определяется флагом is_trusted ОРГАНИЗАТОРА (а не того, кто судит).
+ * рейтинговый эффект. Рейтинг меняется только в STANDARD-турнирах (kFactor = 32);
+ * SANDBOX (автономный учёт) ELO не затрагивает.
  */
 async function applyEloForMatch(
   tx: any,
@@ -638,10 +443,7 @@ async function applyEloForMatch(
   winnerId: string | null,
   loserId: string | null
 ): Promise<void> {
-  const kFactor = getKFactor(
-    tournament.tournamentType,
-    await checkOrganizerTrusted(tournament.organizerId)
-  );
+  const kFactor = getKFactor(tournament.tournamentType);
 
   if (kFactor <= 0 || !winnerId || !loserId) return;
   if (!match.participant1Id || !match.participant2Id) return;
@@ -763,15 +565,6 @@ async function applyEloForMatch(
 
   // Рейтинги изменились — сбрасываем кэш лидербордов дисциплины
   await clearLeaderboardCache(tournament.disciplineId);
-}
-
-async function checkOrganizerTrusted(organizerId: string): Promise<boolean> {
-  const [user] = await db
-    .select({ isTrusted: users.isTrusted })
-    .from(users)
-    .where(eq(users.id, organizerId))
-    .limit(1);
-  return user?.isTrusted || false;
 }
 
 async function clearLeaderboardCache(disciplineId: string) {

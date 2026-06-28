@@ -48,10 +48,7 @@ describe("ELO Calculator Tests", () => {
   });
 
   it("should determine correct K-Factor", () => {
-    expect(getKFactor("PRO", false)).toBe(32);
-    expect(getKFactor("PRO", true)).toBe(32);
-    expect(getKFactor("AMATEUR", true)).toBe(16);
-    expect(getKFactor("AMATEUR", false)).toBe(0);
-    expect(getKFactor("SANDBOX", true)).toBe(0);
+    expect(getKFactor("STANDARD")).toBe(32);
+    expect(getKFactor("SANDBOX")).toBe(0);
   });
 });
