@@ -365,92 +365,92 @@ const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({ matches, participants 
     return d !== 0 ? d : wins(b.id) - wins(a.id);
   });
 
-  const n = ranked.length;
-  const COL    = 72;
-  const ROW    = 56;
-  const NAME_W = 216;
-  const PTS_W  = 80;
-  const HEAD_H = 56;
-  const LEG_H  = 40;
+  const n       = ranked.length;
+  const ROW     = 56;
+  const NAME_W  = 220;
+  const PTS_W   = 88;
+  const HEAD_H  = 62;
+  const LEG_H   = 38;
+  const cols    = `${NAME_W}px repeat(${n}, minmax(64px, 1fr)) ${PTS_W}px`;
 
-  const totalH = Math.min(600, HEAD_H + n * ROW + LEG_H);
+  const contentH    = HEAD_H + n * ROW + LEG_H;
+  const needsScroll = contentH > 600;
 
   return (
     <div
-      className="w-full border border-border bg-surface rounded-win relative overflow-hidden"
-      style={{ height: totalH }}
+      className="window-shell w-full flex flex-col"
+      style={{ height: needsScroll ? 600 : contentH }}
     >
-      <div className="absolute inset-0 overflow-auto">
-        {/* CSS Grid cross-table */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: `${NAME_W}px repeat(${n}, ${COL}px) ${PTS_W}px`,
-            minWidth: NAME_W + n * COL + PTS_W,
-          }}
-        >
-          {/* ── HEADER ROW ── */}
+      {/* ── HEADER — brushed metal bar ── */}
+      <div
+        className="brushed border-b border-border shrink-0"
+        style={{ display: "grid", gridTemplateColumns: cols }}
+      >
+        {/* Corner */}
+        <div className="flex items-end pb-3 px-4 border-r border-border" style={{ height: HEAD_H }}>
+          <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted">Участник</span>
+        </div>
 
-          {/* Corner cell — sticky top + left */}
+        {/* Column avatar + number */}
+        {ranked.map((p, i) => (
           <div
-            className="border-b border-r border-border flex items-end pb-3 px-4"
-            style={{ height: HEAD_H, position: "sticky", top: 0, left: 0, zIndex: 30, background: "var(--panel)" }}
+            key={p.id}
+            className="pinstripe flex flex-col items-center justify-center gap-1 border-r border-border"
+            style={{ height: HEAD_H }}
+            title={nameOf(p)}
           >
-            <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted">Участник</span>
+            <FractalMedallion seed={p.id} size={24} />
+            <span className="text-[9px] font-mono font-bold" style={{ color: "var(--text-muted)" }}>{i + 1}</span>
           </div>
+        ))}
 
-          {/* Column headers — one per participant */}
-          {ranked.map((p, i) => (
-            <div
-              key={p.id}
-              className="border-b border-r border-border flex flex-col items-center justify-center gap-1"
-              style={{ height: HEAD_H, position: "sticky", top: 0, zIndex: 20, background: "var(--panel-sunken)" }}
-              title={nameOf(p)}
-            >
-              <FractalMedallion seed={p.id} size={22} />
-              <span className="text-[9px] font-mono font-bold text-text-muted">{i + 1}</span>
-            </div>
-          ))}
-
-          {/* Points header */}
-          <div
-            className="border-b border-border flex items-end pb-3 justify-center"
-            style={{ height: HEAD_H, position: "sticky", top: 0, zIndex: 20, background: "var(--panel)" }}
+        {/* Points label */}
+        <div className="flex items-end pb-3 justify-center" style={{ height: HEAD_H }}>
+          <span
+            className="text-[10px] font-mono uppercase tracking-widest font-bold"
+            style={{ color: "var(--status-done)" }}
           >
-            <span className="text-[10px] font-mono uppercase tracking-widest font-bold" style={{ color: "var(--status-done)" }}>
-              Очки
-            </span>
-          </div>
+            Очки
+          </span>
+        </div>
+      </div>
 
-          {/* ── DATA ROWS ── */}
+      {/* ── BODY — scrollable when tall ── */}
+      <div className="flex-1" style={{ overflowY: needsScroll ? "auto" : "hidden", overflowX: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: cols, width: "100%" }}>
           {ranked.map((row, ri) => {
-            const p = pts(row.id);
+            const p        = pts(row.id);
             const isLeader = ri === 0 && p > 0;
-            const nameBg = isLeader
-              ? "color-mix(in srgb, var(--status-win) 9%, var(--panel))"
-              : ri % 2 === 0 ? "var(--panel)" : "var(--panel-sunken)";
-            const cellBg = ri % 2 === 0 ? "var(--panel)" : "var(--panel-sunken)";
+            const evenRow  = ri % 2 === 0;
+            const nameBg   = isLeader
+              ? "color-mix(in srgb, var(--status-win) 8%, var(--panel))"
+              : evenRow ? "var(--panel)" : "var(--panel-sunken)";
+            const rowBg    = evenRow ? "var(--panel)" : "var(--panel-sunken)";
 
             return (
               <React.Fragment key={row.id}>
-                {/* Name cell — sticky left */}
+                {/* Name + rank + avatar */}
                 <div
-                  className="border-b border-r border-border flex items-center gap-2.5 px-3"
-                  style={{ height: ROW, position: "sticky", left: 0, zIndex: 10, background: nameBg }}
+                  className="flex items-center gap-2.5 px-3 border-b border-r border-border"
+                  style={{
+                    height: ROW,
+                    background: nameBg,
+                    boxShadow: isLeader ? "inset 3px 0 0 var(--status-win)" : undefined,
+                  }}
                 >
                   <span
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-mono font-bold shrink-0"
+                    className="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[8px] font-mono font-bold shrink-0"
                     style={{
                       background: isLeader
                         ? "color-mix(in srgb, var(--status-win) 22%, transparent)"
-                        : "color-mix(in srgb, var(--text-muted) 15%, transparent)",
+                        : "color-mix(in srgb, var(--text-muted) 12%, transparent)",
                       color: isLeader ? "var(--status-win)" : "var(--text-muted)",
                     }}
                   >
                     {ri + 1}
                   </span>
                   <FractalMedallion seed={row.id} size={28} />
-                  <span className="text-xs font-semibold text-text truncate" style={{ maxWidth: 108 }}>
+                  <span className="text-xs font-semibold truncate" style={{ color: "var(--text)", maxWidth: 104 }}>
                     {nameOf(row)}
                   </span>
                 </div>
@@ -463,47 +463,71 @@ const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({ matches, participants 
                     return (
                       <div
                         key={col.id}
-                        className="border-b border-r border-border"
-                        style={{
-                          height: ROW,
-                          backgroundImage:
-                            "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--text-muted) 7%, transparent) 0px, color-mix(in srgb, var(--text-muted) 7%, transparent) 1.5px, transparent 1.5px, transparent 9px)",
-                          backgroundColor: "var(--panel-sunken)",
-                        }}
+                        className="pinstripe border-b border-r border-border"
+                        style={{ height: ROW, opacity: 0.55 }}
                       />
                     );
                   }
 
-                  type PlayedType = "win" | "loss" | "draw" | "pending";
-                  const cfg: Record<PlayedType, { bg: string; text: string; accent: string }> = {
-                    win:     { bg: "color-mix(in srgb, var(--status-win) 15%, transparent)",    text: "var(--status-win)",    accent: "var(--status-win)" },
-                    loss:    { bg: "color-mix(in srgb, var(--status-danger) 11%, transparent)", text: "var(--text-muted)",    accent: "var(--status-danger)" },
-                    draw:    { bg: "color-mix(in srgb, var(--accent) 12%, transparent)",        text: "var(--accent)",        accent: "var(--accent)" },
-                    pending: { bg: cellBg,                                                       text: "var(--text-muted)",    accent: "transparent" },
+                  type T = "win" | "loss" | "draw" | "pending";
+                  const cell: Record<T, { bg: string; text: string; border: string; shadow: string }> = {
+                    win:     {
+                      bg:     "color-mix(in srgb, var(--status-win) 13%, var(--panel))",
+                      text:   "var(--status-win)",
+                      border: "var(--status-win)",
+                      shadow: "inset 0 1px 0 rgba(40,200,64,0.22), inset 0 -1px 0 rgba(0,0,0,0.08)",
+                    },
+                    loss:    {
+                      bg:     rowBg,
+                      text:   "var(--text-muted)",
+                      border: "var(--status-danger)",
+                      shadow: "none",
+                    },
+                    draw:    {
+                      bg:     "color-mix(in srgb, var(--accent) 9%, var(--panel))",
+                      text:   "var(--accent)",
+                      border: "var(--accent)",
+                      shadow: "inset 0 1px 0 rgba(46,134,240,0.18)",
+                    },
+                    pending: {
+                      bg:     rowBg,
+                      text:   "color-mix(in srgb, var(--text-muted) 55%, transparent)",
+                      border: "transparent",
+                      shadow: "none",
+                    },
                   };
-                  const { bg, text, accent } = cfg[c.type as PlayedType];
+                  const { bg, text, border, shadow } = cell[c.type as T];
 
                   return (
                     <div
                       key={col.id}
                       className="border-b border-r border-border flex items-center justify-center"
-                      style={{ height: ROW, background: bg, borderLeft: `2.5px solid ${accent}` }}
+                      style={{
+                        height: ROW,
+                        background: bg,
+                        borderLeft: `2.5px solid ${border}`,
+                        boxShadow: shadow,
+                      }}
                     >
-                      <span className="text-[11px] font-mono font-bold" style={{ color: text }}>
+                      <span className="text-[12px] font-mono font-bold" style={{ color: text }}>
                         {c.score}
                       </span>
                     </div>
                   );
                 })}
 
-                {/* Points cell */}
+                {/* Points */}
                 <div
                   className="border-b border-border flex items-center justify-center"
                   style={{ height: ROW, background: nameBg }}
                 >
                   <span
-                    className="text-sm font-mono font-bold"
-                    style={{ color: isLeader ? "var(--status-win)" : "var(--status-done)" }}
+                    className="font-mono font-bold"
+                    style={{
+                      fontSize: 15,
+                      color: isLeader ? "var(--status-win)" : "var(--status-done)",
+                      textShadow: isLeader ? "0 0 12px color-mix(in srgb, var(--status-win) 60%, transparent)" : undefined,
+                    }}
                   >
                     {p % 1 === 0 ? p : p.toFixed(1)}
                   </span>
@@ -512,26 +536,26 @@ const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({ matches, participants 
             );
           })}
         </div>
+      </div>
 
-        {/* Legend footer */}
-        <div
-          className="px-4 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-hairline text-[9px] font-mono text-text-muted"
-          style={{ height: LEG_H, background: "var(--panel)" }}
-        >
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-[2px] inline-block shrink-0" style={{ background: "color-mix(in srgb, var(--status-win) 30%, transparent)", borderLeft: "2px solid var(--status-win)" }} />
-            победа (+1)
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-[2px] inline-block shrink-0" style={{ background: "color-mix(in srgb, var(--status-danger) 25%, transparent)", borderLeft: "2px solid var(--status-danger)" }} />
-            поражение
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-[2px] inline-block shrink-0" style={{ background: "color-mix(in srgb, var(--accent) 22%, transparent)", borderLeft: "2px solid var(--accent)" }} />
-            ничья (+0.5)
-          </span>
-          <span className="ml-auto opacity-60">строка — счёт против соперника в столбце</span>
-        </div>
+      {/* ── LEGEND — brushed footer ── */}
+      <div
+        className="brushed border-t border-border shrink-0 px-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-[9px] font-mono"
+        style={{ height: LEG_H, color: "var(--text-muted)" }}
+      >
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-[2px] inline-block shrink-0" style={{ background: "color-mix(in srgb, var(--status-win) 30%, var(--panel))", borderLeft: "2px solid var(--status-win)", boxShadow: "inset 0 1px 0 rgba(40,200,64,0.3)" }} />
+          победа (+1)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-[2px] inline-block shrink-0" style={{ background: "color-mix(in srgb, var(--status-danger) 20%, var(--panel))", borderLeft: "2px solid var(--status-danger)" }} />
+          поражение
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-[2px] inline-block shrink-0" style={{ background: "color-mix(in srgb, var(--accent) 22%, var(--panel))", borderLeft: "2px solid var(--accent)", boxShadow: "inset 0 1px 0 rgba(46,134,240,0.25)" }} />
+          ничья (+0.5)
+        </span>
+        <span className="ml-auto opacity-50">строка × столбец</span>
       </div>
     </div>
   );
