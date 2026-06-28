@@ -565,7 +565,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
 
   const standingsColumns: TableColumn<any>[] = [
     { key: "rank", header: "Место", numeric: true, render: (_: any, idx: number) => <span className="font-bold">{idx + 1}</span> },
-    { key: "name", header: "Участник", render: (row: any) => <span className="font-semibold">{row.teamName ? `${row.teamName} (${row.nickname})` : row.nickname}</span> },
+    { key: "name", header: "Участник", render: (row: any) => <span className="font-semibold block max-w-[200px] truncate" title={row.teamName ? `${row.teamName} (${row.nickname})` : row.nickname}>{row.teamName ? `${row.teamName} (${row.nickname})` : row.nickname}</span> },
     { key: "matchesPlayed", header: "Игры", numeric: true },
     { key: "wins", header: "Победы", numeric: true, render: (row: any) => <span className="text-[var(--status-win)]">{row.wins}</span> },
     { key: "losses", header: "Поражения", numeric: true, render: (row: any) => <span className="text-[var(--status-danger)]">{row.losses}</span> },
@@ -607,8 +607,8 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                     {tournamentStatusLabel}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-display font-bold text-2xl text-[var(--text)]">{tournament?.name}</h2>
+                <div className="flex items-center gap-2 min-w-0">
+                  <h2 className="font-display font-bold text-2xl text-[var(--text)] min-w-0 break-words">{tournament?.name}</h2>
                   {canManage && (
                     <button
                       onClick={openEditModal}
@@ -620,11 +620,11 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                   )}
                 </div>
                 {tournament?.description && (
-                  <p className="text-xs text-[var(--text-muted)] mt-1 max-w-xl">{tournament.description}</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-1 max-w-xl break-words">{tournament.description}</p>
                 )}
                 <div className="flex flex-wrap justify-center md:justify-start gap-6 mt-3 text-xs text-[var(--text-muted)]">
                   {tournament?.prizePool && (
-                    <span><strong>Призовой фонд:</strong> {tournament.prizePool}</span>
+                    <span className="break-words"><strong>Призовой фонд:</strong> {tournament.prizePool}</span>
                   )}
                   <span><strong>Взнос:</strong> {tournament?.entryFee > 0 ? `${tournament.entryFee} руб` : "Бесплатно"}</span>
                   <span><strong>Начало:</strong> {new Date(tournament?.startDate).toLocaleDateString("ru-RU")}</span>
@@ -737,11 +737,11 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                       <Trophy size={11} weight="fill" className="inline mr-1.5" />
                       Победитель турнира
                     </div>
-                    <h2 className="font-display font-black text-3xl md:text-4xl uppercase tracking-wide text-[var(--text)]">
+                    <h2 className="font-display font-black text-3xl md:text-4xl uppercase tracking-wide text-[var(--text)] break-words">
                       {displayName}
                     </h2>
                     {winnerParticipant.teamSnapshot && winnerParticipant.nicknameSnapshot && (
-                      <p className="text-sm text-[var(--text-muted)] mt-0.5">{winnerParticipant.nicknameSnapshot}</p>
+                      <p className="text-sm text-[var(--text-muted)] mt-0.5 truncate max-w-xs">{winnerParticipant.nicknameSnapshot}</p>
                     )}
                     {ws && (
                       <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-3 text-xs font-mono text-[var(--text-muted)]">
@@ -882,7 +882,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                     <div className="min-w-0">
                       <span className="text-xs font-semibold text-[var(--text)] truncate block">{p.teamSnapshot || p.nicknameSnapshot}</span>
                       {p.teamSnapshot && (
-                        <span className="text-[8px] text-[var(--text-muted)] font-mono">капитан: {p.nicknameSnapshot}</span>
+                        <span className="text-[8px] text-[var(--text-muted)] font-mono truncate block">капитан: {p.nicknameSnapshot}</span>
                       )}
                     </div>
                     {!tournament?.isStarted && (
@@ -918,11 +918,11 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
               </div>
               <div className="flex flex-col gap-3 max-h-[200px] overflow-y-auto pr-2">
                 {pendingParticipants.map((p) => (
-                  <div key={p.id} className="flex justify-between items-center p-2 bg-[var(--panel-sunken)] border border-[var(--hairline)] rounded-ctl">
-                    <div>
-                      <span className="text-xs font-semibold text-[var(--text)]">{p.nicknameSnapshot}</span>
+                  <div key={p.id} className="flex justify-between items-center gap-2 p-2 bg-[var(--panel-sunken)] border border-[var(--hairline)] rounded-ctl">
+                    <div className="min-w-0">
+                      <span className="text-xs font-semibold text-[var(--text)] truncate block">{p.nicknameSnapshot}</span>
                       {p.teamSnapshot && (
-                        <Badge tone="draft" className="ml-2">Команда: {p.teamSnapshot}</Badge>
+                        <span className="text-[9px] text-[var(--text-muted)] font-mono truncate block">Команда: {p.teamSnapshot}</span>
                       )}
                     </div>
                     <div className="flex gap-2 shrink-0">
@@ -1038,21 +1038,46 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                       <span className="font-mono font-bold">{m.score2 !== null ? m.score2 : "-"}</span>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-[var(--hairline)] items-center justify-between">
-                    <div className="flex gap-2">
-                      {m.customFieldsData?.stream_url && (
-                        <a href={m.customFieldsData.stream_url} target="_blank" rel="noopener noreferrer" className="px-2 py-0.5 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--hairline)] text-[8px] text-[var(--text)] hover:text-[var(--accent)] flex items-center gap-1 transition">
-                          <Tv size={8} className="text-[var(--status-danger)]" /><span>Стрим</span>
-                        </a>
-                      )}
-                      {m.customFieldsData?.invite_link && (
-                        <a href={m.customFieldsData.invite_link} target="_blank" rel="noopener noreferrer" className="px-2 py-0.5 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--hairline)] text-[8px] text-[var(--text)] hover:text-[var(--accent)] flex items-center gap-1 transition">
-                          <ExternalLink size={8} className="text-[var(--accent)]" /><span>Комната</span>
-                        </a>
-                      )}
-                    </div>
+                  <div className="mt-2 pt-2 border-t border-[var(--hairline)] flex flex-col gap-1.5">
+                    {/* Links */}
+                    {(m.customFieldsData?.stream_url || m.customFieldsData?.invite_link) && (
+                      <div className="flex gap-2">
+                        {m.customFieldsData?.stream_url && (
+                          <a href={m.customFieldsData.stream_url} target="_blank" rel="noopener noreferrer" className="px-2 py-0.5 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--hairline)] text-[8px] text-[var(--text)] hover:text-[var(--accent)] flex items-center gap-1 transition">
+                            <Tv size={8} className="text-[var(--status-danger)]" /><span>Стрим</span>
+                          </a>
+                        )}
+                        {m.customFieldsData?.invite_link && (
+                          <a href={m.customFieldsData.invite_link} target="_blank" rel="noopener noreferrer" className="px-2 py-0.5 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--hairline)] text-[8px] text-[var(--text)] hover:text-[var(--accent)] flex items-center gap-1 transition">
+                            <ExternalLink size={8} className="text-[var(--accent)]" /><span>Комната</span>
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    {/* Dynamic custom fields */}
+                    {(() => {
+                      const schema: any[] = tournament?.customFieldsSchema || [];
+                      const data: Record<string, any> = m.customFieldsData || {};
+                      const fields = schema.filter(
+                        (f: any) => data[f.name] != null && data[f.name] !== ""
+                      );
+                      if (!fields.length) return null;
+                      return (
+                        <div className="flex flex-wrap gap-1.5">
+                          {fields.map((f: any) => (
+                            <span key={f.name} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--panel-sunken)] border border-[var(--hairline)] text-[8px] font-mono max-w-full">
+                              <span className="text-[var(--text-muted)] shrink-0">{f.label}:</span>
+                              <span className="text-[var(--text)] font-bold truncate">{String(data[f.name])}</span>
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                    {/* Referee info button */}
                     {(m.refereeId === currentUser?.id || canManage) && (
-                      <Button variant="ghost" size="sm" onClick={() => openMetadataModal(m)}>Инфо</Button>
+                      <div className="flex justify-end">
+                        <Button variant="ghost" size="sm" onClick={() => openMetadataModal(m)}>Инфо</Button>
+                      </div>
                     )}
                   </div>
                 </Card>

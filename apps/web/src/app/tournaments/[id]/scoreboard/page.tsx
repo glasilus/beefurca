@@ -132,7 +132,7 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
 
         {/* Tournament Name Banner */}
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-display font-extrabold uppercase tracking-wider text-[var(--text)]">
+          <h2 className="text-3xl font-display font-extrabold uppercase tracking-wider text-[var(--text)] break-words">
             {tournament?.name}
           </h2>
           <p className="text-xs text-[var(--text-muted)] mt-2 font-mono uppercase tracking-widest">
@@ -150,7 +150,7 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
               }}
             >
               <Trophy size={16} weight="fill" />
-              <span>Призовой фонд: {tournament.prizePool}</span>
+              <span className="break-words">Призовой фонд: {tournament.prizePool}</span>
             </div>
           )}
         </div>
@@ -227,35 +227,53 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
 
               </div>
 
-              {/* Match Custom Metadata (Stream URLs, chess invite codes) */}
-              {(featuredMatch.customFieldsData?.stream_url || featuredMatch.customFieldsData?.invite_link) && (
-                <div className="mt-8 pt-6 border-t border-[var(--hairline)] flex flex-wrap gap-4 justify-center text-xs font-mono">
-                  {featuredMatch.customFieldsData.stream_url && (
-                    <a
-                      href={featuredMatch.customFieldsData.stream_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--border)] hover:border-[var(--status-danger)] text-[var(--text)] hover:text-[var(--status-danger)] flex items-center gap-2 transition"
-                    >
-                      <Tv size={14} className="text-[var(--status-danger)]" />
-                      <span>Смотреть трансляцию матча</span>
-                      <ExternalLink size={12} />
-                    </a>
-                  )}
-                  {featuredMatch.customFieldsData.invite_link && (
-                    <a
-                      href={featuredMatch.customFieldsData.invite_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] hover:text-[var(--accent)] flex items-center gap-2 transition"
-                    >
-                      <Clock size={14} className="text-[var(--accent)]" />
-                      <span>Присоединиться к комнате (Chess / Lobbies)</span>
-                      <ExternalLink size={12} />
-                    </a>
-                  )}
-                </div>
-              )}
+              {/* Match metadata: links + all dynamic schema fields */}
+              {(() => {
+                const data: Record<string, any> = featuredMatch.customFieldsData || {};
+                const schema: any[] = tournament?.customFieldsSchema || [];
+                const extraFields = schema.filter(
+                  (f: any) => data[f.name] != null && data[f.name] !== ""
+                );
+                const hasLinks = data.stream_url || data.invite_link;
+                if (!hasLinks && !extraFields.length) return null;
+                return (
+                  <div className="mt-8 pt-6 border-t border-[var(--hairline)]">
+                    {hasLinks && (
+                      <div className="flex flex-wrap gap-4 justify-center text-xs font-mono mb-4">
+                        {data.stream_url && (
+                          <a href={data.stream_url} target="_blank" rel="noopener noreferrer"
+                            className="px-4 py-2 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--border)] hover:border-[var(--status-danger)] text-[var(--text)] hover:text-[var(--status-danger)] flex items-center gap-2 transition">
+                            <Tv size={14} className="text-[var(--status-danger)]" />
+                            <span>Смотреть трансляцию матча</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+                        {data.invite_link && (
+                          <a href={data.invite_link} target="_blank" rel="noopener noreferrer"
+                            className="px-4 py-2 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] hover:text-[var(--accent)] flex items-center gap-2 transition">
+                            <Clock size={14} className="text-[var(--accent)]" />
+                            <span>Присоединиться к комнате (Chess / Lobbies)</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    {extraFields.length > 0 && (
+                      <div className="flex flex-wrap gap-3 justify-center">
+                        {extraFields.map((f: any) => (
+                          <div key={f.name}
+                            className="flex flex-col items-center gap-0.5 px-4 py-2.5 rounded-win bg-[var(--panel-sunken)] border border-[var(--border)]"
+                            style={{ boxShadow: "inset 0 1px 0 var(--gloss)" }}
+                          >
+                            <span className="text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)]">{f.label}</span>
+                            <span className="text-sm font-bold font-mono text-[var(--text)] break-all">{String(data[f.name])}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </Window>
           </div>
         )}

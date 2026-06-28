@@ -140,7 +140,7 @@ export default function PlayerProfilePage() {
 
             <div className="flex-1 text-center sm:text-left">
               <div className="flex items-center gap-3 mb-2 flex-wrap justify-center sm:justify-start">
-                <h1 className="text-2xl font-bold font-display text-[var(--text)]">{player.nickname}</h1>
+                <h1 className="text-2xl font-bold font-display text-[var(--text)] min-w-0 break-words">{player.nickname}</h1>
                 <Badge tone="draft">{player.role}</Badge>
                 {isOwnProfile && <Badge tone="accent">Это вы</Badge>}
               </div>

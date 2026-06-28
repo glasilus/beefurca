@@ -278,8 +278,8 @@ export default function DashboardPage() {
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
               <FractalAvatar seed={profile?.id} size={70} />
               <div className="flex-1 text-center sm:text-left">
-                <div className="flex items-center gap-2 mb-1 flex-wrap justify-center sm:justify-start">
-                  <span className="text-lg font-bold text-[var(--text)]">{profile?.nickname}</span>
+                <div className="flex items-center gap-2 mb-1 flex-wrap justify-center sm:justify-start min-w-0">
+                  <span className="text-lg font-bold text-[var(--text)] break-words min-w-0">{profile?.nickname}</span>
                   <Badge tone="draft">{profile?.role}</Badge>
                   {profile?.discordLinked && (
                     <Badge tone="accent">
@@ -289,7 +289,7 @@ export default function DashboardPage() {
                 </div>
                 <p className="text-xs text-[var(--text-muted)]">{profile?.email}</p>
                 {(profile?.fullName || profile?.phone) && (
-                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5 break-words">
                     {profile?.fullName}{profile?.fullName && profile?.phone ? " | " : ""}{profile?.phone}
                   </p>
                 )}
@@ -378,8 +378,8 @@ export default function DashboardPage() {
                 const captain = isCaptain(team);
                 return (
                   <Window key={team.teamId} title={team.teamName}>
-                    <div className="flex justify-between items-center mb-4">
-                      <h4 className="font-bold text-sm text-[var(--text)]">{team.teamName}</h4>
+                    <div className="flex justify-between items-center gap-3 mb-4">
+                      <h4 className="font-bold text-sm text-[var(--text)] min-w-0 truncate">{team.teamName}</h4>
                       <div className="flex items-center gap-2">
                         <Badge tone={captain ? "accent" : "draft"}>{captain ? "Капитан" : "Состав"}</Badge>
                         {captain ? (
@@ -407,8 +407,8 @@ export default function DashboardPage() {
                     {/* Roster */}
                     <div className="flex flex-col gap-1.5">
                       {members.map((mem) => (
-                        <div key={mem.playerId} className="flex justify-between items-center text-xs px-2 py-1.5 bg-[var(--panel-sunken)] border border-[var(--hairline)] rounded-ctl">
-                          <span className="text-[var(--text)]">
+                        <div key={mem.playerId} className="flex justify-between items-center gap-2 text-xs px-2 py-1.5 bg-[var(--panel-sunken)] border border-[var(--hairline)] rounded-ctl">
+                          <span className="text-[var(--text)] min-w-0 truncate">
                             {mem.nickname}
                             {mem.playerId === team.captainId && <span className="text-[8px] text-[var(--status-live)] ml-2 font-cond uppercase">капитан</span>}
                           </span>

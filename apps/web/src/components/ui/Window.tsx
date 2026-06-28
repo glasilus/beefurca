@@ -122,7 +122,7 @@ export const Window: React.FC<WindowProps> = ({
             </div>
           )}
           {title && (
-            <span className="font-cond font-semibold uppercase tracking-[.06em] text-[12px] text-[var(--text-muted)]">
+            <span className="font-cond font-semibold uppercase tracking-[.06em] text-[12px] text-[var(--text-muted)] flex-1 min-w-0 truncate">
               {title}
             </span>
           )}

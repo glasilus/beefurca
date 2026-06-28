@@ -92,7 +92,7 @@ export default function DisciplinesPage() {
     {
       key: "nickname",
       header: "Никнейм",
-      render: (row) => <span className="font-semibold text-[var(--text)]">{row.nickname}</span>,
+      render: (row) => <span className="font-semibold text-[var(--text)] block max-w-[180px] truncate" title={row.nickname}>{row.nickname}</span>,
     },
     {
       key: "elo",
