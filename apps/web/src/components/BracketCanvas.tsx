@@ -365,121 +365,173 @@ const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({ matches, participants 
     return d !== 0 ? d : wins(b.id) - wins(a.id);
   });
 
-  const cellCls: Record<CellType, string> = {
-    win:     "bg-[color-mix(in_srgb,var(--status-win)_18%,transparent)] text-[var(--status-win)] font-bold",
-    loss:    "bg-[color-mix(in_srgb,var(--status-danger)_14%,transparent)] text-[var(--text-muted)]",
-    draw:    "bg-[color-mix(in_srgb,var(--accent)_13%,transparent)] text-[var(--accent)] font-semibold",
-    pending: "text-[var(--text-muted)]",
-    self:    "bg-[var(--panel-sunken)]",
-  };
+  const n = ranked.length;
+  const COL    = 72;
+  const ROW    = 56;
+  const NAME_W = 216;
+  const PTS_W  = 80;
+  const HEAD_H = 56;
+  const LEG_H  = 40;
+
+  const totalH = Math.min(600, HEAD_H + n * ROW + LEG_H);
 
   return (
-    <div className={`${FRAME} flex flex-col overflow-hidden`}>
-      <div className="relative z-10 flex-1 overflow-auto p-4">
-        <table className="border-collapse text-xs w-max min-w-full">
-          <thead>
-            <tr>
-              {/* rank + name header */}
-              <th className="sticky left-0 z-20 bg-panel min-w-[180px] px-3 py-2.5 text-left text-[10px] font-mono uppercase tracking-widest text-text-muted border border-border">
-                Участник
-              </th>
-              {ranked.map((p, i) => (
-                <th
-                  key={p.id}
-                  className="w-14 min-w-[56px] px-1 py-2.5 text-center border border-border"
-                  title={nameOf(p)}
+    <div
+      className="w-full border border-border bg-surface rounded-win relative overflow-hidden"
+      style={{ height: totalH }}
+    >
+      <div className="absolute inset-0 overflow-auto">
+        {/* CSS Grid cross-table */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: `${NAME_W}px repeat(${n}, ${COL}px) ${PTS_W}px`,
+            minWidth: NAME_W + n * COL + PTS_W,
+          }}
+        >
+          {/* ── HEADER ROW ── */}
+
+          {/* Corner cell — sticky top + left */}
+          <div
+            className="border-b border-r border-border flex items-end pb-3 px-4"
+            style={{ height: HEAD_H, position: "sticky", top: 0, left: 0, zIndex: 30, background: "var(--panel)" }}
+          >
+            <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted">Участник</span>
+          </div>
+
+          {/* Column headers — one per participant */}
+          {ranked.map((p, i) => (
+            <div
+              key={p.id}
+              className="border-b border-r border-border flex flex-col items-center justify-center gap-1"
+              style={{ height: HEAD_H, position: "sticky", top: 0, zIndex: 20, background: "var(--panel-sunken)" }}
+              title={nameOf(p)}
+            >
+              <FractalMedallion seed={p.id} size={22} />
+              <span className="text-[9px] font-mono font-bold text-text-muted">{i + 1}</span>
+            </div>
+          ))}
+
+          {/* Points header */}
+          <div
+            className="border-b border-border flex items-end pb-3 justify-center"
+            style={{ height: HEAD_H, position: "sticky", top: 0, zIndex: 20, background: "var(--panel)" }}
+          >
+            <span className="text-[10px] font-mono uppercase tracking-widest font-bold" style={{ color: "var(--status-done)" }}>
+              Очки
+            </span>
+          </div>
+
+          {/* ── DATA ROWS ── */}
+          {ranked.map((row, ri) => {
+            const p = pts(row.id);
+            const isLeader = ri === 0 && p > 0;
+            const nameBg = isLeader
+              ? "color-mix(in srgb, var(--status-win) 9%, var(--panel))"
+              : ri % 2 === 0 ? "var(--panel)" : "var(--panel-sunken)";
+            const cellBg = ri % 2 === 0 ? "var(--panel)" : "var(--panel-sunken)";
+
+            return (
+              <React.Fragment key={row.id}>
+                {/* Name cell — sticky left */}
+                <div
+                  className="border-b border-r border-border flex items-center gap-2.5 px-3"
+                  style={{ height: ROW, position: "sticky", left: 0, zIndex: 10, background: nameBg }}
                 >
-                  <span className="block text-[11px] font-bold font-mono text-text">{i + 1}</span>
-                  <span className="block text-[8px] font-mono text-text-muted truncate max-w-[52px] mx-auto mt-0.5">
-                    {nameOf(p).split(" ")[0]}
-                  </span>
-                </th>
-              ))}
-              <th className="min-w-[56px] px-2 py-2.5 text-center text-[10px] font-mono uppercase tracking-widest text-[var(--status-done)] border border-border font-bold">
-                Очки
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {ranked.map((row, ri) => {
-              const p = pts(row.id);
-              const isLeader = ri === 0 && p > 0;
-              return (
-                <tr key={row.id}>
-                  {/* sticky name column */}
-                  <td
-                    className={`sticky left-0 z-10 px-3 py-2.5 border border-border whitespace-nowrap ${
-                      isLeader
-                        ? "bg-[color-mix(in_srgb,var(--status-win)_9%,var(--panel))]"
-                        : "bg-panel"
-                    }`}
+                  <span
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-mono font-bold shrink-0"
+                    style={{
+                      background: isLeader
+                        ? "color-mix(in srgb, var(--status-win) 22%, transparent)"
+                        : "color-mix(in srgb, var(--text-muted) 15%, transparent)",
+                      color: isLeader ? "var(--status-win)" : "var(--text-muted)",
+                    }}
                   >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`font-mono font-bold text-sm w-5 text-center shrink-0 ${
-                          isLeader ? "text-[var(--status-win)]" : "text-text-muted"
-                        }`}
-                      >
-                        {ri + 1}
-                      </span>
-                      <span className="font-semibold text-text truncate max-w-[130px]">
-                        {nameOf(row)}
+                    {ri + 1}
+                  </span>
+                  <FractalMedallion seed={row.id} size={28} />
+                  <span className="text-xs font-semibold text-text truncate" style={{ maxWidth: 108 }}>
+                    {nameOf(row)}
+                  </span>
+                </div>
+
+                {/* Result cells */}
+                {ranked.map((col) => {
+                  const c = getCell(row.id, col.id);
+
+                  if (c.type === "self") {
+                    return (
+                      <div
+                        key={col.id}
+                        className="border-b border-r border-border"
+                        style={{
+                          height: ROW,
+                          backgroundImage:
+                            "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--text-muted) 7%, transparent) 0px, color-mix(in srgb, var(--text-muted) 7%, transparent) 1.5px, transparent 1.5px, transparent 9px)",
+                          backgroundColor: "var(--panel-sunken)",
+                        }}
+                      />
+                    );
+                  }
+
+                  type PlayedType = "win" | "loss" | "draw" | "pending";
+                  const cfg: Record<PlayedType, { bg: string; text: string; accent: string }> = {
+                    win:     { bg: "color-mix(in srgb, var(--status-win) 15%, transparent)",    text: "var(--status-win)",    accent: "var(--status-win)" },
+                    loss:    { bg: "color-mix(in srgb, var(--status-danger) 11%, transparent)", text: "var(--text-muted)",    accent: "var(--status-danger)" },
+                    draw:    { bg: "color-mix(in srgb, var(--accent) 12%, transparent)",        text: "var(--accent)",        accent: "var(--accent)" },
+                    pending: { bg: cellBg,                                                       text: "var(--text-muted)",    accent: "transparent" },
+                  };
+                  const { bg, text, accent } = cfg[c.type as PlayedType];
+
+                  return (
+                    <div
+                      key={col.id}
+                      className="border-b border-r border-border flex items-center justify-center"
+                      style={{ height: ROW, background: bg, borderLeft: `2.5px solid ${accent}` }}
+                    >
+                      <span className="text-[11px] font-mono font-bold" style={{ color: text }}>
+                        {c.score}
                       </span>
                     </div>
-                  </td>
+                  );
+                })}
 
-                  {/* result cells */}
-                  {ranked.map((col) => {
-                    const c = getCell(row.id, col.id);
-                    if (c.type === "self") {
-                      return (
-                        <td key={col.id} className="border border-border bg-panel-sunken">
-                          <div className="w-full h-full flex items-center justify-center text-[var(--hairline)] text-lg select-none">
-                            ×
-                          </div>
-                        </td>
-                      );
-                    }
-                    return (
-                      <td
-                        key={col.id}
-                        className={`px-1 py-2.5 text-center font-mono border border-border ${cellCls[c.type]}`}
-                      >
-                        {c.score}
-                      </td>
-                    );
-                  })}
-
-                  {/* points */}
-                  <td
-                    className={`px-2 py-2.5 text-center font-mono font-bold border border-border ${
-                      isLeader ? "text-[var(--status-win)] text-sm" : "text-[var(--status-done)]"
-                    }`}
+                {/* Points cell */}
+                <div
+                  className="border-b border-border flex items-center justify-center"
+                  style={{ height: ROW, background: nameBg }}
+                >
+                  <span
+                    className="text-sm font-mono font-bold"
+                    style={{ color: isLeader ? "var(--status-win)" : "var(--status-done)" }}
                   >
                     {p % 1 === 0 ? p : p.toFixed(1)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                  </span>
+                </div>
+              </React.Fragment>
+            );
+          })}
+        </div>
 
-      {/* legend */}
-      <div className="relative z-10 px-4 py-2 border-t border-hairline flex flex-wrap items-center gap-x-5 gap-y-1 text-[9px] font-mono text-text-muted shrink-0">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[color-mix(in_srgb,var(--status-win)_35%,transparent)] inline-block shrink-0" />
-          победа (+1)
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[color-mix(in_srgb,var(--status-danger)_30%,transparent)] inline-block shrink-0" />
-          поражение
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[color-mix(in_srgb,var(--accent)_25%,transparent)] inline-block shrink-0" />
-          ничья (+0.5)
-        </span>
-        <span className="ml-auto">строка × столбец = счёт: строка против колонки</span>
+        {/* Legend footer */}
+        <div
+          className="px-4 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-hairline text-[9px] font-mono text-text-muted"
+          style={{ height: LEG_H, background: "var(--panel)" }}
+        >
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-[2px] inline-block shrink-0" style={{ background: "color-mix(in srgb, var(--status-win) 30%, transparent)", borderLeft: "2px solid var(--status-win)" }} />
+            победа (+1)
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-[2px] inline-block shrink-0" style={{ background: "color-mix(in srgb, var(--status-danger) 25%, transparent)", borderLeft: "2px solid var(--status-danger)" }} />
+            поражение
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-[2px] inline-block shrink-0" style={{ background: "color-mix(in srgb, var(--accent) 22%, transparent)", borderLeft: "2px solid var(--accent)" }} />
+            ничья (+0.5)
+          </span>
+          <span className="ml-auto opacity-60">строка — счёт против соперника в столбце</span>
+        </div>
       </div>
     </div>
   );

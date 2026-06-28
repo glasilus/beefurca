@@ -907,7 +907,9 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
         )}
 
         {/* Approvals + referee scoring */}
-        <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-[var(--border)] pt-8">
+        {(canManage && !tournament?.isStarted || myRefereedMatches.length > 0) && (
+        <div className="lg:col-span-12 border-t border-[var(--border)] pt-8">
+          <div className={`grid gap-6 ${canManage && !tournament?.isStarted && myRefereedMatches.length > 0 ? "md:grid-cols-[1fr_1.5fr]" : "grid-cols-1"}`}>
           {canManage && !tournament?.isStarted && (
             <Window title={`Заявки на участие (${pendingParticipants.length})`}>
               <div className="flex items-center gap-2 mb-4">
@@ -942,7 +944,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                 <Trophy size={16} className="text-[var(--accent)]" />
                 <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Панель судейства ({myRefereedMatches.length})</span>
               </div>
-              <div className="flex flex-col gap-4">
+              <div className={`grid gap-4 ${myRefereedMatches.length > 2 ? "sm:grid-cols-2 xl:grid-cols-3" : myRefereedMatches.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
                 {myRefereedMatches.map((m) => {
                   const s1 = m.score1 ?? 0;
                   const s2 = m.score2 ?? 0;
@@ -1006,7 +1008,9 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
               </div>
             </Window>
           )}
+          </div>
         </div>
+        )}
 
         {/* Match list */}
         {matches.length > 0 && (
