@@ -24,7 +24,7 @@ interface MatchData {
   score2: number | null;
   winnerId: string | null;
   isTechDefeat: boolean;
-  isVoidDraw: boolean;
+  isVoidDraw?: boolean;
   bracketSection?: string | null;
   nextMatchId?: string | null;
   loserNextMatchId?: string | null;
