@@ -29,10 +29,9 @@ export const Modal: React.FC<ModalProps> = ({
     [onClose],
   );
 
+  // Focus first focusable element only when the modal transitions to open.
   useEffect(() => {
     if (!open) return;
-    document.addEventListener("keydown", handleKeyDown);
-    // Focus first focusable element
     const el = panelRef.current;
     if (el) {
       const focusable = el.querySelector<HTMLElement>(
@@ -40,6 +39,12 @@ export const Modal: React.FC<ModalProps> = ({
       );
       focusable?.focus();
     }
+  }, [open]);
+
+  // Keyboard listener — may re-attach when onClose identity changes, but no side effects.
+  useEffect(() => {
+    if (!open) return;
+    document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open, handleKeyDown]);
 
