@@ -26,4 +26,4 @@ ENV NODE_ENV=production \
 COPY --from=builder /app ./
 
 EXPOSE 5000
-CMD ["pnpm", "--filter", "api", "start"]
+CMD sh -c "pnpm --filter @beefurca/database db:push && pnpm --filter api start"
