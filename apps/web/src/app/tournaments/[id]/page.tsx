@@ -545,9 +545,9 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
     return p ? p.teamSnapshot || p.nicknameSnapshot : "Ожидание";
   };
 
-  const myRefereedMatches = matches.filter(
-    (m) => (m.refereeId === currentUser?.id || canManage) && !m.winnerId && m.participant1Id && m.participant2Id
-  );
+  const myRefereedMatches = matches
+    .filter((m) => (m.refereeId === currentUser?.id || canManage) && !m.winnerId && m.participant1Id && m.participant2Id)
+    .sort((a, b) => a.round !== b.round ? a.round - b.round : a.position - b.position);
 
   const scoringName1 = selectedScoringMatch ? nameOf(selectedScoringMatch.participant1Id) : "";
   const scoringName2 = selectedScoringMatch ? nameOf(selectedScoringMatch.participant2Id) : "";

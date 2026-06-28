@@ -84,6 +84,7 @@ export default function CreateTournamentPage() {
   const isPrivileged = profile?.role === "Organizer" || profile?.role === "Admin";
 
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [selectedDisciplineId, setSelectedDisciplineId] = useState("");
   const [tournamentType, setTournamentType] = useState("AMATEUR");
   const [bracketType, setBracketType] = useState("SINGLE_ELIM");
@@ -179,6 +180,7 @@ export default function CreateTournamentPage() {
       disciplineId,
       tournamentType,
       bracketType,
+      description: description.trim() || undefined,
       prizePool: prizePool || undefined,
       entryFee: Number(entryFee) || 0,
       startDate: new Date(startDate).toISOString(),
@@ -244,6 +246,15 @@ export default function CreateTournamentPage() {
               onChange={(e) => setName(e.target.value)}
               className="text-base"
             />
+            <Field label="Описание (необязательно)" className="mt-4">
+              <textarea
+                rows={3}
+                placeholder="Краткое описание турнира, правила участия, контакты..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-3 py-2 text-[14px] font-sans text-[var(--text)] bg-[var(--panel-sunken)] border border-[var(--border)] rounded-ctl shadow-[inset_0_2px_4px_rgba(0,0,0,.12)] outline-none focus:border-[var(--accent)] focus:shadow-[inset_0_2px_4px_rgba(0,0,0,.12),0_0_0_3px_color-mix(in_srgb,var(--accent)_30%,transparent)] placeholder:text-[var(--text-muted)] resize-none"
+              />
+            </Field>
           </Window>
 
           {/* ── Секция 2: Дисциплина ── */}
