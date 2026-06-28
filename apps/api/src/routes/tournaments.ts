@@ -316,6 +316,32 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       }),
     }
   )
+  // 3c. Delete Tournament (Admin only)
+  .delete(
+    "/:id",
+    async ({ user, params, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { error: "Unauthorized" };
+      }
+      if (user.role !== "Admin") {
+        set.status = 403;
+        return { error: "Только администратор может удалять турниры." };
+      }
+      const [tournament] = await db
+        .select()
+        .from(tournaments)
+        .where(eq(tournaments.id, params.id))
+        .limit(1);
+      if (!tournament) {
+        set.status = 404;
+        return { error: "Турнир не найден" };
+      }
+      await db.delete(tournaments).where(eq(tournaments.id, params.id));
+      return { message: "Турнир удалён" };
+    },
+    { params: t.Object({ id: t.String() }) }
+  )
   // 4. Join Tournament (Players only, Sandbox does not use registration)
   .post(
     "/:id/join",

@@ -360,6 +360,22 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
     }
   };
 
+  const handleDeleteTournament = async () => {
+    if (!(await confirm(`Удалить турнир «${tournament?.name}»? Это действие необратимо — все матчи и участники будут удалены.`))) return;
+    try {
+      const res = await apiFetch(`/tournaments/${params.id}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Турнир удалён");
+        router.push("/tournaments");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Не удалось удалить турнир");
+      }
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
   // Организатор: открыть модал редактирования турнира
   const openEditModal = () => {
     setEditName(tournament?.name || "");
@@ -681,6 +697,18 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                 {canManage && !tournament?.isStarted && (
                   <Button variant="gel" size="sm" leftIcon={<Play size={14} />} onClick={handleGenerateBracket}>
                     Начать турнир
+                  </Button>
+                )}
+
+                {isAdmin && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={<Trash2 size={14} />}
+                    onClick={handleDeleteTournament}
+                    className="!text-[var(--status-danger)] hover:!border-[var(--status-danger)]"
+                  >
+                    Удалить турнир
                   </Button>
                 )}
 
