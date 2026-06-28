@@ -21,15 +21,15 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => (
   <div
     className={[
-      "relative flex flex-col items-center justify-center py-16 px-6 text-center overflow-hidden rounded-card",
+      "relative w-full flex flex-col items-center justify-center py-16 px-6 text-center overflow-hidden rounded-card",
       className,
     ]
       .filter(Boolean)
       .join(" ")}
   >
-    {/* transparentCore: interior pixels alpha=0 so only the colorful boundary ring shows — no dark square on any background */}
-    <div className="absolute inset-0 flex items-center justify-center opacity-[0.18] pointer-events-none select-none">
-      <Fractal seed={seed} size={160} opts={{ transparentCore: true }} />
+    {/* mix-blend-mode: screen — dark pixels vanish on light bg, colorful ring glows on dark bg */}
+    <div className="absolute inset-0 flex items-center justify-center opacity-50 mix-blend-screen pointer-events-none select-none">
+      <Fractal seed={seed} size={160} />
     </div>
 
     <h3 className="relative font-display font-bold text-[18px] text-[var(--text)] mb-2">
