@@ -197,6 +197,22 @@ export default function AdminPanelPage() {
     }
   };
 
+  const handleDeleteTournament = async (id: string, name: string) => {
+    if (!(await confirm(`Удалить турнир «${name}»? Все матчи и участники будут удалены безвозвратно.`))) return;
+    try {
+      const res = await apiFetch(`/tournaments/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok) {
+        loadAdminData();
+        toast.success("Турнир удалён");
+      } else {
+        toast.error(data.error || "Не удалось удалить турнир");
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const handleToggleOfficial = async (id: string, isOfficial: boolean) => {
     try {
       const res = await apiFetch(`/admin/disciplines/${id}/official`, {
@@ -314,9 +330,14 @@ export default function AdminPanelPage() {
       key: "action",
       header: "Действие",
       render: (t) => (
-        <Button variant="secondary" size="sm" onClick={() => router.push(`/tournaments/${t.id}`)}>
-          Перейти
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={() => router.push(`/tournaments/${t.id}`)}>
+            Перейти
+          </Button>
+          <Button variant="danger" size="sm" onClick={() => handleDeleteTournament(t.id, t.name)}>
+            <Trash2 size={12} />
+          </Button>
+        </div>
       ),
     },
   ];
