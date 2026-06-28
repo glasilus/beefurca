@@ -127,7 +127,7 @@ export default function DisciplinesPage() {
     <div className="min-h-screen pb-16 relative">
       <Nav active="disciplines" profile={profile} />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-12 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-12 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
         <div className="lg:col-span-12">
           <PageHeader
             title="Дисциплины"
@@ -135,7 +135,7 @@ export default function DisciplinesPage() {
           />
         </div>
 
-        <div className="lg:col-span-4 flex flex-col gap-6">
+        <div className="lg:col-span-4 min-w-0 flex flex-col gap-6">
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Activity size={16} className="text-[var(--accent)]" />
@@ -173,7 +173,7 @@ export default function DisciplinesPage() {
           </div>
         </div>
 
-        <div className="lg:col-span-8 flex flex-col gap-8">
+        <div className="lg:col-span-8 min-w-0 flex flex-col gap-8">
           {selectedDiscipline && (
             <>
               <Window title={selectedDiscipline.name} status={selectedDiscipline.isOfficial ? "done" : "draft"}>
@@ -204,11 +204,13 @@ export default function DisciplinesPage() {
                 {leaderboardLoading ? (
                   <span className="text-xs text-[var(--text-muted)] font-mono italic">Загрузка...</span>
                 ) : leaderboard.length > 0 ? (
-                  <Table
-                    columns={leaderboardColumns}
-                    rows={leaderboard}
-                    rowKey={(row) => row.id}
-                  />
+                  <div className="overflow-x-auto">
+                    <Table
+                      columns={leaderboardColumns}
+                      rows={leaderboard}
+                      rowKey={(row) => row.id}
+                    />
+                  </div>
                 ) : (
                   <EmptyState
                     title="Нет рейтинговых игроков"

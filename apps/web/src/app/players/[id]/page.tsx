@@ -37,13 +37,8 @@ export default function PlayerProfilePage() {
 
     (async () => {
       try {
-        // Публичные данные грузятся без авторизации
-        const [pubRes, eloRes, statsRes] = await Promise.all([
-          apiFetch(`/users/${playerId}/public`, { signal } as any),
-          apiFetch(`/users/${playerId}/elo-history`, { signal } as any),
-          apiFetch(`/users/${playerId}/discipline-stats`, { signal } as any),
-        ]);
-
+        // Публичный профиль — основной запрос без авторизации
+        const pubRes = await apiFetch(`/users/${playerId}/public`, { signal } as any);
         if (signal.aborted) return;
 
         if (!pubRes.ok) {
@@ -54,12 +49,21 @@ export default function PlayerProfilePage() {
         const pubData = await pubRes.json();
         if (signal.aborted) return;
         setPlayer(pubData);
-        if (eloRes.ok) setEloHistory(await eloRes.json());
-        if (statsRes.ok) setDisciplineStats(await statsRes.json());
 
-        // Определяем, чей это профиль (необязательно — для "это вы" бейджа)
-        const prof = await fetchProfile().catch(() => null);
-        if (!signal.aborted && prof) setMyProfile(prof);
+        // Опциональные данные — ошибки не показывают "не найден"
+        await Promise.all([
+          apiFetch(`/users/${playerId}/elo-history`, { signal } as any)
+            .then((r) => (r.ok ? r.json() : []))
+            .then((data) => { if (!signal.aborted) setEloHistory(data); })
+            .catch(() => {}),
+          apiFetch(`/users/${playerId}/discipline-stats`, { signal } as any)
+            .then((r) => (r.ok ? r.json() : []))
+            .then((data) => { if (!signal.aborted) setDisciplineStats(data); })
+            .catch(() => {}),
+          fetchProfile()
+            .then((prof) => { if (!signal.aborted && prof) setMyProfile(prof); })
+            .catch(() => {}),
+        ]);
       } catch (err: any) {
         if (signal.aborted) return;
         setNotFound(true);

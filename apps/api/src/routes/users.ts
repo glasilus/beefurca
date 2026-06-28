@@ -445,6 +445,12 @@ export const userRoutes = new Elysia({ prefix: "/users" })
   .get(
     "/:id/elo-history",
     async ({ params, set }) => {
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE.test(params.id)) {
+        set.status = 404;
+        return { error: "User not found" };
+      }
+
       const [usr] = await db
         .select({ id: users.id })
         .from(users)
@@ -491,6 +497,12 @@ export const userRoutes = new Elysia({ prefix: "/users" })
   .get(
     "/:id/discipline-stats",
     async ({ params, set }) => {
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE.test(params.id)) {
+        set.status = 404;
+        return { error: "User not found" };
+      }
+
       const [usr] = await db
         .select({ id: users.id })
         .from(users)
