@@ -24,6 +24,7 @@ interface MatchData {
   score2: number | null;
   winnerId: string | null;
   isTechDefeat: boolean;
+  isVoidDraw: boolean;
   bracketSection?: string | null;
   nextMatchId?: string | null;
   loserNextMatchId?: string | null;
@@ -163,7 +164,7 @@ const FlowBracket: React.FC<BracketCanvasProps> = ({
 
     const nodesList: Node[] = [];
     const edgesList: Edge[] = [];
-    const valid = matches.filter((m) => m.round > 0);
+    const valid = matches.filter((m) => m.round > 0 && !m.isVoidDraw);
 
     const mkNode = (m: MatchData, x: number, y: number) =>
       nodesList.push({

@@ -101,14 +101,10 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
         winnerId = match.participant2Id;
         loserId = match.participant1Id;
       } else {
-        // Ничья в elimination: фиксируем матч как сыгранный (без победителя),
-        // создаём реванш с теми же участниками, наследуя указатели на следующий матч.
+        // Ничья в elimination: помечаем текущий матч как архивную ничью (isVoidDraw=true,
+        // связи обнуляются) и вставляем реванш-матч на ту же позицию с теми же связями.
+        // Архивный матч остаётся в истории, но скрыт из сетки и панели судейства.
         if (tournament.bracketType === "SINGLE_ELIM" || tournament.bracketType === "DOUBLE_ELIM") {
-          const origNextMatchId = match.nextMatchId;
-          const origNextMatchIsP1 = match.nextMatchIsP1;
-          const origLoserNextMatchId = match.loserNextMatchId;
-          const origLoserNextMatchIsP1 = match.loserNextMatchIsP1;
-
           await db.transaction(async (tx) => {
             await tx
               .update(matches)
@@ -116,6 +112,7 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
                 score1,
                 score2,
                 winnerId: null,
+                isVoidDraw: true,
                 customFieldsData: body.customFieldsData || null,
                 playedAt: new Date(),
                 nextMatchId: null,
@@ -131,15 +128,15 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
               participant1Id: match.participant1Id,
               participant2Id: match.participant2Id,
               refereeId: match.refereeId,
-              nextMatchId: origNextMatchId,
-              nextMatchIsP1: origNextMatchIsP1,
-              loserNextMatchId: origLoserNextMatchId,
-              loserNextMatchIsP1: origLoserNextMatchIsP1,
+              nextMatchId: match.nextMatchId,
+              nextMatchIsP1: match.nextMatchIsP1,
+              loserNextMatchId: match.loserNextMatchId,
+              loserNextMatchIsP1: match.loserNextMatchIsP1,
             });
           });
 
           await publishTournamentUpdate(tournament.id);
-          return { message: "Draw recorded. Rematch created automatically." };
+          return { message: "Ничья зафиксирована. Реванш создан автоматически." };
         }
       }
 

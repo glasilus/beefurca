@@ -203,6 +203,7 @@ export const matches = pgTable(
       onDelete: "set null",
     }), // null if referee deleted or sandbox creator
     isTechDefeat: boolean("is_tech_defeat").default(false).notNull(),
+    isVoidDraw: boolean("is_void_draw").default(false).notNull(),
     customFieldsData: jsonb("custom_fields_data"), // actual fields matching schema
     nextMatchId: uuid("next_match_id"), // self-reference link
     nextMatchIsP1: boolean("next_match_is_p1"), // does winner go to participant1 (true) or participant2 (false) in next match?

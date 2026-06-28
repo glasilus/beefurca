@@ -420,6 +420,14 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
     e.preventDefault();
     if (!selectedScoringMatch) return;
 
+    const isElim = tournament?.bracketType === "SINGLE_ELIM" || tournament?.bracketType === "DOUBLE_ELIM";
+    if (!techDefeat && isElim && score1 === score2) {
+      const ok = await confirm(
+        `Счёт ${score1}:${score2} — это ничья. В сетке на выбывание победитель определяется однозначно.\n\nБудет создан матч-реванш с теми же участниками. Результат этого матча сохранится в истории.\n\nПродолжить?`
+      );
+      if (!ok) return;
+    }
+
     try {
       let res: Response;
       if (techDefeat) {
@@ -546,7 +554,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
   };
 
   const myRefereedMatches = matches
-    .filter((m) => (m.refereeId === currentUser?.id || canManage) && !m.winnerId && m.participant1Id && m.participant2Id)
+    .filter((m) => (m.refereeId === currentUser?.id || canManage) && !m.winnerId && !m.isVoidDraw && m.participant1Id && m.participant2Id)
     .sort((a, b) => a.round !== b.round ? a.round - b.round : a.position - b.position);
 
   const scoringName1 = selectedScoringMatch ? nameOf(selectedScoringMatch.participant1Id) : "";
