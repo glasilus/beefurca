@@ -183,6 +183,38 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
           // Продвижение могло вскрыть bye (мёртвая ветка) — разрешаем цепочкой
           await resolveByeChain(tx, match.nextMatchId);
           await resolveByeChain(tx, match.loserNextMatchId);
+
+          // Grand Final special case: GFR is only played when the losers finalist
+          // (participant2 of GF) wins and forces a reset. When the winners champion
+          // (participant1) wins outright, void the GFR so it never appears.
+          if (match.bracketSection === "grand_final") {
+            const [gfr] = await tx
+              .select()
+              .from(matches)
+              .where(
+                and(
+                  eq(matches.tournamentId, match.tournamentId),
+                  eq(matches.bracketSection, "grand_final_reset"),
+                ),
+              )
+              .limit(1);
+
+            if (gfr && !gfr.winnerId && !gfr.isVoidDraw) {
+              if (winnerId === match.participant2Id) {
+                // LB finalist won GF → place WB champion (loser) in GFR participant1 for reset
+                await tx
+                  .update(matches)
+                  .set({ participant1Id: loserId })
+                  .where(eq(matches.id, gfr.id));
+              } else {
+                // WB champion won GF → no reset needed, void the GFR
+                await tx
+                  .update(matches)
+                  .set({ isVoidDraw: true })
+                  .where(eq(matches.id, gfr.id));
+              }
+            }
+          }
         }
       });
 
@@ -309,6 +341,34 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
         // Разрешаем возможные bye, вскрывшиеся после продвижения
         await resolveByeChain(tx, match.nextMatchId);
         await resolveByeChain(tx, match.loserNextMatchId);
+
+        // Same GF → GFR special handling as in /score
+        if (match.bracketSection === "grand_final") {
+          const [gfr] = await tx
+            .select()
+            .from(matches)
+            .where(
+              and(
+                eq(matches.tournamentId, match.tournamentId),
+                eq(matches.bracketSection, "grand_final_reset"),
+              ),
+            )
+            .limit(1);
+
+          if (gfr && !gfr.winnerId && !gfr.isVoidDraw) {
+            if (winnerId === match.participant2Id) {
+              await tx
+                .update(matches)
+                .set({ participant1Id: loserId })
+                .where(eq(matches.id, gfr.id));
+            } else {
+              await tx
+                .update(matches)
+                .set({ isVoidDraw: true })
+                .where(eq(matches.id, gfr.id));
+            }
+          }
+        }
       });
 
       // Оповещаем все инстансы об изменении сетки (PG NOTIFY → SSE)
@@ -517,7 +577,7 @@ async function resolveByeChain(tx: any, startMatchId: string | null): Promise<vo
       .where(eq(matches.id, currentId))
       .limit(1);
 
-    if (!m || m.winnerId) break;
+    if (!m || m.winnerId || m.isVoidDraw) break;
 
     let soleWinner: string | null = null;
     if (m.participant1Id && !m.participant2Id) soleWinner = m.participant1Id;

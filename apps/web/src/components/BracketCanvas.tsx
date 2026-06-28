@@ -250,12 +250,21 @@ const FlowBracket: React.FC<BracketCanvasProps> = ({
         });
       }
 
-      // Grand Final — to the right of both brackets, centered vertically
+      // Grand Final — to the right of both brackets, centered vertically.
+      // grand_final_reset is hidden while neither finalist has been placed yet;
+      // it appears as soon as at least one participant or a winner is present.
+      const activeFinals = finals.filter(
+        (m) =>
+          m.bracketSection !== "grand_final_reset" ||
+          m.participant1Id ||
+          m.participant2Id ||
+          m.winnerId,
+      );
       const rightEdge = Math.max(maxWR * COL, maxLR * LCOL);
       const gfX       = rightEdge + Math.round(COL * 0.45);
       const totalH    = winnersH + maxInLR * ROW;
-      const gfCenterY = totalH / 2 - ROW / 2 - ((finals.length - 1) * (ROW + 16)) / 2;
-      finals.forEach((m, i) => mkNode(m, gfX, gfCenterY + i * (ROW + 16)));
+      const gfCenterY = totalH / 2 - ROW / 2 - ((activeFinals.length - 1) * (ROW + 16)) / 2;
+      activeFinals.forEach((m, i) => mkNode(m, gfX, gfCenterY + i * (ROW + 16)));
 
       // Edges: winner-path only.
       // loserNextMatchId lines (W→L drop) are intentionally omitted —
@@ -302,7 +311,7 @@ const FlowBracket: React.FC<BracketCanvasProps> = ({
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
-          fitView
+          onInit={(instance) => instance.fitView({ duration: 0 })}
           className="bg-transparent"
         >
           <Background color="var(--hairline)" gap={16} size={1} />

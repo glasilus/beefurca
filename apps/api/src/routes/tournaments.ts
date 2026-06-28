@@ -1112,7 +1112,10 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         ORDER BY "wins" DESC, "eloChange" DESC
       `);
 
-      return standings;
+      // db.execute() returns a postgres.js RowList (Array subclass with extra properties).
+      // Elysia may not serialize Array subclasses as plain JSON arrays, so we
+      // explicitly convert to a plain array of plain objects.
+      return Array.from(standings as any[]).map((r) => ({ ...r }));
     },
     {
       params: t.Object({
