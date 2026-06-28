@@ -239,7 +239,17 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         .from(matches)
         .where(eq(matches.tournamentId, params.id));
 
-      return { tournament, participants, matches: tournamentMatches };
+      const [disc] = await db
+        .select({ name: disciplines.name })
+        .from(disciplines)
+        .where(eq(disciplines.id, tournament.disciplineId))
+        .limit(1);
+
+      return {
+        tournament: { ...tournament, disciplineName: disc?.name ?? null },
+        participants,
+        matches: tournamentMatches,
+      };
     },
     {
       params: t.Object({

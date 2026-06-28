@@ -700,6 +700,67 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
           </Window>
         </div>
 
+        {/* Winner hero block */}
+        {tournament?.isCompleted && (() => {
+          const activeM = matches.filter((m: any) => !m.isVoidDraw && m.winnerId);
+          let winnerParticipant: any = null;
+          if (tournament.bracketType === "SINGLE_ELIM" || tournament.bracketType === "DOUBLE_ELIM") {
+            const gfr = activeM.find((m: any) => m.bracketSection === "grand_final_reset");
+            const gf  = activeM.find((m: any) => m.bracketSection === "grand_final");
+            const fm  = gfr || gf || [...activeM].sort((a: any, b: any) => b.round - a.round)[0];
+            if (fm?.winnerId) winnerParticipant = participantMap.get(fm.winnerId) || null;
+          } else if (standings.length > 0) {
+            winnerParticipant = participants.find((p: any) => p.id === standings[0].participantId) || null;
+          }
+          if (!winnerParticipant) return null;
+          const ws = standings.find((s: any) => s.participantId === winnerParticipant.id);
+          const displayName = winnerParticipant.teamSnapshot || winnerParticipant.nicknameSnapshot;
+          return (
+            <div className="lg:col-span-12">
+              <div
+                className="relative overflow-hidden rounded-win border p-8"
+                style={{
+                  borderColor: "color-mix(in srgb, var(--status-win) 45%, var(--border))",
+                  background: "color-mix(in srgb, var(--status-win) 6%, var(--panel))",
+                  boxShadow: "0 0 0 1px color-mix(in srgb, var(--status-win) 20%, transparent), 0 8px 32px var(--shadow)",
+                }}
+              >
+                <div className="absolute inset-0 pointer-events-none opacity-[0.04] mix-blend-screen flex items-center justify-end pr-8">
+                  <FractalMedallion seed={winnerParticipant.id} size={320} />
+                </div>
+                <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6">
+                  <div className="shrink-0">
+                    <FractalAvatar seed={winnerParticipant.id} size={96} />
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <div className="text-[10px] font-mono uppercase tracking-[.2em] mb-1" style={{ color: "var(--status-win)" }}>
+                      <Trophy size={11} weight="fill" className="inline mr-1.5" />
+                      Победитель турнира
+                    </div>
+                    <h2 className="font-display font-black text-3xl md:text-4xl uppercase tracking-wide text-[var(--text)]">
+                      {displayName}
+                    </h2>
+                    {winnerParticipant.teamSnapshot && winnerParticipant.nicknameSnapshot && (
+                      <p className="text-sm text-[var(--text-muted)] mt-0.5">{winnerParticipant.nicknameSnapshot}</p>
+                    )}
+                    {ws && (
+                      <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-3 text-xs font-mono text-[var(--text-muted)]">
+                        <span style={{ color: "var(--status-win)" }}><strong>{ws.wins}</strong> побед</span>
+                        <span><strong>{ws.matchesPlayed}</strong> матчей</span>
+                        {ws.eloChange !== 0 && (
+                          <span style={{ color: ws.eloChange > 0 ? "var(--status-win)" : "var(--status-danger)" }}>
+                            ELO {ws.eloChange > 0 ? "+" : ""}{ws.eloChange}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Турнирная сетка */}
         {matches.length > 0 && (
           <div className="lg:col-span-12">
@@ -741,7 +802,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                   <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Добавить участника вручную</span>
                 </div>
                 <p className="text-[10px] text-[var(--text-muted)] mb-4 leading-relaxed">
-                  Впишите имя участника (или название команды) -- регистрация на платформе не требуется.
+                  Регистрация на платформе не требуется. Для командного турнира: заполните «Никнейм» (представитель или капитан) и «Название команды» — в сетке будет отображаться название команды.
                 </p>
                 <form onSubmit={handleSandboxAdd} className="flex flex-col gap-3">
                   <Field label="ФИО / Никнейм участника">
@@ -847,7 +908,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
 
         {/* Approvals + referee scoring */}
         <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-[var(--border)] pt-8">
-          {canManage && (
+          {canManage && !tournament?.isStarted && (
             <Window title={`Заявки на участие (${pendingParticipants.length})`}>
               <div className="flex items-center gap-2 mb-4">
                 <UserCheck size={16} className="text-[var(--status-win)]" />

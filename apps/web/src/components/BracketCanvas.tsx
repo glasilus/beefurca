@@ -323,104 +323,163 @@ const FlowBracket: React.FC<BracketCanvasProps> = ({
 };
 
 // ---------- Cross-table (Round Robin) ----------
-const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({
-  matches,
-  participants,
-}) => {
+const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({ matches, participants }) => {
   const nameOf = (p: ParticipantData) => p.teamSnapshot || p.nicknameSnapshot;
 
-  const cell = (rowId: string, colId: string) => {
+  type CellType = "win" | "loss" | "draw" | "pending" | "self";
+  type Cell = { score: string; type: CellType };
+
+  const getCell = (rowId: string, colId: string): Cell => {
+    if (rowId === colId) return { score: "", type: "self" };
     const m = matches.find(
       (x) =>
         (x.participant1Id === rowId && x.participant2Id === colId) ||
         (x.participant1Id === colId && x.participant2Id === rowId),
     );
     if (!m || m.score1 === null || m.score2 === null)
-      return { text: "—", cls: "text-text-muted" };
+      return { score: "—", type: "pending" };
     const rowIsP1 = m.participant1Id === rowId;
-    const self = rowIsP1 ? m.score1 : m.score2;
-    const opp = rowIsP1 ? m.score2 : m.score1;
-    let cls = "text-text";
-    if (m.winnerId === rowId) cls = "text-win font-bold";
-    else if (m.winnerId && m.winnerId !== rowId) cls = "text-danger";
-    return { text: `${self}:${opp}`, cls };
+    const s = rowIsP1 ? m.score1 : m.score2;
+    const o = rowIsP1 ? m.score2 : m.score1;
+    if (!m.winnerId) return { score: `${s}:${o}`, type: "draw" };
+    return m.winnerId === rowId
+      ? { score: `${s}:${o}`, type: "win" }
+      : { score: `${s}:${o}`, type: "loss" };
   };
 
-  const points = (pid: string) => {
-    let pts = 0;
+  const pts = (pid: string) => {
+    let p = 0;
     matches.forEach((m) => {
       if (m.participant1Id !== pid && m.participant2Id !== pid) return;
       if (m.score1 === null || m.score2 === null) return;
-      if (m.winnerId === pid) pts += 1;
-      else if (!m.winnerId) pts += 0.5;
+      if (m.winnerId === pid) p += 1;
+      else if (!m.winnerId) p += 0.5;
     });
-    return pts;
+    return p;
   };
 
-  const ranked = [...participants].sort((a, b) => points(b.id) - points(a.id));
+  const wins = (pid: string) => matches.filter((m) => m.winnerId === pid).length;
+
+  const ranked = [...participants].sort((a, b) => {
+    const d = pts(b.id) - pts(a.id);
+    return d !== 0 ? d : wins(b.id) - wins(a.id);
+  });
+
+  const cellCls: Record<CellType, string> = {
+    win:     "bg-[color-mix(in_srgb,var(--status-win)_18%,transparent)] text-[var(--status-win)] font-bold",
+    loss:    "bg-[color-mix(in_srgb,var(--status-danger)_14%,transparent)] text-[var(--text-muted)]",
+    draw:    "bg-[color-mix(in_srgb,var(--accent)_13%,transparent)] text-[var(--accent)] font-semibold",
+    pending: "text-[var(--text-muted)]",
+    self:    "bg-[var(--panel-sunken)]",
+  };
 
   return (
-    <div className={`${FRAME} overflow-auto`}>
-      <div className="relative z-10 p-4 min-w-max">
-        <table className="border-collapse text-xs">
+    <div className={`${FRAME} flex flex-col overflow-hidden`}>
+      <div className="relative z-10 flex-1 overflow-auto p-4">
+        <table className="border-collapse text-xs w-max min-w-full">
           <thead>
             <tr>
-              <th className="sticky left-0 bg-panel p-2 text-left text-[10px] font-mono uppercase text-text-muted border border-border">
-                Participant
+              {/* rank + name header */}
+              <th className="sticky left-0 z-20 bg-panel min-w-[180px] px-3 py-2.5 text-left text-[10px] font-mono uppercase tracking-widest text-text-muted border border-border">
+                Участник
               </th>
               {ranked.map((p, i) => (
                 <th
                   key={p.id}
-                  className="p-2 w-12 text-center text-[10px] font-mono text-text-muted border border-border"
+                  className="w-14 min-w-[56px] px-1 py-2.5 text-center border border-border"
                   title={nameOf(p)}
                 >
-                  {i + 1}
+                  <span className="block text-[11px] font-bold font-mono text-text">{i + 1}</span>
+                  <span className="block text-[8px] font-mono text-text-muted truncate max-w-[52px] mx-auto mt-0.5">
+                    {nameOf(p).split(" ")[0]}
+                  </span>
                 </th>
               ))}
-              <th className="p-2 text-center text-[10px] font-mono uppercase text-done border border-border">
-                Pts
+              <th className="min-w-[56px] px-2 py-2.5 text-center text-[10px] font-mono uppercase tracking-widest text-[var(--status-done)] border border-border font-bold">
+                Очки
               </th>
             </tr>
           </thead>
           <tbody>
-            {ranked.map((row, ri) => (
-              <tr key={row.id}>
-                <td className="sticky left-0 bg-panel p-2 text-text font-semibold border border-border whitespace-nowrap">
-                  <span className="text-text-muted font-mono mr-2">
-                    {ri + 1}
-                  </span>
-                  {nameOf(row)}
-                </td>
-                {ranked.map((col) => {
-                  if (col.id === row.id)
+            {ranked.map((row, ri) => {
+              const p = pts(row.id);
+              const isLeader = ri === 0 && p > 0;
+              return (
+                <tr key={row.id}>
+                  {/* sticky name column */}
+                  <td
+                    className={`sticky left-0 z-10 px-3 py-2.5 border border-border whitespace-nowrap ${
+                      isLeader
+                        ? "bg-[color-mix(in_srgb,var(--status-win)_9%,var(--panel))]"
+                        : "bg-panel"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`font-mono font-bold text-sm w-5 text-center shrink-0 ${
+                          isLeader ? "text-[var(--status-win)]" : "text-text-muted"
+                        }`}
+                      >
+                        {ri + 1}
+                      </span>
+                      <span className="font-semibold text-text truncate max-w-[130px]">
+                        {nameOf(row)}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* result cells */}
+                  {ranked.map((col) => {
+                    const c = getCell(row.id, col.id);
+                    if (c.type === "self") {
+                      return (
+                        <td key={col.id} className="border border-border bg-panel-sunken">
+                          <div className="w-full h-full flex items-center justify-center text-[var(--hairline)] text-lg select-none">
+                            ×
+                          </div>
+                        </td>
+                      );
+                    }
                     return (
                       <td
                         key={col.id}
-                        className="bg-panel-sunken border border-border"
-                      />
+                        className={`px-1 py-2.5 text-center font-mono border border-border ${cellCls[c.type]}`}
+                      >
+                        {c.score}
+                      </td>
                     );
-                  const c = cell(row.id, col.id);
-                  return (
-                    <td
-                      key={col.id}
-                      className={`p-2 text-center font-mono border border-border ${c.cls}`}
-                    >
-                      {c.text}
-                    </td>
-                  );
-                })}
-                <td className="p-2 text-center font-mono font-bold text-done border border-border">
-                  {points(row.id)}
-                </td>
-              </tr>
-            ))}
+                  })}
+
+                  {/* points */}
+                  <td
+                    className={`px-2 py-2.5 text-center font-mono font-bold border border-border ${
+                      isLeader ? "text-[var(--status-win)] text-sm" : "text-[var(--status-done)]"
+                    }`}
+                  >
+                    {p % 1 === 0 ? p : p.toFixed(1)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-        <p className="text-[10px] text-text-muted font-mono mt-3">
-          Cell = row vs column score.{" "}
-          <span className="text-win">Green</span> = win,{" "}
-          <span className="text-danger">red</span> = loss.
-        </p>
+      </div>
+
+      {/* legend */}
+      <div className="relative z-10 px-4 py-2 border-t border-hairline flex flex-wrap items-center gap-x-5 gap-y-1 text-[9px] font-mono text-text-muted shrink-0">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm bg-[color-mix(in_srgb,var(--status-win)_35%,transparent)] inline-block shrink-0" />
+          победа (+1)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm bg-[color-mix(in_srgb,var(--status-danger)_30%,transparent)] inline-block shrink-0" />
+          поражение
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm bg-[color-mix(in_srgb,var(--accent)_25%,transparent)] inline-block shrink-0" />
+          ничья (+0.5)
+        </span>
+        <span className="ml-auto">строка × столбец = счёт: строка против колонки</span>
       </div>
     </div>
   );

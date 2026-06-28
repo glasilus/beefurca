@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Television as Tv, Radio, Flame, Clock, Medal as Award, ArrowSquareOut as ExternalLink, ArrowLeft } from "@phosphor-icons/react";
+import { Television as Tv, Radio, Flame, Clock, Medal as Award, ArrowSquareOut as ExternalLink, ArrowLeft, Trophy } from "@phosphor-icons/react";
 import { FractalAvatar } from "../../../../components/FractalAvatar";
 import { API_URL, apiFetch } from "../../../../lib/api";
 import { Window, Card } from "../../../../components/ui/Window";
@@ -48,14 +48,19 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
         setTournament(data.tournament);
         setParticipants(data.participants || []);
         setMatches(data.matches || []);
-        try {
-          const dRes = await apiFetch("/tournaments/disciplines");
-          if (dRes.ok) {
-            const discs = await dRes.json();
-            const disc = discs.find((d: any) => d.id === data.tournament.disciplineId);
-            if (disc) setDisciplineName(disc.name);
-          }
-        } catch {}
+        // disciplineName is now included directly in the tournament detail response
+        if (data.tournament.disciplineName) {
+          setDisciplineName(data.tournament.disciplineName);
+        } else {
+          try {
+            const dRes = await apiFetch("/tournaments/disciplines");
+            if (dRes.ok) {
+              const discs = await dRes.json();
+              const disc = discs.find((d: any) => d.id === data.tournament.disciplineId);
+              if (disc) setDisciplineName(disc.name);
+            }
+          } catch {}
+        }
       } else {
         router.push(`/tournaments/${params.id}`);
       }
@@ -131,8 +136,23 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
             {tournament?.name}
           </h2>
           <p className="text-xs text-[var(--text-muted)] mt-2 font-mono uppercase tracking-widest">
-            Дисциплина: {disciplineName || "—"} / Режим трансляции в реальном времени
+            Дисциплина: {disciplineName || "—"} · Режим трансляции в реальном времени
           </p>
+
+          {/* Prize pool — shown only when set */}
+          {tournament?.prizePool && (
+            <div className="inline-flex items-center gap-2.5 mt-5 px-6 py-2.5 rounded-full border font-bold text-sm tracking-wide"
+              style={{
+                borderColor: "color-mix(in srgb, var(--accent) 50%, var(--border))",
+                background: "color-mix(in srgb, var(--accent) 10%, var(--panel))",
+                color: "var(--accent)",
+                boxShadow: "0 0 24px color-mix(in srgb, var(--accent) 20%, transparent)",
+              }}
+            >
+              <Trophy size={16} weight="fill" />
+              <span>Призовой фонд: {tournament.prizePool}</span>
+            </div>
+          )}
         </div>
 
         {/* FEATURED MATCH BOARD */}
