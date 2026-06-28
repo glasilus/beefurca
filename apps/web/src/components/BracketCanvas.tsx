@@ -463,9 +463,17 @@ const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({ matches, participants 
                     return (
                       <div
                         key={col.id}
-                        className="pinstripe border-b border-r border-border"
-                        style={{ height: ROW, opacity: 0.55 }}
-                      />
+                        className="pinstripe border-b border-r border-border flex items-center justify-center"
+                        style={{ height: ROW }}
+                      >
+                        <span
+                          className="w-4 h-4 rounded-full"
+                          style={{
+                            background: "linear-gradient(180deg, var(--chrome-top) 0%, var(--chrome-bot) 100%)",
+                            boxShadow: "inset 0 1px 0 var(--gloss), inset 0 -2px 4px rgba(0,0,0,0.18), 0 1px 3px var(--shadow)",
+                          }}
+                        />
+                      </div>
                     );
                   }
 
