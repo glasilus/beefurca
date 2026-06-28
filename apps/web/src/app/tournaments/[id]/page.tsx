@@ -38,6 +38,7 @@ import {
   Check,
   Trash as Trash2,
   Lock,
+  PencilSimple,
 } from "@phosphor-icons/react";
 
 export default function TournamentDetailPage({ params }: { params: { id: string } }) {
@@ -86,6 +87,16 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
   const [metadataStreamUrl, setMetadataStreamUrl] = useState("");
   const [metadataInviteLink, setMetadataInviteLink] = useState("");
   const [metadataCustomFields, setMetadataCustomFields] = useState<Record<string, any>>({});
+
+  // Edit tournament modal
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editPrizePool, setEditPrizePool] = useState("");
+  const [editIsPrivate, setEditIsPrivate] = useState(false);
+  const [editStartDate, setEditStartDate] = useState("");
+  const [editEndDate, setEditEndDate] = useState("");
+  const [editEntryFee, setEditEntryFee] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -349,13 +360,57 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
     }
   };
 
+  // Организатор: открыть модал редактирования турнира
+  const openEditModal = () => {
+    setEditName(tournament?.name || "");
+    setEditDescription(tournament?.description || "");
+    setEditPrizePool(tournament?.prizePool || "");
+    setEditIsPrivate(tournament?.isPrivate || false);
+    setEditStartDate(tournament?.startDate ? new Date(tournament.startDate).toISOString().slice(0, 16) : "");
+    setEditEndDate(tournament?.endDate ? new Date(tournament.endDate).toISOString().slice(0, 16) : "");
+    setEditEntryFee(tournament?.entryFee || 0);
+    setEditOpen(true);
+  };
+
+  const handleEditTournament = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await apiFetch(`/tournaments/${params.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: editName,
+          description: editDescription || undefined,
+          prizePool: editPrizePool || undefined,
+          isPrivate: editIsPrivate,
+          startDate: editStartDate || undefined,
+          endDate: editEndDate || undefined,
+          entryFee: editEntryFee,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setEditOpen(false);
+        await loadTournamentDetails();
+        toast.success("Турнир обновлён");
+      } else {
+        toast.error(data.error || "Не удалось сохранить изменения");
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   // Судья: ввод счёта ИЛИ технического поражения
   const handleLiveScore = async (matchId: string, s1: number, s2: number) => {
     try {
-      await apiFetch(`/matches/${matchId}/live-score`, {
+      const res = await apiFetch(`/matches/${matchId}/live-score`, {
         method: "PUT",
         body: JSON.stringify({ score1: s1, score2: s2 }),
       });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "Не удалось обновить счёт");
+      }
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -544,7 +599,21 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                     {tournamentStatusLabel}
                   </Badge>
                 </div>
-                <h2 className="font-display font-bold text-2xl text-[var(--text)]">{tournament?.name}</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-display font-bold text-2xl text-[var(--text)]">{tournament?.name}</h2>
+                  {canManage && (
+                    <button
+                      onClick={openEditModal}
+                      className="p-1 rounded hover:bg-[var(--panel-sunken)] text-[var(--text-muted)] hover:text-[var(--text)] transition"
+                      title="Редактировать турнир"
+                    >
+                      <PencilSimple size={15} />
+                    </button>
+                  )}
+                </div>
+                {tournament?.description && (
+                  <p className="text-xs text-[var(--text-muted)] mt-1 max-w-xl">{tournament.description}</p>
+                )}
                 <div className="flex flex-wrap justify-center md:justify-start gap-6 mt-3 text-xs text-[var(--text-muted)]">
                   {tournament?.prizePool && (
                     <span><strong>Призовой фонд:</strong> {tournament.prizePool}</span>
@@ -1049,6 +1118,81 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
               ))}
             </>
           )}
+        </form>
+      </Modal>
+
+      {/* Edit tournament modal */}
+      <Modal
+        open={editOpen}
+        title="Редактировать турнир"
+        onClose={() => setEditOpen(false)}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setEditOpen(false)}>Отмена</Button>
+            <Button variant="gel" type="submit" form="edit-tournament-form">Сохранить</Button>
+          </>
+        }
+      >
+        <form id="edit-tournament-form" onSubmit={handleEditTournament} className="flex flex-col gap-4">
+          <Field label="Название турнира">
+            <Input
+              type="text"
+              required
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="Название турнира"
+            />
+          </Field>
+          <Field label="Описание (необязательно)">
+            <textarea
+              className="w-full rounded-ctl border border-[var(--border)] bg-[var(--panel-sunken)] px-3 py-2 text-xs text-[var(--text)] resize-none focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+              rows={3}
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              placeholder="Краткое описание турнира..."
+            />
+          </Field>
+          <Field label="Призовой фонд (необязательно)">
+            <Input
+              type="text"
+              value={editPrizePool}
+              onChange={(e) => setEditPrizePool(e.target.value)}
+              placeholder="Например: 50 000 руб."
+            />
+          </Field>
+          {!tournament?.isStarted && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Дата начала">
+                  <Input
+                    type="datetime-local"
+                    value={editStartDate}
+                    onChange={(e) => setEditStartDate(e.target.value)}
+                  />
+                </Field>
+                <Field label="Дата окончания">
+                  <Input
+                    type="datetime-local"
+                    value={editEndDate}
+                    onChange={(e) => setEditEndDate(e.target.value)}
+                  />
+                </Field>
+              </div>
+              <Field label="Вступительный взнос (руб.)">
+                <Input
+                  type="number"
+                  min={0}
+                  value={editEntryFee}
+                  onChange={(e) => setEditEntryFee(Number(e.target.value))}
+                />
+              </Field>
+            </>
+          )}
+          <Checkbox
+            label="Приватный турнир (скрыт из общего каталога)"
+            checked={editIsPrivate}
+            onChange={(e) => setEditIsPrivate(e.target.checked)}
+          />
         </form>
       </Modal>
 

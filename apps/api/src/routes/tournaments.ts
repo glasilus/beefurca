@@ -122,6 +122,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         .insert(tournaments)
         .values({
           name: body.name,
+          description: body.description?.trim() || null,
           disciplineId: body.disciplineId,
           organizerId: user.id,
           tournamentType: body.tournamentType as any,
@@ -154,6 +155,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         startDate: t.String(),
         endDate: t.Optional(t.String()),
         isPrivate: t.Optional(t.Boolean()),
+        description: t.Optional(t.String()),
       }),
     }
   )
@@ -189,7 +191,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
   // 3. Get Tournament Details (Includes participants and matches)
   .get(
     "/:id",
-    async ({ params, set }) => {
+    async ({ params, set, user }) => {
       const [tournament] = await db
         .select()
         .from(tournaments)
@@ -199,6 +201,32 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       if (!tournament) {
         set.status = 404;
         return { error: "Tournament not found" };
+      }
+
+      // Приватный турнир доступен только организатору, администратору и участникам.
+      if (tournament.isPrivate) {
+        if (!user) {
+          set.status = 403;
+          return { error: "Приватный турнир. Войдите в систему для доступа." };
+        }
+        const isOrganizer = tournament.organizerId === user.id;
+        const isAdmin = user.role === "Admin";
+        if (!isOrganizer && !isAdmin) {
+          const [participation] = await db
+            .select({ id: tournamentParticipants.id })
+            .from(tournamentParticipants)
+            .where(
+              and(
+                eq(tournamentParticipants.tournamentId, tournament.id),
+                eq(tournamentParticipants.userId, user.id)
+              )
+            )
+            .limit(1);
+          if (!participation) {
+            set.status = 403;
+            return { error: "Доступ запрещён: приватный турнир." };
+          }
+        }
       }
 
       const participants = await db
@@ -216,6 +244,65 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
     {
       params: t.Object({
         id: t.String(),
+      }),
+    }
+  )
+  // 3b. Edit Tournament (Organizer / Admin only)
+  .put(
+    "/:id",
+    async ({ user, params, body, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { error: "Unauthorized" };
+      }
+
+      const [tournament] = await db
+        .select()
+        .from(tournaments)
+        .where(eq(tournaments.id, params.id))
+        .limit(1);
+
+      if (!tournament) {
+        set.status = 404;
+        return { error: "Tournament not found" };
+      }
+
+      if (tournament.organizerId !== user.id && user.role !== "Admin") {
+        set.status = 403;
+        return { error: "Только организатор может редактировать турнир." };
+      }
+
+      const updateData: Record<string, any> = {};
+      if (body.name !== undefined) updateData.name = body.name.trim();
+      if (body.description !== undefined) updateData.description = body.description?.trim() || null;
+      if (body.prizePool !== undefined) updateData.prizePool = body.prizePool?.trim() || null;
+      if (body.isPrivate !== undefined) updateData.isPrivate = body.isPrivate;
+
+      // Даты и взнос можно менять только до старта
+      if (!tournament.isStarted) {
+        if (body.startDate !== undefined) updateData.startDate = new Date(body.startDate);
+        if (body.endDate !== undefined) updateData.endDate = body.endDate ? new Date(body.endDate) : null;
+        if (body.entryFee !== undefined) updateData.entryFee = body.entryFee;
+      }
+
+      const [updated] = await db
+        .update(tournaments)
+        .set(updateData)
+        .where(eq(tournaments.id, params.id))
+        .returning();
+
+      return { message: "Турнир обновлён", tournament: updated };
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        name: t.Optional(t.String()),
+        description: t.Optional(t.String()),
+        prizePool: t.Optional(t.String()),
+        isPrivate: t.Optional(t.Boolean()),
+        startDate: t.Optional(t.String()),
+        endDate: t.Optional(t.String()),
+        entryFee: t.Optional(t.Numeric()),
       }),
     }
   )

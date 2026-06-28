@@ -125,6 +125,7 @@ export const tournaments = pgTable(
     bracketType: text("bracket_type", {
       enum: ["SINGLE_ELIM", "DOUBLE_ELIM", "ROUND_ROBIN", "SWISS"],
     }).notNull(),
+    description: text("description"),
     prizePool: text("prize_pool"),
     entryFee: integer("entry_fee").default(0).notNull(), // in cents / local currency
     customFieldsSchema: jsonb("custom_fields_schema"), // JSON schema configurations
