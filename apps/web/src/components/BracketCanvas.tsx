@@ -192,58 +192,73 @@ const FlowBracket: React.FC<BracketCanvasProps> = ({
     });
 
     if (bracketType === "DOUBLE_ELIM") {
-      const winners = valid.filter((m) => m.bracketSection === "winners");
-      const losers = valid.filter((m) => m.bracketSection === "losers");
-      const finals = valid.filter(
-        (m) =>
-          m.bracketSection === "grand_final" ||
-          m.bracketSection === "grand_final_reset",
+      const winners  = valid.filter((m) => m.bracketSection === "winners");
+      const losers   = valid.filter((m) => m.bracketSection === "losers");
+      const finals   = valid.filter(
+        (m) => m.bracketSection === "grand_final" || m.bracketSection === "grand_final_reset",
       );
-      const untagged = valid.filter((m) => !m.bracketSection);
+      const allW = [...valid.filter((m) => !m.bracketSection), ...winners];
 
-      const winnersR1 = Math.max(
-        1,
-        winners.filter((m) => m.round === 1).length,
-      );
-      const topHeight = winnersR1 * ROW + 80;
-      const maxWinnersRound = Math.max(
-        1,
-        ...winners.map((m) => m.round),
-        ...untagged.map((m) => m.round),
-      );
+      const wR1count = Math.max(1, allW.filter((m) => m.round === 1).length);
+      const maxWR    = allW.length ? Math.max(...allW.map((m) => m.round)) : 1;
+      const maxLR    = losers.length ? Math.max(...losers.map((m) => m.round)) : 0;
 
-      if (winners.length || untagged.length) {
+      // Winners bracket — proper binary-tree vertical centering
+      if (allW.length) {
         nodesList.push({
-          id: "lbl-w",
-          type: "laneLabel",
-          position: { x: 0, y: -40 },
-          data: { label: "Winners Bracket" },
-          draggable: false,
-          selectable: false,
+          id: "lbl-w", type: "laneLabel",
+          position: { x: 0, y: -40 }, data: { label: "Winners Bracket" },
+          draggable: false, selectable: false,
         });
       }
-      [...winners, ...untagged].forEach((m) =>
-        mkNode(m, (m.round - 1) * COL, m.position * ROW),
-      );
+      allW.forEach((m) => {
+        const x       = (m.round - 1) * COL;
+        const spacing = ROW * Math.pow(2, m.round - 1);
+        const offset  = (Math.pow(2, m.round - 1) - 1) * (ROW / 2);
+        mkNode(m, x, m.position * spacing + offset);
+      });
+
+      // Gap between sections
+      const winnersH = wR1count * ROW + 140;
+
+      // Losers bracket — column width scaled so both sections have similar total width
+      const LCOL = maxLR > 0 ? Math.round((maxWR * COL) / maxLR) : COL;
+
+      // Group losers by round to center shorter rounds vertically
+      const lByRound = new Map<number, MatchData[]>();
+      losers.forEach((m) => {
+        const arr = lByRound.get(m.round) ?? [];
+        arr.push(m);
+        lByRound.set(m.round, arr);
+      });
+      const maxInLR = lByRound.size
+        ? Math.max(...Array.from(lByRound.values()).map((a) => a.length))
+        : 1;
 
       if (losers.length) {
         nodesList.push({
-          id: "lbl-l",
-          type: "laneLabel",
-          position: { x: 0, y: topHeight - 40 },
-          data: { label: "Losers Bracket" },
-          draggable: false,
-          selectable: false,
+          id: "lbl-l", type: "laneLabel",
+          position: { x: 0, y: winnersH - 40 }, data: { label: "Losers Bracket" },
+          draggable: false, selectable: false,
         });
-        losers.forEach((m) =>
-          mkNode(m, (m.round - 1) * (COL - 40), topHeight + m.position * ROW),
-        );
+        losers.forEach((m) => {
+          const rLen = lByRound.get(m.round)!.length;
+          const x    = (m.round - 1) * LCOL;
+          const yOff = Math.floor(((maxInLR - rLen) / 2) * ROW);
+          mkNode(m, x, winnersH + yOff + m.position * ROW);
+        });
       }
 
-      finals.forEach((m, i) =>
-        mkNode(m, maxWinnersRound * COL + 40, topHeight / 2 + i * ROW),
-      );
+      // Grand Final — to the right of both brackets, centered vertically
+      const rightEdge = Math.max(maxWR * COL, maxLR * LCOL);
+      const gfX       = rightEdge + Math.round(COL * 0.45);
+      const totalH    = winnersH + maxInLR * ROW;
+      const gfCenterY = totalH / 2 - ROW / 2 - ((finals.length - 1) * (ROW + 16)) / 2;
+      finals.forEach((m, i) => mkNode(m, gfX, gfCenterY + i * (ROW + 16)));
 
+      // Edges: winner-path only.
+      // loserNextMatchId lines (W→L drop) are intentionally omitted —
+      // they cross the entire canvas and make the bracket unreadable.
       valid.forEach((m) => {
         if (m.nextMatchId) {
           edgesList.push({
@@ -253,16 +268,6 @@ const FlowBracket: React.FC<BracketCanvasProps> = ({
             type: "smoothstep",
             animated: !!m.winnerId,
             style: edgeStyle(m),
-          });
-        }
-        if (m.loserNextMatchId) {
-          edgesList.push({
-            id: `l-${m.id}`,
-            source: m.id,
-            target: m.loserNextMatchId,
-            type: "smoothstep",
-            animated: false,
-            style: edgeStyle(m, true),
           });
         }
       });
