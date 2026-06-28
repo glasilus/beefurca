@@ -570,10 +570,7 @@ const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({ matches, participants 
 };
 
 // ---------- Columns by round (Swiss) ----------
-const SwissColumns: React.FC<BracketCanvasProps> = ({
-  matches,
-  participants,
-}) => {
+const SwissColumns: React.FC<BracketCanvasProps> = ({ matches, participants }) => {
   const pMap = new Map<string, ParticipantData>();
   participants.forEach((p) => pMap.set(p.id, p));
   const nameOf = (id: string | null) => {
@@ -582,70 +579,176 @@ const SwissColumns: React.FC<BracketCanvasProps> = ({
     return p ? p.teamSnapshot || p.nicknameSnapshot : "?";
   };
 
-  const rounds = Array.from(new Set(matches.map((m) => m.round))).sort(
-    (a, b) => a - b,
-  );
+  // Points per participant from played matches
+  const pts = new Map<string, number>();
+  matches.forEach((m) => {
+    if (m.winnerId) {
+      pts.set(m.winnerId, (pts.get(m.winnerId) ?? 0) + 1);
+    } else if (m.score1 !== null && m.score2 !== null) {
+      if (m.participant1Id) pts.set(m.participant1Id, (pts.get(m.participant1Id) ?? 0) + 0.5);
+      if (m.participant2Id) pts.set(m.participant2Id, (pts.get(m.participant2Id) ?? 0) + 0.5);
+    }
+  });
+
+  const rounds = Array.from(new Set(matches.map((m) => m.round))).sort((a, b) => a - b);
+  const currentRound = rounds[rounds.length - 1] ?? 1;
+  const currentRoundMatches = matches.filter((m) => m.round === currentRound);
+  const allCurrentDone = currentRoundMatches.length > 0 && currentRoundMatches.every((m) => !!m.winnerId);
+
+  const leader = participants.length > 0
+    ? [...participants].sort((a, b) => (pts.get(b.id) ?? 0) - (pts.get(a.id) ?? 0))[0]
+    : null;
+  const leaderPts = leader ? (pts.get(leader.id) ?? 0) : 0;
 
   return (
-    <div className={`${FRAME} overflow-auto`}>
-      <div className="relative z-10 p-4 flex gap-4 min-w-max h-full">
-        {rounds.map((r) => {
-          const roundMatches = matches
-            .filter((m) => m.round === r)
-            .sort((a, b) => a.position - b.position);
-          return (
-            <div key={r} className="flex flex-col gap-3 w-[230px]">
-              <div className="text-[11px] font-mono uppercase tracking-widest text-text-muted font-bold text-center pb-2 border-b border-border">
-                Round {r}
+    <div className="window-shell w-full flex flex-col" style={{ height: 580 }}>
+      {/* ── HEADER ── */}
+      <div className="brushed border-b border-border shrink-0 flex items-center justify-between px-4 gap-4" style={{ height: 52 }}>
+        <div className="flex items-center gap-2.5">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted">Швейцарская система</span>
+          <span className="text-[10px] font-mono text-text-muted opacity-40">·</span>
+          <span className="text-[10px] font-mono font-bold uppercase tracking-widest" style={{ color: "var(--status-done)" }}>
+            {rounds.length} {rounds.length === 1 ? "тур" : rounds.length < 5 ? "тура" : "туров"}
+          </span>
+        </div>
+        {leader && leaderPts > 0 && (
+          <div className="flex items-center gap-2 shrink-0">
+            <FractalMedallion seed={leader.id} size={20} />
+            <span className="text-[10px] font-mono text-text-muted">лидер:</span>
+            <span className="text-[10px] font-mono font-bold truncate max-w-[110px]" style={{ color: "var(--status-win)" }}>
+              {nameOf(leader.id)}
+            </span>
+            <span className="text-[10px] font-mono font-bold" style={{ color: "var(--status-done)" }}>
+              {leaderPts % 1 === 0 ? leaderPts : leaderPts.toFixed(1)} оч.
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ── BODY — horizontal scroll ── */}
+      <div className="flex-1 overflow-auto">
+        <div className="flex gap-4 p-4" style={{ minWidth: rounds.length * 218 + 32 }}>
+          {rounds.map((r) => {
+            const roundMatches = matches.filter((m) => m.round === r).sort((a, b) => a.position - b.position);
+            const roundDone = roundMatches.length > 0 && roundMatches.every((m) => !!m.winnerId);
+            const isCurrent = r === currentRound;
+
+            return (
+              <div key={r} className="flex flex-col gap-2 shrink-0" style={{ width: 206 }}>
+                {/* Round label */}
+                <div
+                  className="flex items-center justify-between px-3 py-2 rounded-win border"
+                  style={{
+                    background: isCurrent
+                      ? "color-mix(in srgb, var(--accent) 8%, var(--panel))"
+                      : "var(--panel)",
+                    borderColor: isCurrent
+                      ? "color-mix(in srgb, var(--accent) 45%, var(--border))"
+                      : "var(--border)",
+                    boxShadow: isCurrent ? "inset 0 1px 0 var(--gloss)" : undefined,
+                  }}
+                >
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider"
+                    style={{ color: isCurrent ? "var(--accent)" : "var(--text-muted)" }}>
+                    Тур {r}
+                  </span>
+                  {roundDone ? (
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded"
+                      style={{ background: "color-mix(in srgb, var(--status-win) 15%, transparent)", color: "var(--status-win)" }}>
+                      ✓ завершён
+                    </span>
+                  ) : isCurrent ? (
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded"
+                      style={{ background: "color-mix(in srgb, var(--status-live) 15%, transparent)", color: "var(--status-live)" }}>
+                      ● идёт
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* Match cards */}
+                {roundMatches.map((m) => {
+                  const isBye = !m.participant2Id;
+                  const w1 = m.winnerId === m.participant1Id;
+                  const w2 = m.winnerId === m.participant2Id;
+                  const played = !!m.winnerId || (m.score1 !== null && m.score2 !== null);
+
+                  const rowStyle = (isWin: boolean, isLoss: boolean) => ({
+                    background: isWin
+                      ? "color-mix(in srgb, var(--status-win) 10%, var(--panel))"
+                      : undefined,
+                    borderLeft: isWin
+                      ? "2.5px solid var(--status-win)"
+                      : isLoss
+                      ? "2.5px solid var(--status-danger)"
+                      : "2.5px solid transparent",
+                    boxShadow: isWin ? "inset 0 1px 0 rgba(40,200,64,0.18)" : undefined,
+                  });
+
+                  return (
+                    <div key={m.id} className="rounded-card border border-border overflow-hidden"
+                      style={{ background: "var(--panel)", boxShadow: "inset 0 1px 0 var(--gloss), 0 2px 6px var(--shadow)" }}>
+                      {isBye ? (
+                        <div className="flex items-center gap-2 px-3 py-2.5">
+                          <FractalMedallion seed={m.participant1Id || "bye"} size={22} />
+                          <span className="text-xs font-semibold text-text truncate flex-1">{nameOf(m.participant1Id)}</span>
+                          <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0"
+                            style={{ background: "color-mix(in srgb, var(--status-win) 15%, transparent)", color: "var(--status-win)" }}>
+                            BYE
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-hairline"
+                            style={rowStyle(w1, played && !w1)}>
+                            <FractalMedallion seed={m.participant1Id || "p1"} size={22} />
+                            <span className="text-xs font-semibold truncate flex-1"
+                              style={{ color: w1 ? "var(--status-win)" : played && !w1 ? "var(--text-muted)" : "var(--text)" }}>
+                              {nameOf(m.participant1Id) ?? "Ожидание"}
+                            </span>
+                            <span className="font-mono font-bold text-sm shrink-0 ml-1" style={{ color: "var(--text)" }}>
+                              {m.score1 !== null ? m.score1 : "—"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 px-3 py-2.5"
+                            style={rowStyle(w2, played && !w2)}>
+                            <FractalMedallion seed={m.participant2Id || "p2"} size={22} />
+                            <span className="text-xs font-semibold truncate flex-1"
+                              style={{ color: w2 ? "var(--status-win)" : played && !w2 ? "var(--text-muted)" : "var(--text)" }}>
+                              {nameOf(m.participant2Id) ?? "Ожидание"}
+                            </span>
+                            <span className="font-mono font-bold text-sm shrink-0 ml-1" style={{ color: "var(--text)" }}>
+                              {m.score2 !== null ? m.score2 : "—"}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              {roundMatches.map((m) => {
-                const isBye = !m.participant2Id;
-                const w1 = m.winnerId && m.winnerId === m.participant1Id;
-                const w2 = m.winnerId && m.winnerId === m.participant2Id;
-                return (
-                  <div
-                    key={m.id}
-                    className="frost border border-border rounded-card p-2.5 text-xs"
-                  >
-                    {isBye ? (
-                      <div className="flex justify-between items-center">
-                        <span className="text-text truncate max-w-[150px]">
-                          {nameOf(m.participant1Id)}
-                        </span>
-                        <span className="text-[8px] font-mono uppercase text-win border border-win/30 bg-win/10 px-1 rounded">
-                          BYE
-                        </span>
-                      </div>
-                    ) : (
-                      <>
-                        <div
-                          className={`flex justify-between items-center py-0.5 ${w1 ? "text-win font-bold" : "text-text"}`}
-                        >
-                          <span className="truncate max-w-[150px]">
-                            {nameOf(m.participant1Id)}
-                          </span>
-                          <span className="font-mono">
-                            {m.score1 !== null ? m.score1 : "-"}
-                          </span>
-                        </div>
-                        <div
-                          className={`flex justify-between items-center py-0.5 ${w2 ? "text-win font-bold" : "text-text"}`}
-                        >
-                          <span className="truncate max-w-[150px]">
-                            {nameOf(m.participant2Id)}
-                          </span>
-                          <span className="font-mono">
-                            {m.score2 !== null ? m.score2 : "-"}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── FOOTER ── */}
+      <div className="brushed border-t border-border shrink-0 px-4 flex items-center gap-x-5 text-[9px] font-mono"
+        style={{ height: 38, color: "var(--text-muted)" }}>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-[2px] inline-block shrink-0"
+            style={{ background: "color-mix(in srgb, var(--status-win) 25%, var(--panel))", borderLeft: "2px solid var(--status-win)" }} />
+          победа
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-[2px] inline-block shrink-0"
+            style={{ background: "color-mix(in srgb, var(--status-danger) 18%, var(--panel))", borderLeft: "2px solid var(--status-danger)" }} />
+          поражение
+        </span>
+        <span className="ml-auto opacity-60">
+          {allCurrentDone
+            ? `Тур ${currentRound} завершён — можно начать следующий или закончить турнир`
+            : `Тур ${currentRound}: ещё идут матчи`}
+        </span>
       </div>
     </div>
   );

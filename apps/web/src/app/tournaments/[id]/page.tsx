@@ -684,13 +684,64 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                   </Button>
                 )}
 
-                {canManage && tournament?.isStarted && !tournament?.isCompleted && tournament?.bracketType === "SWISS" && (
-                  <Button variant="secondary" size="sm" leftIcon={<ArrowsClockwise size={14} />} onClick={handleNextRound}>
-                    Следующий тур
-                  </Button>
-                )}
+                {canManage && tournament?.isStarted && !tournament?.isCompleted && tournament?.bracketType === "SWISS" && (() => {
+                  const swissRounds = Array.from(new Set((matches as any[]).map((m: any) => m.round as number))).sort((a, b) => a - b);
+                  const curRound = swissRounds[swissRounds.length - 1] ?? 1;
+                  const curRoundMatches = (matches as any[]).filter((m: any) => m.round === curRound);
+                  const allDone = curRoundMatches.length > 0 && curRoundMatches.every((m: any) => !!m.winnerId);
+                  const recommended = Math.ceil(Math.log2(Math.max(approvedParticipants.length, 2)));
+                  const leader = standings[0];
+                  const leaderParticipant = leader ? participants.find((p: any) => p.id === leader.participantId) : null;
+                  const leaderName = leaderParticipant ? (leaderParticipant.teamSnapshot || leaderParticipant.nicknameSnapshot) : null;
+                  return (
+                    <div className="w-full flex flex-col gap-2 my-1">
+                      {/* Progress context banner */}
+                      <div className="flex flex-wrap items-center gap-3 px-3 py-2 rounded-win border text-[11px] font-mono"
+                        style={{
+                          background: allDone
+                            ? "color-mix(in srgb, var(--status-win) 7%, var(--panel))"
+                            : "color-mix(in srgb, var(--status-live) 6%, var(--panel))",
+                          borderColor: allDone
+                            ? "color-mix(in srgb, var(--status-win) 35%, var(--border))"
+                            : "color-mix(in srgb, var(--status-live) 35%, var(--border))",
+                        }}
+                      >
+                        <span style={{ color: allDone ? "var(--status-win)" : "var(--status-live)" }}>
+                          {allDone ? "✓" : "●"} Тур {curRound}
+                        </span>
+                        <span className="text-[var(--text-muted)]">из {recommended} рекомендованных</span>
+                        {leaderName && (
+                          <>
+                            <span className="text-[var(--border)] opacity-60">·</span>
+                            <span className="text-[var(--text-muted)]">лидер:</span>
+                            <span className="font-bold truncate max-w-[140px]" style={{ color: "var(--status-win)" }}>{leaderName}</span>
+                            <span style={{ color: "var(--status-done)" }}>{leader.wins} оч.</span>
+                          </>
+                        )}
+                        {!allDone && (
+                          <>
+                            <span className="text-[var(--border)] opacity-60">·</span>
+                            <span style={{ color: "var(--status-live)" }}>
+                              {curRoundMatches.filter((m: any) => !m.winnerId).length} матчей ещё идут
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      {/* Action buttons */}
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" size="sm" leftIcon={<ArrowsClockwise size={14} />} onClick={handleNextRound}
+                          disabled={!allDone} title={!allDone ? "Сначала завершите все матчи текущего тура" : undefined}>
+                          Следующий тур
+                        </Button>
+                        <Button variant="gel" size="sm" leftIcon={<UserCheck size={14} />} onClick={handleComplete}>
+                          Завершить турнир
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })()}
 
-                {canManage && tournament?.isStarted && !tournament?.isCompleted && (
+                {canManage && tournament?.isStarted && !tournament?.isCompleted && tournament?.bracketType !== "SWISS" && (
                   <Button variant="gel" size="sm" leftIcon={<UserCheck size={14} />} onClick={handleComplete}>
                     Завершить
                   </Button>
