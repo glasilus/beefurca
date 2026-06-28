@@ -23,10 +23,8 @@ describe("Bracket Engine Tests", () => {
 
   it("should generate Single Elimination bracket", () => {
     const matches = generateSingleElimination(participants);
-    // For 8 players, total matches should be 7.
     expect(matches.length).toBe(7);
 
-    // Verify round structures
     const round1 = matches.filter((m) => m.round === 1);
     const round2 = matches.filter((m) => m.round === 2);
     const round3 = matches.filter((m) => m.round === 3);
@@ -35,19 +33,27 @@ describe("Bracket Engine Tests", () => {
     expect(round2.length).toBe(2);
     expect(round3.length).toBe(1);
 
-    // Check connections
-    expect(round1[0].nextMatchIndex).not.toBeNull();
+    // All R1 matches have real players (8 = power of 2, no byes)
+    const r1WithBothPlayers = round1.filter(
+      (m) => m.participant1Id && m.participant2Id
+    );
+    expect(r1WithBothPlayers.length).toBe(4);
+
+    // All R1 matches point to a next match
+    for (const m of round1) {
+      expect(m.nextMatchIndex).not.toBeNull();
+    }
   });
 
   it("should generate Double Elimination bracket", () => {
     const matches = generateDoubleElimination(participants);
-    
+
     // For 8 players:
     // Winners: 7 matches (R1: 4, R2: 2, R3: 1)
     // Losers: 6 matches (LR1: 2, LR2: 2, LR3: 1, LR4: 1)
     // Grand Final: 1 match
     // Reset: 1 match
-    // Total matches: 15
+    // Total: 15
     expect(matches.length).toBe(15);
 
     const winners = matches.filter((m) => m.type === "winners");
@@ -62,7 +68,9 @@ describe("Bracket Engine Tests", () => {
   });
 
   it("should auto-advance BYE players when participant count is not a power of two", () => {
-    // 3 игрока: size=4, R1 = 2 матча. Один матч p1-vs-p2, второй — p3 c BYE.
+    // 3 игрока: size=4, R1 = 2 матча.
+    // Standard seeding: slot order [0,3,1,2] → p1→slot0, p2→slot3, p3→slot1, bye→slot2.
+    // Пары: (slot0,slot1)=p1 vs p3 (реальный матч), (slot2,slot3)=null vs p2 (bye → p2).
     const three: Participant[] = [
       { id: "p1", name: "P1" },
       { id: "p2", name: "P2" },
@@ -70,21 +78,70 @@ describe("Bracket Engine Tests", () => {
     ];
     const matches = generateSingleElimination(three);
 
-    // Должен существовать ровно один bye-матч с автопобедителем p3
+    // Ровно один bye-матч; по стандартной рассадке bye достаётся 2-му сеянному (p2)
     const byeMatches = matches.filter((m) => m.winnerParticipantId);
     expect(byeMatches.length).toBe(1);
-    expect(byeMatches[0].winnerParticipantId).toBe("p3");
+    expect(byeMatches[0].winnerParticipantId).toBe("p2");
 
-    // Победитель bye должен быть протянут в финал (round 2)
+    // Победитель bye уже вставлен в финал (round 2) как один из участников
     const final = matches.find((m) => m.round === 2)!;
     const finalSlots = [final.participant1Id, final.participant2Id];
-    expect(finalSlots).toContain("p3");
+    expect(finalSlots).toContain("p2");
 
-    // Финал НЕ должен быть авто-разрешён: второй слот ждёт победителя матча p1-vs-p2
+    // Финал НЕ должен быть авто-разрешён: один слот ждёт победителя p1 vs p3
     expect(final.winnerParticipantId).toBeFalsy();
+
+    // Нет dead-матчей в R1 (оба слота пусты и нет winner)
+    const deadR1 = matches.filter(
+      (m) => m.round === 1 && !m.participant1Id && !m.participant2Id && !m.winnerParticipantId
+    );
+    expect(deadR1.length).toBe(0);
   });
 
-  it("should not hang with 5 players (cascading byes)", () => {
+  it("should not create dead matches with 6 players", () => {
+    // Это был основной баг: 6 игроков → size=8, sequential placement давал
+    // последнюю пару R1 как (null, null) — dead match, из-за которого турнир
+    // не мог продвинуться дальше 2-го этапа.
+    const six: Participant[] = [
+      { id: "p1", name: "P1" },
+      { id: "p2", name: "P2" },
+      { id: "p3", name: "P3" },
+      { id: "p4", name: "P4" },
+      { id: "p5", name: "P5" },
+      { id: "p6", name: "P6" },
+    ];
+    const matches = generateSingleElimination(six);
+
+    expect(matches.length).toBe(7);
+
+    // Нет dead-матчей в R1
+    const deadR1 = matches.filter(
+      (m) => m.round === 1 && !m.participant1Id && !m.participant2Id && !m.winnerParticipantId
+    );
+    expect(deadR1.length).toBe(0);
+
+    // Ровно 2 bye в R1 (8 - 6 = 2 пустых слота)
+    const byesR1 = matches.filter((m) => m.round === 1 && m.winnerParticipantId);
+    expect(byesR1.length).toBe(2);
+
+    // Ровно 2 реальных матча в R1
+    const realR1 = matches.filter(
+      (m) => m.round === 1 && m.participant1Id && m.participant2Id
+    );
+    expect(realR1.length).toBe(2);
+
+    // R2 должен иметь 2 предзаполненных участника (bye-победители)
+    const r2 = matches.filter((m) => m.round === 2);
+    const r2prefilled = r2
+      .flatMap((m) => [m.participant1Id, m.participant2Id])
+      .filter(Boolean);
+    expect(r2prefilled.length).toBe(2);
+  });
+
+  it("should not hang with 5 players (distributed byes)", () => {
+    // 5 игроков → size=8, нужно 3 bye.
+    // Standard seeding: [a,b,c,d,e] → a→0, b→7, c→3, d→4, e→1; byes на 2,5,6.
+    // Пары R1: (a,e)=реальный, (null,c)=bye→c, (d,null)=bye→d, (null,b)=bye→b.
     const five: Participant[] = [
       { id: "a", name: "A" },
       { id: "b", name: "B" },
@@ -93,21 +150,28 @@ describe("Bracket Engine Tests", () => {
       { id: "e", name: "E" },
     ];
     const matches = generateSingleElimination(five);
-    // size=8: реальные R1-матчи — [a,b] и [c,d]; e получает bye и проходит сквозь
-    // пустую половину сетки (каскад байов), не зависая.
+
+    // Нет dead-матчей в R1
+    const deadR1 = matches.filter(
+      (m) => m.round === 1 && !m.participant1Id && !m.participant2Id && !m.winnerParticipantId
+    );
+    expect(deadR1.length).toBe(0);
+
+    // Ровно 1 реальный матч в R1, 3 bye
     const playableR1 = matches.filter(
       (m) => m.round === 1 && m.participant1Id && m.participant2Id
     );
-    expect(playableR1.length).toBe(2);
+    expect(playableR1.length).toBe(1);
 
-    // e должен автоматически продвинуться (хотя бы одна bye-победа)
-    const eByeWins = matches.filter((m) => m.winnerParticipantId === "e");
-    expect(eByeWins.length).toBeGreaterThanOrEqual(1);
+    const byeR1 = matches.filter((m) => m.round === 1 && m.winnerParticipantId);
+    expect(byeR1.length).toBe(3);
 
-    // e попадает во второй раунд без игры
+    // b, c, d должны появиться в R2 (они получили bye)
     const r2 = matches.filter((m) => m.round === 2);
-    const r2filled = r2.flatMap((m) => [m.participant1Id, m.participant2Id]).filter(Boolean);
-    expect(r2filled).toContain("e");
+    const r2prefilled = r2.flatMap((m) => [m.participant1Id, m.participant2Id]).filter(Boolean);
+    expect(r2prefilled).toContain("b");
+    expect(r2prefilled).toContain("c");
+    expect(r2prefilled).toContain("d");
   });
 
   it("should generate Round Robin matches", () => {
@@ -115,7 +179,6 @@ describe("Bracket Engine Tests", () => {
     // For 8 players, total rounds = 7, each round has 4 matches -> 28 matches.
     expect(matches.length).toBe(28);
 
-    // Verify round distribution
     const rounds = new Set(matches.map((m) => m.round));
     expect(rounds.size).toBe(7);
   });
@@ -124,8 +187,6 @@ describe("Bracket Engine Tests", () => {
     const r1Matches = generateSwissRound1(participants);
     expect(r1Matches.length).toBe(4);
 
-    // Create history data for next round pairing
-    // E.g. p1, p2, p3, p4 won their matches.
     const players: SwissRoundPlayer[] = [
       { id: "p1", points: 1, opponents: ["p5"], buchholz: 0 },
       { id: "p2", points: 1, opponents: ["p6"], buchholz: 0 },
@@ -137,17 +198,15 @@ describe("Bracket Engine Tests", () => {
       { id: "p8", points: 0, opponents: ["p4"], buchholz: 0 },
     ];
 
-    const updatedPlayers = calculateBuchholz(players);
-    // Verify Buchholz: p1 played p5 (0 points), so p1's Buchholz = 0.
-    // Let's modify scores to check Buchholz summation
+    // Verify Buchholz summation
     players[0].opponents = ["p2"]; // p1 played p2 (who has 1 point)
     const recalculated = calculateBuchholz(players);
     expect(recalculated[0].buchholz).toBe(1);
 
     const r2Matches = generateNextSwissRound(recalculated, 2);
     expect(r2Matches.length).toBe(4);
-    
-    // Verify no duplicates
+
+    // No player matches themselves
     for (const match of r2Matches) {
       expect(match.participant1Id).not.toBe(match.participant2Id);
     }

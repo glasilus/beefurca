@@ -101,11 +101,45 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
         winnerId = match.participant2Id;
         loserId = match.participant1Id;
       } else {
-        // Swiss/RoundRobin can have draws depending on rules.
-        // In elimination brackets, draws are forbidden.
+        // Ничья в elimination: фиксируем матч как сыгранный (без победителя),
+        // создаём реванш с теми же участниками, наследуя указатели на следующий матч.
         if (tournament.bracketType === "SINGLE_ELIM" || tournament.bracketType === "DOUBLE_ELIM") {
-          set.status = 400;
-          return { error: "Draw is not allowed in elimination brackets." };
+          const origNextMatchId = match.nextMatchId;
+          const origNextMatchIsP1 = match.nextMatchIsP1;
+          const origLoserNextMatchId = match.loserNextMatchId;
+          const origLoserNextMatchIsP1 = match.loserNextMatchIsP1;
+
+          await db.transaction(async (tx) => {
+            await tx
+              .update(matches)
+              .set({
+                score1,
+                score2,
+                winnerId: null,
+                customFieldsData: body.customFieldsData || null,
+                playedAt: new Date(),
+                nextMatchId: null,
+                loserNextMatchId: null,
+              })
+              .where(eq(matches.id, match.id));
+
+            await tx.insert(matches).values({
+              tournamentId: match.tournamentId,
+              round: match.round,
+              position: match.position,
+              bracketSection: match.bracketSection,
+              participant1Id: match.participant1Id,
+              participant2Id: match.participant2Id,
+              refereeId: match.refereeId,
+              nextMatchId: origNextMatchId,
+              nextMatchIsP1: origNextMatchIsP1,
+              loserNextMatchId: origLoserNextMatchId,
+              loserNextMatchIsP1: origLoserNextMatchIsP1,
+            });
+          });
+
+          await publishTournamentUpdate(tournament.id);
+          return { message: "Draw recorded. Rematch created automatically." };
         }
       }
 
@@ -353,6 +387,61 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
       body: t.Object({
         refereeId: t.Optional(t.String()),
       }),
+    }
+  )
+  // Обновить счёт в прямом эфире без финализации матча.
+  // Судья нажимает +/- → счёт транслируется на табло через SSE в реальном времени.
+  // Победитель не определяется — для финализации используется POST /:id/score.
+  .put(
+    "/:id/live-score",
+    async ({ user, params, body, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { error: "Unauthorized" };
+      }
+
+      const [match] = await db
+        .select()
+        .from(matches)
+        .where(eq(matches.id, params.id))
+        .limit(1);
+
+      if (!match) {
+        set.status = 404;
+        return { error: "Match not found" };
+      }
+
+      if (match.winnerId) {
+        set.status = 400;
+        return { error: "Match already finalized" };
+      }
+
+      const [tournament] = await db
+        .select()
+        .from(tournaments)
+        .where(eq(tournaments.id, match.tournamentId))
+        .limit(1);
+
+      const isCreator = tournament.organizerId === user.id;
+      const isAssignedReferee = match.refereeId === user.id;
+      const isAdmin = user.role === "Admin";
+
+      if (!isCreator && !isAssignedReferee && !isAdmin) {
+        set.status = 403;
+        return { error: "Forbidden" };
+      }
+
+      await db
+        .update(matches)
+        .set({ score1: body.score1, score2: body.score2 })
+        .where(eq(matches.id, match.id));
+
+      await publishTournamentUpdate(tournament.id);
+      return { message: "Live score updated" };
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({ score1: t.Numeric(), score2: t.Numeric() }),
     }
   )
   .put(

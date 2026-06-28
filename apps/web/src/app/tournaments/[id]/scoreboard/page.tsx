@@ -13,6 +13,7 @@ import { EmptyState } from "../../../../components/ui/EmptyState";
 export default function TournamentScoreboardPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [pinnedMatchId, setPinnedMatchId] = useState<string | null>(null);
 
   const [tournament, setTournament] = useState<any>(null);
   const [participants, setParticipants] = useState<any[]>([]);
@@ -83,9 +84,10 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
     .sort((a, b) => new Date(b.playedAt || 0).getTime() - new Date(a.playedAt || 0).getTime());
   const pendingMatches = matches.filter((m) => !m.winnerId && (!m.participant1Id || !m.participant2Id));
 
-  // Feature the first active match if any, otherwise the latest completed match
-  const featuredMatch = activeMatches.length > 0 ? activeMatches[0] : (completedMatches.length > 0 ? completedMatches[0] : null);
-  const otherActiveMatches = activeMatches.length > 1 ? activeMatches.slice(1) : [];
+  const pinnedMatch = pinnedMatchId ? matches.find((m) => m.id === pinnedMatchId) : null;
+  const featuredMatch = pinnedMatch
+    ?? (activeMatches.length > 0 ? activeMatches[0] : completedMatches[0] ?? null);
+  const isPinned = !!pinnedMatch;
 
   return (
     <div className="min-h-screen pb-16 relative overflow-x-hidden">
@@ -127,11 +129,19 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
         {/* FEATURED MATCH BOARD */}
         {featuredMatch && (
           <div className="mb-12">
-            <div className="text-center mb-3">
-              <Badge tone={activeMatches.length > 0 ? "live" : "done"} dot>
+            <div className="text-center mb-3 flex items-center justify-center gap-3">
+              <Badge tone={isPinned ? "accent" : activeMatches.length > 0 ? "live" : "done"} dot>
                 <Flame size={12} />
-                {activeMatches.length > 0 ? "ГЛАВНЫЙ МАТЧ ЭФИРА" : "ПОСЛЕДНИЙ ЗАВЕРШЕННЫЙ МАТЧ"}
+                {isPinned ? "ЗАКРЕПЛЁН ВРУЧНУЮ" : activeMatches.length > 0 ? "ГЛАВНЫЙ МАТЧ ЭФИРА" : "ПОСЛЕДНИЙ ЗАВЕРШЕННЫЙ МАТЧ"}
               </Badge>
+              {isPinned && (
+                <button
+                  onClick={() => setPinnedMatchId(null)}
+                  className="text-[10px] font-mono text-[var(--text-muted)] hover:text-[var(--text)] underline underline-offset-2"
+                >
+                  сбросить
+                </button>
+              )}
             </div>
 
             <Window
@@ -235,14 +245,21 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {activeMatches.map((m) => {
-                // If it's the featured match, skip showing it here
                 if (featuredMatch && m.id === featuredMatch.id) return null;
+                const isThisPinned = pinnedMatchId === m.id;
 
                 return (
-                  <Window key={m.id} title={`Раунд ${m.round} / Пара ${m.position + 1}`} status="live">
+                  <div
+                    key={m.id}
+                    onClick={() => setPinnedMatchId(isThisPinned ? null : m.id)}
+                    className="cursor-pointer"
+                  >
+                  <Window title={`Раунд ${m.round} / Пара ${m.position + 1}`} status={isThisPinned ? "done" : "live"}>
                     <div className="flex justify-between items-center text-[9px] font-mono text-[var(--text-muted)] mb-3 pb-2 border-b border-[var(--hairline)]">
                       <span>РАУНД {m.round} / ПАРА {m.position + 1}</span>
-                      <Badge tone="live" dot>LIVE</Badge>
+                      {isThisPinned
+                        ? <Badge tone="accent">НА ЭКРАНЕ</Badge>
+                        : <Badge tone="live" dot>LIVE — нажми чтобы показать</Badge>}
                     </div>
 
                     <div className="flex flex-col gap-2">
@@ -292,6 +309,7 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
                       </div>
                     )}
                   </Window>
+                  </div>
                 );
               })}
 
@@ -318,7 +336,6 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
 
             <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto pr-1">
               {completedMatches.map((m) => {
-                // Skip if this is featured
                 if (featuredMatch && m.id === featuredMatch.id) return null;
 
                 const name1 = getParticipantName(m.participant1Id);
@@ -327,9 +344,16 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
                 const winnerId = m.winnerId;
                 const isWinner1 = winnerId === m.participant1Id;
                 const isWinner2 = winnerId === m.participant2Id;
+                const isThisPinned = pinnedMatchId === m.id;
 
                 return (
-                  <Card key={m.id}>
+                  <div
+                    key={m.id}
+                    onClick={() => setPinnedMatchId(isThisPinned ? null : m.id)}
+                    className="cursor-pointer"
+                    title="Нажми чтобы показать на главном экране"
+                  >
+                  <Card>
                     <div className="flex justify-between items-center text-[8px] font-mono text-[var(--text-muted)] mb-2">
                       <span>РАУНД {m.round} / ПАРА {m.position + 1}</span>
                       <Badge tone="done">ЗАВЕРШЕН</Badge>
@@ -350,6 +374,7 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
                       </div>
                     </div>
                   </Card>
+                  </div>
                 );
               })}
 

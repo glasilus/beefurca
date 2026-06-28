@@ -350,6 +350,17 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
   };
 
   // Судья: ввод счёта ИЛИ технического поражения
+  const handleLiveScore = async (matchId: string, s1: number, s2: number) => {
+    try {
+      await apiFetch(`/matches/${matchId}/live-score`, {
+        method: "PUT",
+        body: JSON.stringify({ score1: s1, score2: s2 }),
+      });
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const handleScoreSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedScoringMatch) return;
@@ -794,32 +805,66 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                 <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Панель судейства ({myRefereedMatches.length})</span>
               </div>
               <div className="flex flex-col gap-4">
-                {myRefereedMatches.map((m) => (
+                {myRefereedMatches.map((m) => {
+                  const s1 = m.score1 ?? 0;
+                  const s2 = m.score2 ?? 0;
+                  return (
                   <Card key={m.id}>
                     <div className="flex justify-between items-center text-[10px] text-[var(--text-muted)] font-mono pb-2 border-b border-[var(--hairline)]">
                       <span>Раунд {m.round} | Пара {m.position + 1}</span>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => openMetadataModal(m)}>Инфо</Button>
-                        <Button variant="ghost" size="sm" onClick={() => {
-                          setSelectedScoringMatch(m);
-                          setScore1(0);
-                          setScore2(0);
-                          setCustomFieldsData({});
-                          setTechDefeat(false);
-                          setTechLoserId("");
-                        }}>Ввести счет</Button>
+                      <Button variant="ghost" size="sm" onClick={() => openMetadataModal(m)}>Инфо</Button>
+                    </div>
+
+                    {/* Inline live-score controls */}
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-[var(--text)] truncate max-w-[120px]">{nameOf(m.participant1Id)}</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => handleLiveScore(m.id, Math.max(0, s1 - 1), s2)}
+                            className="w-6 h-6 flex items-center justify-center rounded-ctl border border-[var(--border)] bg-[var(--panel-sunken)] text-[var(--text-muted)] hover:text-[var(--text)] text-sm font-bold leading-none"
+                          >−</button>
+                          <span className="font-mono font-bold text-base w-7 text-center text-[var(--text)]">{s1}</span>
+                          <button
+                            onClick={() => handleLiveScore(m.id, s1 + 1, s2)}
+                            className="w-6 h-6 flex items-center justify-center rounded-ctl border border-[var(--border)] bg-[var(--panel-sunken)] text-[var(--text-muted)] hover:text-[var(--text)] text-sm font-bold leading-none"
+                          >+</button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-[var(--text)] truncate max-w-[120px]">{nameOf(m.participant2Id)}</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => handleLiveScore(m.id, s1, Math.max(0, s2 - 1))}
+                            className="w-6 h-6 flex items-center justify-center rounded-ctl border border-[var(--border)] bg-[var(--panel-sunken)] text-[var(--text-muted)] hover:text-[var(--text)] text-sm font-bold leading-none"
+                          >−</button>
+                          <span className="font-mono font-bold text-base w-7 text-center text-[var(--text)]">{s2}</span>
+                          <button
+                            onClick={() => handleLiveScore(m.id, s1, s2 + 1)}
+                            className="w-6 h-6 flex items-center justify-center rounded-ctl border border-[var(--border)] bg-[var(--panel-sunken)] text-[var(--text-muted)] hover:text-[var(--text)] text-sm font-bold leading-none"
+                          >+</button>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex justify-between text-xs text-[var(--text)] mt-2">
-                      <span className="truncate max-w-[140px]">{nameOf(m.participant1Id)}</span>
-                      <span className="font-bold font-mono">{m.score1 !== null ? m.score1 : "-"}</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-[var(--text)] mt-1">
-                      <span className="truncate max-w-[140px]">{nameOf(m.participant2Id)}</span>
-                      <span className="font-bold font-mono">{m.score2 !== null ? m.score2 : "-"}</span>
-                    </div>
+
+                    <Button
+                      variant="gel"
+                      size="sm"
+                      className="w-full mt-3"
+                      onClick={() => {
+                        setSelectedScoringMatch(m);
+                        setScore1(s1);
+                        setScore2(s2);
+                        setCustomFieldsData({});
+                        setTechDefeat(false);
+                        setTechLoserId("");
+                      }}
+                    >
+                      Финализировать результат
+                    </Button>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             </Window>
           )}

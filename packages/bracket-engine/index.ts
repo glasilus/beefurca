@@ -1,6 +1,28 @@
 import { Participant, GeneratedMatch, SwissRoundPlayer } from "./types";
 
 /**
+ * Standard tournament bracket seeding.
+ * Returns slot indices in seeding priority order (seed 1, seed 2, seed 3, …).
+ * Placing players at these slot positions distributes byes evenly so that
+ * no two null slots land in the same first-round pair, eliminating dead matches.
+ *
+ * Examples (0-indexed):
+ *   size=2: [0, 1]
+ *   size=4: [0, 3, 1, 2]
+ *   size=8: [0, 7, 3, 4, 1, 6, 2, 5]
+ */
+function standardSeeding(size: number): number[] {
+  if (size === 1) return [0];
+  const prev = standardSeeding(size / 2);
+  const result: number[] = [];
+  for (const p of prev) {
+    result.push(p);
+    result.push(size - 1 - p);
+  }
+  return result;
+}
+
+/**
  * Returns the next power of 2 greater than or equal to n.
  */
 function nextPowerOfTwo(n: number): number {
@@ -155,12 +177,13 @@ export function generateSingleElimination(
   // Let's find indices of Round 1 matches:
   const firstRoundStartIndex = totalMatchesCount - (size / 2);
 
-  // Standard seeding (1 vs 8, 4 vs 5, etc.) or simple sequential placement.
-  // For a simple robust bracket, let's place participants sequentially,
-  // padding with null for byes.
+  // Distribute players into slots using standard tournament seeding.
+  // Byes (null) end up at the remaining slot positions, always separated by at
+  // least one real player, so no pair can be (null, null) — no dead matches.
+  const seededSlots = standardSeeding(size);
   const paddedParticipants: (string | null)[] = new Array(size).fill(null);
   for (let i = 0; i < numPlayers; i++) {
-    paddedParticipants[i] = participants[i].id;
+    paddedParticipants[seededSlots[i]] = participants[i].id;
   }
 
   // Distribute players to Round 1 matches
