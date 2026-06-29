@@ -130,46 +130,28 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 mt-10">
 
-        {/* Tournament Name Banner — крылья как фон title-card */}
-        <div className="relative mb-10 panel-98 overflow-hidden" style={{ minHeight: "140px" }}>
-          {/* Крылья: 2× (512×192 px), обрезаем по вертикали до центральной части (крылья в фокусе).
-              Чёрный фон намеренен — PC-98 CRT-эстетика. Без color-key фильтра. */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none select-none"
-            style={{
-              position: "absolute",
-              inset: 0,
-              backgroundImage: "url(/sprites/wings.png)",
-              backgroundRepeat: "no-repeat",
-              backgroundPosition: "center 50%",
-              backgroundSize: "512px auto",
-              imageRendering: "pixelated",
-              opacity: 0.6,
-            }}
-          />
-          {/* Контент поверх */}
-          <div className="relative z-10 flex flex-col items-center justify-center px-8 py-8 text-center">
-            <h2 className="text-3xl font-display font-extrabold uppercase tracking-wider text-[var(--text)] break-words">
-              {tournament?.name}
-            </h2>
-            <p className="text-xs text-[var(--text-muted)] mt-2 font-mono uppercase tracking-widest">
-              {disciplineName || "—"} · Трансляция в реальном времени
-            </p>
-            {tournament?.prizePool && (
-              <div className="inline-flex items-center gap-2.5 mt-4 px-5 py-2 border font-bold text-sm tracking-wide"
-                style={{
-                  borderColor: "color-mix(in srgb, var(--accent) 50%, var(--border))",
-                  background: "color-mix(in srgb, var(--accent) 10%, var(--panel))",
-                  color: "var(--accent)",
-                }}
-              >
-                <Trophy size={14} weight="fill" />
-                <span className="break-words">Призовой фонд: {tournament.prizePool}</span>
-              </div>
-            )}
-          </div>
+        {/* Заголовок турнира — чистый текст, без картинки */}
+        <div className="text-center mb-6">
+          <h2 className="text-3xl font-display font-extrabold uppercase tracking-wider text-[var(--text)] break-words">
+            {tournament?.name}
+          </h2>
+          <p className="text-xs text-[var(--text-muted)] mt-2 font-mono uppercase tracking-widest">
+            {disciplineName || "—"} · Трансляция в реальном времени
+          </p>
+          {tournament?.prizePool && (
+            <div className="inline-flex items-center gap-2.5 mt-4 px-5 py-2 border font-bold text-sm tracking-wide"
+              style={{
+                borderColor: "color-mix(in srgb, var(--accent) 50%, var(--border))",
+                background: "color-mix(in srgb, var(--accent) 10%, var(--panel))",
+                color: "var(--accent)",
+              }}
+            >
+              <Trophy size={14} weight="fill" />
+              <span className="break-words">Призовой фонд: {tournament.prizePool}</span>
+            </div>
+          )}
         </div>
+
 
         {/* FEATURED MATCH BOARD */}
         {featuredMatch && (
