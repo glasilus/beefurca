@@ -3,13 +3,12 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, setSession } from "../../lib/api";
-import { ThemeToggle } from "../../components/ThemeToggle";
 import { PixelAvatar } from "../../components/PixelAvatar";
 import { Window } from "../../components/ui/Window";
 import { Button } from "../../components/ui/Button";
 import { Field, Input } from "../../components/ui/Field";
+import { Sprite } from "../../components/Sprite";
 
-// Демо-учётные записи (требование рекомендаций кафедры). Засеяны бэкендом.
 const DEMO_ACCOUNTS = [
   { role: "Администратор", email: "admin@beefurca.com", password: "admin123" },
   { role: "Организатор", email: "organizer@beefurca.com", password: "organizer123" },
@@ -35,7 +34,6 @@ export default function LoginPage() {
     setLoading(true);
 
     const endpoint = isRegister ? "/auth/register" : "/auth/login";
-    // Роль НЕ отправляется: все регистрируются как Player, роль меняет админ.
     const bodyObj = isRegister
       ? {
           nickname,
@@ -80,34 +78,43 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 relative">
-      <div className="absolute top-4 right-4 z-20">
-        <ThemeToggle />
+    <div className="min-h-screen flex items-center justify-center px-4 py-8">
+      {/* Маг — фиксированный нижний левый угол, чуть заходит за край */}
+      <div
+        className="hidden lg:block fixed bottom-0 left-0 pointer-events-none select-none z-0"
+        style={{ transform: "translateX(-14%)" }}
+      >
+        <Sprite src="/sprites/mage.png" alt="" height={400} />
       </div>
 
+      {/* Призрак — фиксированный нижний правый угол, зеркально */}
+      <div
+        className="hidden lg:block fixed bottom-0 right-0 pointer-events-none select-none z-0"
+        style={{ transform: "translateX(14%)" }}
+      >
+        <Sprite src="/sprites/ghost.png" alt="" height={400} flip />
+      </div>
+
+      {/* Форма — строго по центру */}
       <Window
         title={isRegister ? "Регистрация" : "Авторизация"}
         onClose={() => router.push("/")}
         className="relative z-10 w-full max-w-md"
       >
-        {/* Пиксельный логотип-аватар */}
         <div className="flex flex-col items-center mb-6">
           <button
             type="button"
             onClick={() => router.push("/")}
             aria-label="На главную"
-            title="На главную"
-            className="cursor-pointer transition-transform hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <span className="panel-98 inline-block p-1">
               <PixelAvatar seed="BEEFURCA" size={60} />
             </span>
           </button>
-          <h2 className="font-score text-2xl tracking-[.16em] text-[var(--text)] mt-3">
-            BEEFURCA
-          </h2>
-          <p className="text-[10px] font-cond uppercase tracking-widest text-[var(--text-muted)] mt-1">
-            {isRegister ? "Создание учетной записи" : "Турнирная консоль"}
+          <h2 className="font-score text-2xl tracking-[.16em] mt-3">BEEFURCA</h2>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] mt-1">
+            {isRegister ? "Создание учётной записи" : "Турнирная консоль"}
           </p>
         </div>
 
@@ -124,7 +131,6 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Демо-учётки для защиты — клик подставляет логин/пароль */}
         {!isRegister && (
           <div className="panel-98 p-3 mb-6">
             <div className="dither text-[9px] uppercase tracking-widest text-[var(--text-muted)] px-2 py-1 mb-2">
@@ -216,7 +222,7 @@ export default function LoginPage() {
         </form>
 
         <div className="flex flex-col items-center mt-8 pt-6 border-t border-[var(--hairline)] text-xs text-[var(--text-muted)] gap-2">
-          <span>{isRegister ? "Уже есть аккаунт?" : "Еще нет учетной записи?"}</span>
+          <span>{isRegister ? "Уже есть аккаунт?" : "Ещё нет учётной записи?"}</span>
           <button
             onClick={() => {
               setIsRegister(!isRegister);

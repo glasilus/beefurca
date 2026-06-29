@@ -28,6 +28,20 @@ export default function RootLayout({
   return (
     <html lang="ru" className={`dark ${dot.variable}`}>
       <body className="antialiased relative min-h-screen">
+        {/* SVG-фильтр color-key: убирает чёрный фон у спрайтов на уровне пикселей.
+            A_out = 30R + 30G + 30B − 0.5 → чистый #000 становится alpha=0. */}
+        <svg aria-hidden="true" style={{ display: "none" }}>
+          <defs>
+            <filter id="sprite-key" x="0%" y="0%" width="100%" height="100%" colorInterpolationFilters="sRGB">
+              <feColorMatrix type="matrix" values="
+                1 0 0 0 0
+                0 1 0 0 0
+                0 0 1 0 0
+                30 30 30 0 -0.5
+              " />
+            </filter>
+          </defs>
+        </svg>
         <Aurora />
         <Providers>
           <main className="relative z-10">{children}</main>
