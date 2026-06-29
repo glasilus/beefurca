@@ -16,6 +16,7 @@ import { Table } from "../../components/ui/Table";
 import { Modal } from "../../components/ui/Modal";
 import { Field, Input } from "../../components/ui/Field";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { Sprite } from "../../components/Sprite";
 import { EmptyState } from "../../components/ui/EmptyState";
 import type { TableColumn } from "../../components/ui/Table";
 import {
@@ -270,24 +271,14 @@ export default function DashboardPage() {
     <div className="min-h-screen pb-16 relative">
       <Nav active="dashboard" profile={profile} />
 
-      {/* Май — первый кадр листка 418×412 при 3×. backgroundSize=1254px.
-          Ширина: 414px = 138px×3 (чуть меньше кадра, убирает правый край).
-          Высота: 375px = 125px×3 (чуть меньше первой строки, убирает нижний край). */}
+      {/* Май — фиксированный правый нижний угол, частично за краем */}
       <div
         aria-hidden="true"
         className="hidden lg:block fixed bottom-0 right-0 z-0 pointer-events-none select-none"
-        style={{
-          width: "414px",
-          height: "375px",
-          transform: "translateX(14%)",
-          backgroundImage: "url(/sprites/mai.png)",
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "0 0",
-          backgroundSize: "1254px auto",
-          imageRendering: "pixelated" as const,
-          filter: "url(#sprite-key)",
-        }}
-      />
+        style={{ transform: "translateX(14%)" }}
+      >
+        <Sprite src="/sprites/mai.png" height={400} />
+      </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-12 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
         <div className="lg:col-span-8 flex flex-col gap-8">
