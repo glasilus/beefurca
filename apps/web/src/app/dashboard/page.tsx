@@ -277,7 +277,7 @@ export default function DashboardPage() {
         className="hidden lg:block fixed bottom-0 right-0 z-0 pointer-events-none select-none"
         style={{ transform: "translateX(14%)" }}
       >
-        <Sprite src="/sprites/mai.png" height={400} />
+        <Sprite src="/sprites/mai.png" height={400} style={{ filter: "none" }} />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-12 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
