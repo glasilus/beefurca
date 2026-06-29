@@ -11,7 +11,6 @@ import {
   Trophy,
   Trash as Trash2,
   Star,
-  SealCheck,
   PencilSimple,
 } from "../../components/ui/icons";
 import { API_URL, apiFetch, fetchProfile, setSession } from "../../lib/api";
@@ -93,17 +92,6 @@ export default function AdminPanelPage() {
       const data = await res.json();
       if (res.ok) loadAdminData();
       else toast.error(data.error || "Не удалось изменить статус бана");
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  };
-
-  const handleToggleTrust = async (userId: string, isTrusted: boolean) => {
-    try {
-      const res = await apiFetch(`/admin/users/${userId}/trust`, { method: "PUT", body: JSON.stringify({ isTrusted }) });
-      const data = await res.json();
-      if (res.ok) loadAdminData();
-      else toast.error(data.error || "Не удалось изменить доверие");
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -275,10 +263,9 @@ export default function AdminPanelPage() {
               <option value="Organizer">Organizer</option>
               <option value="Admin">Admin</option>
             </Select>
-            {usr.isTrusted && <Badge tone="win"><SealCheck size={10} weight="fill" /> Доверенный</Badge>}
             {usr.isBanned && <Badge tone="danger">Забанен</Badge>}
           </div>
-          <span className="text-[10px] text-[var(--text-muted)] font-mono truncate block">{usr.email} / ELO по дисциплинам</span>
+          <span className="text-[10px] text-[var(--text-muted)] font-mono truncate block">{usr.email} · ELO {usr.elo ?? 1000}</span>
         </div>
       ),
     },
@@ -289,13 +276,6 @@ export default function AdminPanelPage() {
         if (usr.id === profile?.id) return null;
         return (
           <div className="flex gap-2 shrink-0">
-            <Button
-              variant={usr.isTrusted ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => handleToggleTrust(usr.id, !usr.isTrusted)}
-            >
-              {usr.isTrusted ? "Снять доверие" : "Доверить"}
-            </Button>
             <Button
               variant={usr.isBanned ? "gel" : "danger"}
               size="sm"
@@ -315,8 +295,8 @@ export default function AdminPanelPage() {
   const tournamentColumns: TableColumn<any>[] = [
     { key: "name", header: "Название", render: (t) => <span className="font-bold text-[var(--text)]">{t.name}</span> },
     { key: "disciplineName", header: "Дисциплина", render: (t) => <span className="font-mono text-[var(--text-muted)]">{t.disciplineName}</span> },
-    { key: "tournamentType", header: "Тип", render: (t) => <span className="font-mono text-[var(--text-muted)]">{t.tournamentType}</span> },
-    { key: "bracketType", header: "Сетка", render: (t) => <span className="font-mono text-[var(--text-muted)]">{t.bracketType}</span> },
+    { key: "tournamentType", header: "Режим", render: (t) => <span className="font-mono text-[var(--text-muted)]">{t.tournamentType === "SANDBOX" ? "Автономный" : "Обычный"}</span> },
+    { key: "bracketType", header: "Сетка", render: (t) => <span className="font-mono text-[var(--text-muted)]">{t.bracketType === "ROUND_ROBIN" ? "Круговая" : "Олимпийская"}</span> },
     {
       key: "status",
       header: "Статус",

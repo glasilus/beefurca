@@ -1,19 +1,26 @@
 # Платформа Beefurca (Монорепозиторий)
 
-**Beefurca** — универсальная высокопроизводительная веб-и-мобильная платформа
-коллективного пользования для автоматизации турниров, учёта результатов и
-ведения сквозного ELO-рейтинга по любым дисциплинам (киберспорт, шахматы,
-настольные игры, локальные состязания).
+**Beefurca** — веб-информационная система организации и учёта соревнований по
+**любым дисциплинам** (киберспорт, шахматы, настольные игры, локальные
+состязания). Участники регистрируются сами, организатор за пару кликов создаёт
+турнир, система автоматически строит и **визуализирует турнирную сетку в
+реальном времени**, судьи вносят счёт, рейтинг ELO пересчитывается сквозно, а
+итоги выгружаются в **Excel-отчёты**.
 
-Поддерживаются три режима турниров:
+Поддерживаются **два режима** проведения:
 
-- **PRO** — официальные турниры верифицированных организаторов; полный (100 %)
-  пересчёт глобального ELO. Создавать могут только роли `Organizer`/`Admin`.
-- **AMATEUR** — любительские турниры, создаёт любой зарегистрированный
-  пользователь; влияют на ELO только если у создателя выставлен флаг
-  `is_trusted` (с понижающим коэффициентом).
-- **SANDBOX** («песочница») — быстрый учёт «на коленке»: участники вписываются
-  строками вручную без регистрации, ELO не начисляется.
+- **STANDARD (обычный)** — участники зарегистрированы на платформе, организатор
+  подтверждает заявки, результаты влияют на глобальный ELO-рейтинг. Создавать
+  могут роли `Organizer`/`Admin`.
+- **SANDBOX (автономный, «песочница»)** — быстрый локальный учёт: имена
+  участников вписываются строками вручную, без регистрации; ELO не начисляется.
+  Создать может любой пользователь. Это современная замена бумажной сетке и
+  десктопному АРМ.
+
+> ℹ️ Это **упрощённая версия для курсового проекта**. Полная платформа (мобильное
+> приложение, вход через Discord, сетки Swiss и Double Elimination, кастомные
+> поля матчей, тиры PRO/Amateur с коэффициентами доверия) сохранена в ветке
+> **`full-platform`** и теге **`v1.0-full`**.
 
 ---
 
@@ -24,11 +31,10 @@
 | Путь | Назначение |
 |------|------------|
 | `apps/api` | ElysiaJS бэкенд (REST + SSE), бизнес-логика, аутентификация |
-| `apps/web` | Next.js (App Router) веб-клиент для админов и организаторов |
-| `apps/mobile` | React Native / Expo — приложение для игроков и судей |
-| `packages/database` | PostgreSQL + Drizzle ORM: схема, индексы, конфиг миграций |
+| `apps/web` | Next.js (App Router) веб-клиент |
+| `packages/database` | PostgreSQL + Drizzle ORM: схема, индексы, конфиг |
 | `packages/shared-types` | Общие Zod-схемы валидации и типы TypeScript |
-| `packages/bracket-engine` | Изоморфный движок сеток (Single/Double Elim, Round Robin, Swiss) |
+| `packages/bracket-engine` | Движок сеток: Single Elimination + Round Robin |
 | `packages/elo-calculator` | Математическое ядро расчёта ELO-рейтинга |
 | `packages/excel-generator` | Серверный генератор отчётов `.xlsx` (ExcelJS) |
 
@@ -38,28 +44,26 @@
 
 1. **JWT-сессии с Refresh-токенами.** Access-токен (15 м) + Refresh-токен (7 д)
    в `httpOnly, secure` cookie с ротацией в Redis. Бан пользователя мгновенно
-   сбрасывает все его сессии (проверка `is_banned`/`is_deleted` в middleware на
-   каждый запрос).
-2. **Вход через Discord OAuth.** Регистрация и вход по аккаунту Discord (см.
-   раздел 6). Аккаунты без локального пароля поддерживаются.
-3. **Авто-генерация ключей.** При первом старте сервер создаёт пару 2048-битных
-   RSA-ключей для подписи JWT (RS256) в папке `keys/`, если их нет.
-4. **Bootstrap Admin.** При отсутствии администраторов система создаёт первого
-   админа по настройкам `.env`.
-5. **Полноценная матрица сеток.** Single Elimination, Double Elimination (с
-   точным маппингом проигравших в нижнюю сетку), Round Robin, Swiss (очковые
-   группы + Buchholz + блокировка рематчей). Автоматическая обработка **BYE**
-   при нечётном числе участников (игрок без соперника проходит без игры).
-6. **Real-Time SSE через PostgreSQL LISTEN/NOTIFY.** Обновления сеток
-   транслируются по Server-Sent Events; событие публикуется в Postgres
-   (`pg_notify`), а каждый инстанс API раздаёт его своим подписчикам — работает
-   при горизонтальном масштабировании.
-7. **Мягкое удаление (soft delete).** Аккаунты не стираются физически:
-   `is_deleted=true` + обезличивание ПДн, статистика матчей сохраняется.
-8. **Кастомные поля матчей (EAV).** Организатор задаёт доп-поля (карта, стол,
-   пароль и т.п.); они хранятся в JSONB и валидируются динамически Zod-схемой.
-9. **Регламентированная Excel-отчётность.** Отчёт о популярности дисциплин и
-   статистика игрока с автоподсчётом итогов и форматированием.
+   сбрасывает все его сессии (проверка `is_banned`/`is_deleted` в middleware).
+2. **Авто-генерация ключей.** При первом старте сервер создаёт пару RSA-ключей
+   для подписи JWT (RS256) в папке `keys/`, если их нет.
+3. **Bootstrap + demo-аккаунты.** При отсутствии администраторов создаётся
+   первый админ по `.env`; дополнительно засеваются demo-учётки (см. раздел 4).
+4. **Движок сеток.** Single Elimination (олимпийская, на вылет) и Round Robin
+   (круговая). Автоматическая обработка **BYE** при нечётном числе участников
+   (игрок без соперника проходит без игры) — как при генерации, так и во время
+   игры, когда «мёртвая» ветка вскрывается после реального матча.
+5. **Real-Time SSE через PostgreSQL LISTEN/NOTIFY.** Обновления сеток
+   транслируются по Server-Sent Events: событие публикуется в Postgres
+   (`pg_notify`), каждый инстанс API раздаёт его подписчикам — работает при
+   горизонтальном масштабировании.
+6. **Мягкое удаление (soft delete).** Аккаунты не стираются физически:
+   `is_deleted=true` + обезличивание ПДн, статистика матчей сохраняется. При
+   старте турнира никнеймы/составы копируются в `tournament_participants` —
+   история защищена от будущих переименований.
+7. **Регламентированная Excel-отчётность.** Отчёт о популярности дисциплин
+   (с разделением на официальные/автономные) и статистика игрока — с
+   автоподсчётом итогов и форматированием.
 
 ---
 
@@ -68,16 +72,15 @@
 | Категория | Инструмент |
 |-----------|-----------|
 | Язык | TypeScript (end-to-end) |
-| Среда выполнения | Node.js 20+ (прод) / Bun (локальная разработка и тесты) |
+| Среда выполнения | Node.js 20+ (прод) / Bun (тесты ядер) |
 | Бэкенд-фреймворк | ElysiaJS |
-| СУБД | PostgreSQL 16 (JSONB, LISTEN/NOTIFY) |
+| СУБД | PostgreSQL 16 (LISTEN/NOTIFY) |
 | Кэш / Сессии / Rate limit | Redis 7.4 (ioredis) |
 | ORM | Drizzle ORM + Drizzle-Kit |
 | Валидация | Zod / TypeBox |
-| Auth | jose (RS256) + bcryptjs (12 раундов) + Discord OAuth2 |
+| Auth | jose (RS256) + bcryptjs (12 раундов) |
 | Отчётность | ExcelJS |
-| Веб | Next.js (App Router) |
-| Мобильное | React Native + Expo (EAS) |
+| Веб | Next.js (App Router), Tailwind, дизайн в стиле PC-98 |
 
 ---
 
@@ -85,40 +88,29 @@
 
 ### Предварительные требования
 - **Node.js 20+** и **pnpm 8.15.4** (`npm i -g pnpm@8.15.4`).
-- **Docker** (для PostgreSQL и Redis) — либо собственные инстансы Postgres 16 и
-  Redis 7.
-- **Bun** (опционально, для запуска тестов): установка
-  `powershell -c "irm bun.sh/install.ps1 | iex"` (Windows) или
-  `curl -fsSL https://bun.sh/install | bash` (Linux/macOS).
+- **Docker** (для PostgreSQL и Redis) — либо свои Postgres 16 и Redis 7.
 
 ### Шаги
 
-1. **Установка зависимостей:**
-   ```bash
-   pnpm install
-   ```
+1. **Установка зависимостей:** `pnpm install`
+2. **БД и Redis:** `docker-compose up -d`
+3. **Переменные окружения:** `cp .env.example .env` (см. раздел 5)
+4. **Схема БД** (Drizzle push создаёт/обновляет таблицы):
+   `pnpm --filter @beefurca/database db:push`
+5. **Запуск:** `pnpm dev` — API на `http://localhost:5000` (`/health`),
+   веб на `http://localhost:3000`.
 
-2. **Запуск базы данных и Redis:**
-   ```bash
-   docker-compose up -d
-   ```
+### Demo-учётные записи
 
-3. **Переменные окружения** — скопируйте пример и заполните значения
-   (см. раздел 5):
-   ```bash
-   cp .env.example .env
-   ```
+Создаются автоматически при первом старте API (для удобства защиты):
 
-4. **Применение схемы БД** (Drizzle push создаёт/обновляет таблицы):
-   ```bash
-   pnpm --filter @beefurca/database db:push
-   ```
+| Роль | Логин | Пароль |
+|------|-------|--------|
+| Администратор | `admin@beefurca.com` | `admin123` |
+| Организатор | `organizer@beefurca.com` | `organizer123` |
+| Игрок | `player@beefurca.com` | `player123` |
 
-5. **Запуск проекта:**
-   ```bash
-   pnpm dev
-   ```
-   API поднимется на `http://localhost:5000` (health-check: `/health`).
+На странице входа эти учётки продублированы — клик подставляет логин/пароль.
 
 ### Тесты математических ядер (движок сеток + ELO, на Bun):
 ```bash
@@ -140,88 +132,20 @@ pnpm test
 | `JWT_PUBLIC_KEY_PATH` / `JWT_PRIVATE_KEY_PATH` | Пути к PEM-ключам RS256 (генерируются автоматически) |
 | `JWT_ACCESS_TTL` / `JWT_REFRESH_TTL` | Срок жизни токенов (`15m` / `7d`) |
 | `BOOTSTRAP_ADMIN_EMAIL` / `_PASSWORD` / `_NICKNAME` | Учётка первого администратора |
-| `ALLOWED_ORIGINS` | Список разрешённых CORS-источников через запятую (домены фронтов) |
-| `FRONTEND_URL` | Куда редиректить после успешного входа через Discord |
-| `DISCORD_CLIENT_ID` | Client ID приложения Discord |
-| `DISCORD_CLIENT_SECRET` | Client Secret приложения Discord |
-| `DISCORD_REDIRECT_URI` | Redirect URI: `<API_URL>/auth/discord/callback` |
+| `ALLOWED_ORIGINS` | Список разрешённых CORS-источников через запятую |
 
-> ⚠️ В проде обязательно задайте свой `BOOTSTRAP_ADMIN_PASSWORD` и реальный
-> `ALLOWED_ORIGINS` (иначе CORS заблокирует фронтенд).
+> Блок `DISCORD_*` и `FRONTEND_URL` в `.env.example` сохранён для совместимости
+> с полной версией (ветка `full-platform`); в упрощённой версии не используется.
 
-**Переменные фронтендов** (задаются в окружении самих приложений, не в `.env` API):
-
-| Переменная | Где | Назначение |
-|------------|-----|------------|
-| `NEXT_PUBLIC_API_URL` | `apps/web` | Базовый URL API (по умолчанию `http://localhost:5000`). Должен быть задан на этапе **сборки** Next.js |
-
-> Мобильный клиент (`apps/mobile`) сейчас берёт адрес API из константы
-> `API_BASE_URL` в `App.tsx` (`http://localhost:5000`) — перед сборкой
-> поменяйте её на адрес прод-API.
+**Переменные фронтенда:** `NEXT_PUBLIC_API_URL` (`apps/web`) — базовый URL API
+(по умолчанию `http://localhost:5000`), задаётся на этапе **сборки** Next.js.
 
 ---
 
-## 6. Настройка входа через Discord (OAuth2) — пошагово
+## 6. Справочник API
 
-### Шаг 1. Создать приложение
-1. Откройте **https://discord.com/developers/applications** и войдите.
-2. Нажмите **«New Application»**, задайте имя (например, `Beefurca`), примите
-   условия и нажмите **Create**.
-
-### Шаг 2. Получить Client ID и Client Secret
-1. В левом меню откройте вкладку **OAuth2**.
-2. Скопируйте **Client ID** → в `.env` как `DISCORD_CLIENT_ID`.
-3. Рядом нажмите **Reset Secret**, подтвердите, скопируйте **Client Secret** →
-   в `.env` как `DISCORD_CLIENT_SECRET`. (Секрет показывается один раз —
-   сохраните сразу.)
-
-### Шаг 3. Указать Redirect URI
-1. На той же вкладке **OAuth2** найдите блок **Redirects** → **Add Redirect**.
-2. Добавьте адрес callback вашего **бэкенда**:
-   - для локальной разработки: `http://localhost:5000/auth/discord/callback`
-   - для прода: `https://<ваш-домен-api>/auth/discord/callback`
-3. Нажмите **Save Changes**.
-4. Это же значение пропишите в `.env` как `DISCORD_REDIRECT_URI` — оно должно
-   **в точности совпадать** (схема, домен, порт, путь), иначе Discord отклонит
-   запрос с ошибкой `invalid redirect_uri`.
-
-### Шаг 4. Scopes
-Бэкенд запрашивает scopes `identify email` автоматически. Никаких дополнительных
-настроек на стороне Discord для этого не требуется — но чтобы приходил email,
-у пользователя он должен быть подтверждён.
-
-### Шаг 5. Прописать остальные переменные
-В `.env`:
-```dotenv
-DISCORD_CLIENT_ID=ваш_client_id
-DISCORD_CLIENT_SECRET=ваш_client_secret
-DISCORD_REDIRECT_URI=http://localhost:5000/auth/discord/callback
-FRONTEND_URL=http://localhost:3000
-```
-
-### Шаг 6. Как это работает (поток авторизации)
-1. Фронтенд делает кнопку «Войти через Discord» как **обычную ссылку** на
-   `GET <API_URL>/auth/discord` (это браузерный редирект, не `fetch`).
-2. Бэкенд редиректит пользователя на страницу согласия Discord (с CSRF-`state`).
-3. После согласия Discord возвращает пользователя на
-   `GET <API_URL>/auth/discord/callback?code=...&state=...`.
-4. Бэкенд обменивает `code` на токен Discord, получает профиль (`id`, `username`,
-   `email`), затем:
-   - если есть пользователь с таким `discord_id` — входит в него;
-   - иначе если есть аккаунт с тем же `email` — привязывает Discord к нему;
-   - иначе создаёт нового пользователя (роль `Player`, без пароля).
-5. Бэкенд выставляет `httpOnly` cookie с токенами и редиректит на `FRONTEND_URL`.
-
-> Аккаунт, созданный через Discord, не имеет локального пароля — вход по
-> `email/password` для него вернёт подсказку войти через Discord. Задать пароль
-> можно позже через `PUT /users/me`.
-
----
-
-## 7. Справочник API
-
-Базовый префикс отсутствует; роуты сгруппированы по модулям. Защищённые эндпоинты
-требуют access-токен (cookie `access_token` или заголовок `Authorization: Bearer`).
+Защищённые эндпоинты требуют access-токен (cookie `access_token` или заголовок
+`Authorization: Bearer`).
 
 ### Аутентификация (`/auth`)
 | Метод | Путь | Описание |
@@ -230,61 +154,62 @@ FRONTEND_URL=http://localhost:3000
 | POST | `/auth/login` | Вход `{email,password}` |
 | POST | `/auth/refresh` | Ротация токенов по refresh-cookie |
 | POST | `/auth/logout` | Выход, отзыв refresh-токена |
-| GET | `/auth/discord` | Старт OAuth — редирект на Discord |
-| GET | `/auth/discord/callback` | Callback OAuth — выдача сессии |
 
 ### Пользователи и команды (`/users`)
 | Метод | Путь | Описание |
 |-------|------|----------|
 | GET | `/users/me` | Профиль + команды текущего пользователя |
-| PUT | `/users/me` | Обновить профиль `{nickname?,email?,password?,fullName?,phone?}` |
-| DELETE | `/users/me` | Мягкое удаление своего аккаунта (обезличивание + отзыв сессий) |
+| PUT | `/users/me` | Обновить профиль |
+| DELETE | `/users/me` | Мягкое удаление своего аккаунта |
 | POST | `/users/teams` | Создать команду `{name}` (создатель — капитан) |
-| POST | `/users/teams/:id/members` | Добавить игрока в команду `{nickname}` (только капитан) |
-| DELETE | `/users/teams/:id/members/:playerId` | Удалить игрока / выйти из команды |
+| POST | `/users/teams/:id/members` | Добавить игрока в команду `{nickname}` |
+| DELETE | `/users/teams/:id/members/:playerId` | Удалить игрока / выйти |
 | GET | `/users/teams` | Список всех команд |
 | GET | `/users/me/tournaments` | История турниров пользователя |
-| GET | `/users/:id/elo-history` | История изменения ELO (для графиков) |
+| GET | `/users/:id/elo-history` | История изменения ELO |
 | GET | `/users/referees` | Список пользователей (для назначения судьёй) |
 | GET | `/users/:id/discipline-stats` | Статистика игрока по дисциплинам |
-| GET | `/users/disciplines/:disciplineId/leaderboard?page=` | Лидерборд по дисциплине (кэш Redis, пагинация) |
+| GET | `/users/disciplines/:disciplineId/leaderboard?page=` | Лидерборд по дисциплине |
 
 ### Турниры (`/tournaments`)
 | Метод | Путь | Описание |
 |-------|------|----------|
 | GET | `/tournaments/disciplines` | Активные дисциплины |
-| POST | `/tournaments/` | Создать турнир (PRO → Organizer/Admin; AMATEUR/SANDBOX → любой) |
+| POST | `/tournaments/disciplines` | Создать пользовательскую дисциплину |
+| POST | `/tournaments/` | Создать турнир (STANDARD → Organizer/Admin; SANDBOX → любой) |
 | GET | `/tournaments/` | Список турниров |
 | GET | `/tournaments/:id` | Детали: турнир + участники + матчи |
-| POST | `/tournaments/:id/join` | Заявка на участие `{teamId?}` (PRO/AMATEUR) |
-| POST | `/tournaments/:id/participants` | Ручной ввод участника `{nickname,teamName?}` (только SANDBOX) |
+| POST | `/tournaments/:id/join` | Заявка на участие `{teamId?}` (STANDARD) |
+| POST | `/tournaments/:id/participants` | Ручной ввод участника (только SANDBOX) |
 | POST | `/tournaments/:id/approve/:participantId` | Одобрить заявку (организатор) |
-| POST | `/tournaments/:id/generate-bracket` | Сгенерировать сетку и стартовать турнир |
-| POST | `/tournaments/:id/next-round` | Сгенерировать следующий тур (Swiss) |
-| POST | `/tournaments/:id/participants/import` | Импорт участников из Excel-файла |
+| POST | `/tournaments/:id/reject/:participantId` | Отклонить заявку |
+| POST | `/tournaments/:id/generate-bracket` | Сгенерировать сетку и стартовать |
+| POST | `/tournaments/:id/participants/import` | Импорт участников из Excel |
 | GET | `/tournaments/:id/stream` | SSE-поток обновлений сетки |
-| PUT | `/tournaments/:id/matches/referee` | Массово назначить судью незавершённым матчам `{refereeId?}` |
+| PUT | `/tournaments/:id/matches/referee` | Массово назначить судью |
 | GET | `/tournaments/:id/standings` | Турнирная таблица |
 | POST | `/tournaments/:id/complete` | Отметить турнир завершённым |
 
 ### Матчи (`/matches`)
 | Метод | Путь | Описание |
 |-------|------|----------|
-| POST | `/matches/:id/score` | Ввод счёта `{score1,score2,customFieldsData?}` (судья; rate-limit) |
-| POST | `/matches/:id/tech-defeat` | Техническое поражение `{loserParticipantId}` (судья; rate-limit) |
+| POST | `/matches/:id/score` | Ввод счёта `{score1,score2}` (судья; rate-limit) |
+| POST | `/matches/:id/tech-defeat` | Техническое поражение `{loserParticipantId}` |
 | PUT | `/matches/:id/referee` | Назначить судью на матч `{refereeId?}` |
-| PUT | `/matches/:id/metadata` | Обновить кастомные поля матча `{customFieldsData}` |
+| PUT | `/matches/:id/live-score` | Промежуточный счёт (трансляция на табло) |
 
 ### Администрирование (`/admin`, только роль `Admin`)
 | Метод | Путь | Описание |
 |-------|------|----------|
-| POST | `/admin/disciplines` | Добавить официальную дисциплину `{name,gameType,rules?}` |
+| POST | `/admin/disciplines` | Добавить официальную дисциплину |
+| PUT | `/admin/disciplines/:id` | Редактировать дисциплину |
+| DELETE | `/admin/disciplines/:id` | Удалить дисциплину |
+| PUT | `/admin/disciplines/:id/official` | Промоут/понижение официальной |
 | GET | `/admin/users` | Список пользователей |
-| PUT | `/admin/users/:id/ban` | Бан/разбан `{isBanned}` (мгновенный отзыв сессий) |
-| PUT | `/admin/users/:id/trust` | Выдать/снять флаг `is_trusted` `{isTrusted}` |
+| PUT | `/admin/users/:id/ban` | Бан/разбан `{isBanned}` |
 | PUT | `/admin/users/:id/role` | Сменить роль `{role}` |
 | DELETE | `/admin/users/:id` | Мягкое удаление пользователя |
-| GET | `/admin/reports/popularity?startDate&endDate` | Отчёт популярности дисциплин (`.xlsx`) |
+| GET | `/admin/reports/popularity?startDate&endDate` | Отчёт популярности (`.xlsx`) |
 | GET | `/admin/reports/player/:id?startDate&endDate` | Статистика игрока (`.xlsx`) |
 
 ### Служебное
@@ -294,119 +219,52 @@ FRONTEND_URL=http://localhost:3000
 
 ---
 
-## 8. Форматы турниров — нюансы
+## 7. Форматы турниров — нюансы
 
 - **BYE (нечётное число участников).** Движок добивает сетку до степени двойки и
-  автоматически продлевает игроков без соперника (как на этапе генерации, так и
-  во время игры, когда «мёртвая» ветка вскрывается после реального матча).
+  автоматически продлевает игроков без соперника (на этапе генерации и во время
+  игры).
 - **Round Robin** генерирует все туры сразу при старте (метод кругов).
-- **Swiss** генерирует только первый тур при старте; каждый следующий —
-  отдельным вызовом `POST /tournaments/:id/next-round` после того, как все матчи
-  текущего тура завершены. Пары считаются по очкам и Buchholz, рематчи
-  блокируются; bye засчитывается как победа.
-- **Double Elimination** хранит связи проигравших (`loser_next_match_id`) в БД —
-  продвижение в нижнюю сетку выполняется без пересчёта математики во время игры.
+- **Ничьи.** В олимпийской системе ничья недопустима (нужен победитель для
+  продвижения по сетке); в круговой — допустима, матч фиксируется без победителя.
 
 ---
 
-## 9. Развёртывание (Production)
+## 8. Развёртывание (Production)
 
-В репозитории есть два готовых `Dockerfile` (`apps/api/Dockerfile`,
-`apps/web/Dockerfile`, оба multi-stage на `node:20-alpine`), поэтому
-поддерживаются два сценария: **самостоятельный хостинг через Docker** и
-**managed-платформы** (Railway + Vercel). Мобильный клиент собирается через EAS.
+В репозитории два `Dockerfile` (`apps/api/Dockerfile`, `apps/web/Dockerfile`,
+multi-stage на `node:20-alpine`): поддерживаются **самостоятельный хостинг через
+Docker** и **managed-платформы** (Railway + Vercel).
 
-Независимо от сценария, **порядок один и тот же**:
+Порядок один и тот же:
 
-1. Поднять PostgreSQL 16 и Redis 7 (управляемые сервисы или свои контейнеры).
+1. Поднять PostgreSQL 16 и Redis 7.
 2. Задать переменные окружения (раздел 5).
-3. **Один раз** применить схему БД (создаёт/обновляет таблицы):
-   ```bash
-   pnpm --filter @beefurca/database db:push
-   ```
-   Выполняется из окружения, у которого есть доступ к проду по `DATABASE_URL`
-   (локально с прод-`DATABASE_URL`, в CI или в shell контейнера API).
-4. Запустить API, затем веб. RSA-ключи для JWT и bootstrap-админ создаются
-   автоматически при первом старте API (раздел 2).
+3. **Один раз** применить схему БД: `pnpm --filter @beefurca/database db:push`.
+4. Запустить API, затем веб. RSA-ключи JWT, bootstrap-админ и demo-аккаунты
+   создаются автоматически при первом старте API.
 
-> Ключи в `keys/` генерируются на диске контейнера. Если инстансов несколько
-> или файловая система эфемерна — сгенерируйте пару RSA один раз и передайте
-> ключи через переменные `JWT_PUBLIC_KEY_PATH`/`JWT_PRIVATE_KEY_PATH`
-> (значениями могут быть и сами PEM-ключи, а не только пути), чтобы все
-> инстансы подписывали и проверяли токены одним ключом.
+**Managed:** бэкенд (`apps/api`) → Railway (по `apps/api/Dockerfile`; обязательны
+`DATABASE_URL`, `REDIS_URL`, `BOOTSTRAP_ADMIN_*`, `ALLOWED_ORIGINS`); веб
+(`apps/web`) → Vercel (root `apps/web`, build `pnpm --filter web build`,
+`NEXT_PUBLIC_API_URL` → домен API). Домен Vercel добавьте в `ALLOWED_ORIGINS`.
 
-### Вариант A. Самостоятельный хостинг (Docker)
-
-Сборка и запуск образов вручную (теги — на ваше усмотрение):
-
-```bash
-# Бэкенд
-docker build -f apps/api/Dockerfile -t beefurca-api .
-docker run -d --name beefurca-api -p 5000:5000 --env-file .env beefurca-api
-
-# Веб (NEXT_PUBLIC_API_URL нужен на этапе СБОРКИ — пробрасываем build-arg)
-docker build -f apps/web/Dockerfile \
-  --build-arg NEXT_PUBLIC_API_URL=https://api.example.com \
-  -t beefurca-web .
-docker run -d --name beefurca-web -p 3000:3000 beefurca-web
-```
-
-PostgreSQL и Redis для прод-стенда можно поднять тем же `docker-compose.yml`
-из репозитория (для боевого окружения смените пароль `POSTGRES_PASSWORD` и не
-публикуйте порты 5432/6379 наружу). Применение схемы — шаг 3 выше из shell
-контейнера API:
-```bash
-docker exec -it beefurca-api pnpm --filter @beefurca/database db:push
-```
-
-> `NEXT_PUBLIC_*` встраивается в бандл Next.js при сборке, поэтому менять адрес
-> API «на лету» в готовом образе нельзя — пересоберите `beefurca-web` с новым
-> `NEXT_PUBLIC_API_URL`.
-
-### Вариант B. Managed-платформы
-
-**Бэкенд (`apps/api`) → Railway.** Деплой по `apps/api/Dockerfile`. Задайте
-переменные раздела 5 — обязательны: `DATABASE_URL`, `REDIS_URL`,
-`BOOTSTRAP_ADMIN_*`, `ALLOWED_ORIGINS`; плюс блок `DISCORD_*` + `FRONTEND_URL`,
-если используется вход через Discord. Postgres и Redis удобно поднять плагинами
-Railway и подставить их строки подключения. Схему примените шагом 3 (например,
-локально с прод-`DATABASE_URL`).
-
-**Веб-клиент (`apps/web`) → Vercel.**
-- Root directory: `apps/web`
-- Build command: `pnpm --filter web build`
-- Environment: `NEXT_PUBLIC_API_URL` → домен API на Railway (Vercel подставит
-  его при сборке).
-- Итоговый домен Vercel **добавьте в `ALLOWED_ORIGINS`** бэкенда (иначе CORS
-  заблокирует запросы), а если включён Discord — он же должен быть в
-  `FRONTEND_URL`.
-
-### Мобильный клиент (`apps/mobile`) → EAS Build
-
-```bash
-npm install -g eas-cli
-eas login
-eas build --platform android --profile preview   # готовый APK
-```
-Перед сборкой укажите адрес прод-API в `API_BASE_URL` (`apps/mobile/App.tsx`).
-
-### Чек-лист перед боевым запуском
-- [ ] Свой `BOOTSTRAP_ADMIN_PASSWORD` (не дефолтный) и смена пароля Postgres.
-- [ ] `ALLOWED_ORIGINS` содержит реальные домены фронтов (не `*`, не localhost).
+### Чек-лист перед запуском
+- [ ] Свой `BOOTSTRAP_ADMIN_PASSWORD` и смена пароля Postgres.
+- [ ] `ALLOWED_ORIGINS` содержит реальные домены фронта (не `*`, не localhost).
 - [ ] `NODE_ENV=production` у API.
 - [ ] `NEXT_PUBLIC_API_URL` указывает на прод-API (задан при сборке веба).
-- [ ] Discord Redirect URI совпадает с прод-`DISCORD_REDIRECT_URI` (раздел 6).
 - [ ] Схема БД применена (`db:push`).
 - [ ] Стабильные RSA-ключи JWT при нескольких инстансах API.
 
 ---
 
-## 10. Заметки по безопасности
+## 9. Заметки по безопасности
 
-- Оба JWT-cookie — `HttpOnly; Secure; SameSite=Lax`.
+- Оба JWT-cookie — `HttpOnly; Secure`.
 - CORS ограничен списком `ALLOWED_ORIGINS` (не `*`).
 - Пароли — bcrypt (12 раундов); подпись JWT — RS256.
 - Rate limiting на судейских эндпоинтах (`/score`, `/tech-defeat`).
 - Бан и удаление аккаунта мгновенно отзывают все refresh-сессии в Redis.
-- Роль при регистрации всегда `Player`; повышение прав — только через
+- Роль при регистрации всегда `Player`; повышение — только через
   `PUT /admin/users/:id/role`.

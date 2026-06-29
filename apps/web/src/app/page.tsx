@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { FractalAvatar } from "../components/FractalAvatar";
 import { BracketCanvas } from "../components/BracketCanvas";
 import { Logo } from "../components/Logo";
-import { ThemeToggle } from "../components/ThemeToggle";
 import { Button } from "../components/ui/Button";
 import { Window, Card } from "../components/ui/Window";
 import { Table } from "../components/ui/Table";
@@ -22,7 +21,7 @@ export default function Home() {
       id: "7b8f9e2d-3a4b-5c6d-7e8f-9a0b1c2d3e4f",
       name: "Championship of the Cosmos 2026",
       discipline: "Шахматы",
-      type: "PRO",
+      type: "STANDARD",
       prize: "50 000 руб + Кубок",
       date: "15.06.2026",
     },
@@ -30,23 +29,23 @@ export default function Home() {
       id: "1c2d3e4f-5a6b-7c8d-9e0f-1a2b3c4d5e6f",
       name: "CS 1.6 Retro Cup Round 3",
       discipline: "Counter-Strike 1.6",
-      type: "AMATEUR",
+      type: "STANDARD",
       prize: "15 000 руб",
       date: "18.06.2026",
     },
     {
       id: "9f0e1d2c-3b4a-5c6d-7e8f-9a0b1c2d3e4f",
-      name: "Ping Pong Sandbox Sandbox-A",
+      name: "Ping Pong — локальный учёт",
       discipline: "Настольный теннис",
       type: "SANDBOX",
-      prize: "Слава и почет",
+      prize: "Слава и почёт",
       date: "20.06.2026",
     },
   ];
 
   const mockLeaderboard = [
     { rank: 1, name: "Alexander_Great", elo: 1824, winrate: "76%" },
-    { rank: 2, name: "Ref_Overlord", elo: 1712, winrate: "68%" },
+    { rank: 2, name: "Knight_Owl", elo: 1712, winrate: "68%" },
     { rank: 3, name: "Dmitry_G", elo: 1650, winrate: "64%" },
     { rank: 4, name: "Maya_Che", elo: 1580, winrate: "60%" },
   ];
@@ -106,11 +105,10 @@ export default function Home() {
     { key: "winrate", header: "Winrate", numeric: true },
   ];
 
-  const typeTone = (type: string) => {
-    if (type === "PRO") return "danger" as const;
-    if (type === "AMATEUR") return "accent" as const;
-    return "draft" as const;
-  };
+  const typeTone = (type: string) =>
+    type === "SANDBOX" ? ("draft" as const) : ("accent" as const);
+  const typeLabel = (type: string) =>
+    type === "SANDBOX" ? "Автономный" : "Обычный";
 
   return (
     <div className="min-h-screen text-[var(--text)] transition-colors duration-300">
@@ -125,7 +123,6 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4">
-            <ThemeToggle />
             <Button variant="gel" size="sm" onClick={() => router.push("/login")}>
               Войти / Регистрация
             </Button>
@@ -143,7 +140,7 @@ export default function Home() {
             Экосистема турниров нового поколения
           </h1>
           <p className="max-w-2xl mx-auto text-[var(--text-muted)] text-sm sm:text-base md:text-lg mb-6 sm:mb-8 px-2">
-            Отказ от бумажных АРМ. Самообслуживание игроков, строгий судейский надзор и сквозной ELO-рейтинг для любых соревновательных дисциплин.
+            ИС организации и учёта соревнований по любым дисциплинам: самообслуживание игроков, наглядные турнирные сетки в реальном времени, сквозной ELO-рейтинг и режим быстрого локального учёта без регистрации.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
             <Button variant="gel" onClick={() => router.push("/login")}>
@@ -164,9 +161,9 @@ export default function Home() {
             <div className="w-10 h-10 rounded-ctl bg-[color-mix(in_srgb,var(--status-danger)_14%,transparent)] text-[var(--status-danger)] flex items-center justify-center mb-4">
               <Trophy size={20} />
             </div>
-            <h3 className="font-bold text-base mb-2 text-[var(--text)]">Три уровня лиг</h3>
+            <h3 className="font-bold text-base mb-2 text-[var(--text)]">Два режима</h3>
             <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-              Официальные PRO лиги с жестким начислением ELO, Amateur турниры игроков и Sandbox "песочницы" для быстрого учета участников без регистрации.
+              Обычный турнир — с регистрацией участников, подтверждением заявок и сквозным ELO-рейтингом. Автономный («песочница») — быстрый локальный учёт: имена вводятся вручную, без регистрации.
             </p>
           </Card>
 
@@ -176,7 +173,7 @@ export default function Home() {
             </div>
             <h3 className="font-bold text-base mb-2 text-[var(--text)]">Контекстное судейство</h3>
             <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-              Ввод счета и кастомных полей доступен исключительно назначенным верифицированным судьям. Полная защита от несанкционированных изменений.
+              Ввод счёта доступен только назначенному судье матча: обычные игроки — наблюдатели. Результат судьи окончателен, история защищена от посторонних изменений.
             </p>
           </Card>
 
@@ -184,9 +181,9 @@ export default function Home() {
             <div className="w-10 h-10 rounded-ctl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)] flex items-center justify-center mb-4">
               <Layers size={20} />
             </div>
-            <h3 className="font-bold text-base mb-2 text-[var(--text)]">Кастомные поля матчей</h3>
+            <h3 className="font-bold text-base mb-2 text-[var(--text)]">Любая дисциплина</h3>
             <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-              Динамический конфигуратор метаданных позволяет добавлять специфичные поля (карты, столы, спектаторские пароли) под любую дисциплину.
+              Абстрактная модель дисциплин (одиночные и командные) — проводите соревнование по чему угодно: шахматы, киберспорт, настольный теннис, дворовые турниры. Сетка строится одинаково.
             </p>
           </Card>
         </section>
@@ -218,7 +215,7 @@ export default function Home() {
                     <FractalAvatar seed={t.id} size={54} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2.5 mb-1">
-                        <Badge tone={typeTone(t.type)}>{t.type}</Badge>
+                        <Badge tone={typeTone(t.type)}>{typeLabel(t.type)}</Badge>
                         <span className="text-xs text-[var(--text-muted)] font-medium">{t.discipline}</span>
                       </div>
                       <h4 className="font-bold text-sm text-[var(--text)] truncate">{t.name}</h4>

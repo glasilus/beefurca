@@ -28,7 +28,6 @@ import {
   UploadSimple as Upload,
   User,
   UserPlus,
-  ArrowsClockwise,
   DotsSix as GripHorizontal,
   Television as Tv,
   Calendar,
@@ -286,22 +285,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
     }
   };
 
-  // Организатор: следующий тур Swiss
-  const handleNextRound = async () => {
-    try {
-      const res = await apiFetch(`/tournaments/${params.id}/next-round`, { method: "POST" });
-      const data = await res.json();
-      if (res.ok) {
-        await loadTournamentDetails();
-        toast.success(data.message || "Следующий тур сгенерирован");
-      } else {
-        toast.error(data.error || "Не удалось сгенерировать следующий тур");
-      }
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  };
-
   const handleMassAssignReferee = async () => {
     if (!selectedRefereeId) {
       toast.error("Выберите судью из списка");
@@ -434,7 +417,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
     e.preventDefault();
     if (!selectedScoringMatch) return;
 
-    const isElim = tournament?.bracketType === "SINGLE_ELIM" || tournament?.bracketType === "DOUBLE_ELIM";
+    const isElim = tournament?.bracketType === "SINGLE_ELIM";
     if (!techDefeat && isElim && score1 === score2) {
       const ok = await confirm(
         `Счёт ${score1}:${score2} — это ничья. В сетке на выбывание победитель определяется однозначно.\n\nБудет создан матч-реванш с теми же участниками. Результат этого матча сохранится в истории.\n\nПродолжить?`
@@ -709,64 +692,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                   </Button>
                 )}
 
-                {canManage && tournament?.isStarted && !tournament?.isCompleted && tournament?.bracketType === "SWISS" && (() => {
-                  const swissRounds = Array.from(new Set((matches as any[]).map((m: any) => m.round as number))).sort((a, b) => a - b);
-                  const curRound = swissRounds[swissRounds.length - 1] ?? 1;
-                  const curRoundMatches = (matches as any[]).filter((m: any) => m.round === curRound);
-                  const allDone = curRoundMatches.length > 0 && curRoundMatches.every((m: any) => !!m.winnerId);
-                  const recommended = Math.ceil(Math.log2(Math.max(approvedParticipants.length, 2)));
-                  const leader = standings[0];
-                  const leaderParticipant = leader ? participants.find((p: any) => p.id === leader.participantId) : null;
-                  const leaderName = leaderParticipant ? (leaderParticipant.teamSnapshot || leaderParticipant.nicknameSnapshot) : null;
-                  return (
-                    <div className="w-full flex flex-col gap-2 my-1">
-                      {/* Progress context banner */}
-                      <div className="flex flex-wrap items-center gap-3 px-3 py-2 rounded-win border text-[11px] font-mono"
-                        style={{
-                          background: allDone
-                            ? "color-mix(in srgb, var(--status-win) 7%, var(--panel))"
-                            : "color-mix(in srgb, var(--status-live) 6%, var(--panel))",
-                          borderColor: allDone
-                            ? "color-mix(in srgb, var(--status-win) 35%, var(--border))"
-                            : "color-mix(in srgb, var(--status-live) 35%, var(--border))",
-                        }}
-                      >
-                        <span style={{ color: allDone ? "var(--status-win)" : "var(--status-live)" }}>
-                          {allDone ? "✓" : "●"} Тур {curRound}
-                        </span>
-                        <span className="text-[var(--text-muted)]">из {recommended} рекомендованных</span>
-                        {leaderName && (
-                          <>
-                            <span className="text-[var(--border)] opacity-60">·</span>
-                            <span className="text-[var(--text-muted)]">лидер:</span>
-                            <span className="font-bold truncate max-w-[140px]" style={{ color: "var(--status-win)" }}>{leaderName}</span>
-                            <span style={{ color: "var(--status-done)" }}>{leader.wins} оч.</span>
-                          </>
-                        )}
-                        {!allDone && (
-                          <>
-                            <span className="text-[var(--border)] opacity-60">·</span>
-                            <span style={{ color: "var(--status-live)" }}>
-                              {curRoundMatches.filter((m: any) => !m.winnerId).length} матчей ещё идут
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      {/* Action buttons */}
-                      <div className="flex flex-wrap gap-2">
-                        <Button variant="secondary" size="sm" leftIcon={<ArrowsClockwise size={14} />} onClick={handleNextRound}
-                          disabled={!allDone} title={!allDone ? "Сначала завершите все матчи текущего тура" : undefined}>
-                          Следующий тур
-                        </Button>
-                        <Button variant="gel" size="sm" leftIcon={<UserCheck size={14} />} onClick={handleComplete}>
-                          Завершить турнир
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {canManage && tournament?.isStarted && !tournament?.isCompleted && tournament?.bracketType !== "SWISS" && (
+                {canManage && tournament?.isStarted && !tournament?.isCompleted && (
                   <Button variant="gel" size="sm" leftIcon={<UserCheck size={14} />} onClick={handleComplete}>
                     Завершить
                   </Button>
@@ -778,12 +704,11 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
 
         {/* Winner hero block */}
         {tournament?.isCompleted && (() => {
-          const activeM = matches.filter((m: any) => !m.isVoidDraw && m.winnerId);
+          const activeM = matches.filter((m: any) => m.winnerId);
           let winnerParticipant: any = null;
-          if (tournament.bracketType === "SINGLE_ELIM" || tournament.bracketType === "DOUBLE_ELIM") {
-            const gfr = activeM.find((m: any) => m.bracketSection === "grand_final_reset");
-            const gf  = activeM.find((m: any) => m.bracketSection === "grand_final");
-            const fm  = gfr || gf || [...activeM].sort((a: any, b: any) => b.round - a.round)[0];
+          if (tournament.bracketType === "SINGLE_ELIM") {
+            // Победитель — обладатель победы в матче последнего раунда (финале).
+            const fm = [...activeM].sort((a: any, b: any) => b.round - a.round)[0];
             if (fm?.winnerId) winnerParticipant = participantMap.get(fm.winnerId) || null;
           } else if (standings.length > 0) {
             winnerParticipant = participants.find((p: any) => p.id === standings[0].participantId) || null;
@@ -845,8 +770,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
               <span className="font-cond font-semibold uppercase tracking-[.06em] text-[12px] text-[var(--text-muted)]">
                 {tournament?.bracketType === "ROUND_ROBIN"
                   ? "Турнирная таблица (круговая)"
-                  : tournament?.bracketType === "SWISS"
-                  ? "Туры (швейцарская система)"
                   : "Турнирная сетка (реалтайм)"}
               </span>
             </div>
