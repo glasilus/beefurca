@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Radio, Flame, Medal as Award, ArrowLeft, Trophy } from "../../../../components/ui/icons";
 import { FractalAvatar } from "../../../../components/FractalAvatar";
+import { Sprite } from "../../../../components/Sprite";
 import { API_URL, apiFetch } from "../../../../lib/api";
 import { Window, Card } from "../../../../components/ui/Window";
 import { Badge } from "../../../../components/ui/Badge";
@@ -132,6 +133,10 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
 
         {/* Tournament Name Banner */}
         <div className="text-center mb-10">
+          {/* Крылья — декоративный элемент над заголовком */}
+          <div aria-hidden="true" className="flex justify-center mb-4 pointer-events-none select-none opacity-75">
+            <Sprite src="/sprites/wings.png" height={192} />
+          </div>
           <h2 className="text-3xl font-display font-extrabold uppercase tracking-wider text-[var(--text)] break-words">
             {tournament?.name}
           </h2>

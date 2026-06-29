@@ -270,6 +270,23 @@ export default function DashboardPage() {
     <div className="min-h-screen pb-16 relative">
       <Nav active="dashboard" profile={profile} />
 
+      {/* Май — фиксированный правый нижний угол, первый кадр листка 3× */}
+      <div
+        aria-hidden="true"
+        className="hidden lg:block fixed bottom-0 right-0 z-0 pointer-events-none select-none"
+        style={{
+          width: "420px",
+          height: "390px",
+          transform: "translateX(14%)",
+          backgroundImage: "url(/sprites/mai.png)",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "0 0",
+          backgroundSize: "1254px auto",
+          imageRendering: "pixelated" as const,
+          filter: "url(#sprite-key)",
+        }}
+      />
+
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-12 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
         <div className="lg:col-span-8 flex flex-col gap-8">
           {/* Profile */}
