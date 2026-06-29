@@ -270,13 +270,15 @@ export default function DashboardPage() {
     <div className="min-h-screen pb-16 relative">
       <Nav active="dashboard" profile={profile} />
 
-      {/* Май — фиксированный правый нижний угол, первый кадр листка 3× */}
+      {/* Май — фиксированный правый нижний угол.
+          Листок 418×412 → 3 кадра по горизонтали (≈139px каждый), ~5 строк.
+          Первый кадр: 3× = 417×363px; backgroundSize=1254px растягивает всю ленту. */}
       <div
         aria-hidden="true"
         className="hidden lg:block fixed bottom-0 right-0 z-0 pointer-events-none select-none"
         style={{
-          width: "420px",
-          height: "390px",
+          width: "417px",
+          height: "363px",
           transform: "translateX(14%)",
           backgroundImage: "url(/sprites/mai.png)",
           backgroundRepeat: "no-repeat",
