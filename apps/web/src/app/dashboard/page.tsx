@@ -270,31 +270,24 @@ export default function DashboardPage() {
     <div className="min-h-screen pb-16 relative">
       <Nav active="dashboard" profile={profile} />
 
-      {/* Май — overflow:hidden обёртка клипирует ровно первый кадр листка (3×).
-          Лист 418×412, 3 кадра по ширине: один кадр ≈139px → 417px при 3×.
-          Высота первой строки ≈120px → 360px при 3×. */}
+      {/* Май — первый кадр листка 418×412 при 3×. backgroundSize=1254px.
+          Ширина: 414px = 138px×3 (чуть меньше кадра, убирает правый край).
+          Высота: 375px = 125px×3 (чуть меньше первой строки, убирает нижний край). */}
       <div
         aria-hidden="true"
         className="hidden lg:block fixed bottom-0 right-0 z-0 pointer-events-none select-none"
-        style={{ width: "417px", height: "360px", transform: "translateX(14%)", overflow: "hidden" }}
-      >
-        <img
-          src="/sprites/mai.png"
-          alt=""
-          draggable={false}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "1254px",
-            height: "auto",
-            imageRendering: "pixelated",
-            filter: "url(#sprite-key)",
-            display: "block",
-            userSelect: "none",
-          }}
-        />
-      </div>
+        style={{
+          width: "414px",
+          height: "375px",
+          transform: "translateX(14%)",
+          backgroundImage: "url(/sprites/mai.png)",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "0 0",
+          backgroundSize: "1254px auto",
+          imageRendering: "pixelated" as const,
+          filter: "url(#sprite-key)",
+        }}
+      />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-12 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
         <div className="lg:col-span-8 flex flex-col gap-8">
