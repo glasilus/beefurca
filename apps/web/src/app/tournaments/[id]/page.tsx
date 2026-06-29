@@ -8,7 +8,6 @@ import { FractalMedallion } from "../../../components/Fractal";
 import { API_URL, apiFetch, fetchProfile, setSession } from "../../../lib/api";
 import { useToast } from "../../../components/Toast";
 import { useConfirm } from "../../../components/ConfirmDialog";
-import { ThemeToggle } from "../../../components/ThemeToggle";
 import { Nav } from "../../../components/Nav";
 import { Window, Card } from "../../../components/ui/Window";
 import { Button } from "../../../components/ui/Button";
@@ -31,11 +30,9 @@ import {
   DotsSix as GripHorizontal,
   Television as Tv,
   Calendar,
-  ArrowSquareOut as ExternalLink,
   LinkSimple as LinkIcon,
   Check,
   Trash as Trash2,
-  Lock,
   PencilSimple,
 } from "../../../components/ui/icons";
 
@@ -69,7 +66,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
   const [selectedScoringMatch, setSelectedScoringMatch] = useState<any>(null);
   const [score1, setScore1] = useState(0);
   const [score2, setScore2] = useState(0);
-  const [customFieldsData, setCustomFieldsData] = useState<Record<string, any>>({});
   const [techDefeat, setTechDefeat] = useState(false);
   const [techLoserId, setTechLoserId] = useState("");
 
@@ -79,18 +75,11 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
   // Invite link
   const [inviteCopied, setInviteCopied] = useState(false);
 
-  // Metadata modal
-  const [selectedMetadataMatch, setSelectedMetadataMatch] = useState<any>(null);
-  const [metadataStreamUrl, setMetadataStreamUrl] = useState("");
-  const [metadataInviteLink, setMetadataInviteLink] = useState("");
-  const [metadataCustomFields, setMetadataCustomFields] = useState<Record<string, any>>({});
-
   // Edit tournament modal
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editPrizePool, setEditPrizePool] = useState("");
-  const [editIsPrivate, setEditIsPrivate] = useState(false);
   const [editStartDate, setEditStartDate] = useState("");
   const [editEndDate, setEditEndDate] = useState("");
   const [editEntryFee, setEditEntryFee] = useState(0);
@@ -362,7 +351,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
     setEditName(tournament?.name || "");
     setEditDescription(tournament?.description || "");
     setEditPrizePool(tournament?.prizePool || "");
-    setEditIsPrivate(tournament?.isPrivate || false);
     setEditStartDate(tournament?.startDate ? new Date(tournament.startDate).toISOString().slice(0, 16) : "");
     setEditEndDate(tournament?.endDate ? new Date(tournament.endDate).toISOString().slice(0, 16) : "");
     setEditEntryFee(tournament?.entryFee || 0);
@@ -378,7 +366,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
           name: editName,
           description: editDescription || undefined,
           prizePool: editPrizePool || undefined,
-          isPrivate: editIsPrivate,
           startDate: editStartDate || undefined,
           endDate: editEndDate || undefined,
           entryFee: editEntryFee,
@@ -417,14 +404,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
     e.preventDefault();
     if (!selectedScoringMatch) return;
 
-    const isElim = tournament?.bracketType === "SINGLE_ELIM";
-    if (!techDefeat && isElim && score1 === score2) {
-      const ok = await confirm(
-        `Счёт ${score1}:${score2} — это ничья. В сетке на выбывание победитель определяется однозначно.\n\nБудет создан матч-реванш с теми же участниками. Результат этого матча сохранится в истории.\n\nПродолжить?`
-      );
-      if (!ok) return;
-    }
-
     try {
       let res: Response;
       if (techDefeat) {
@@ -439,7 +418,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
       } else {
         res = await apiFetch(`/matches/${selectedScoringMatch.id}/score`, {
           method: "POST",
-          body: JSON.stringify({ score1, score2, customFieldsData }),
+          body: JSON.stringify({ score1, score2 }),
         });
       }
       const data = await res.json();
@@ -458,37 +437,8 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
     setSelectedScoringMatch(null);
     setScore1(0);
     setScore2(0);
-    setCustomFieldsData({});
     setTechDefeat(false);
     setTechLoserId("");
-  };
-
-  const handleSaveMetadata = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMetadataMatch) return;
-    try {
-      const mergedFields = {
-        ...metadataCustomFields,
-        stream_url: metadataStreamUrl.trim() || undefined,
-        invite_link: metadataInviteLink.trim() || undefined,
-      };
-      const res = await apiFetch(`/matches/${selectedMetadataMatch.id}/metadata`, {
-        method: "PUT",
-        body: JSON.stringify({ customFieldsData: mergedFields }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSelectedMetadataMatch(null);
-        setMetadataStreamUrl("");
-        setMetadataInviteLink("");
-        setMetadataCustomFields({});
-        await loadTournamentDetails();
-      } else {
-        toast.error(data.error || "Не удалось сохранить информацию");
-      }
-    } catch (err: any) {
-      toast.error(err.message);
-    }
   };
 
   const handleSetMatchReferee = async (matchId: string, refId: string) => {
@@ -505,16 +455,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
     }
   };
 
-  const openMetadataModal = (m: any) => {
-    setSelectedMetadataMatch(m);
-    setMetadataStreamUrl(m.customFieldsData?.stream_url || "");
-    setMetadataInviteLink(m.customFieldsData?.invite_link || "");
-    const otherFields: Record<string, any> = {};
-    tournament?.customFieldsSchema?.forEach((f: any) => {
-      otherFields[f.name] = m.customFieldsData?.[f.name] || "";
-    });
-    setMetadataCustomFields(otherFields);
-  };
 
   if (loading) {
     return (
@@ -550,7 +490,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
   };
 
   const myRefereedMatches = matches
-    .filter((m) => (m.refereeId === currentUser?.id || canManage) && !m.winnerId && !m.isVoidDraw && m.participant1Id && m.participant2Id)
+    .filter((m) => (m.refereeId === currentUser?.id || canManage) && !m.winnerId && m.participant1Id && m.participant2Id)
     .sort((a, b) => a.round !== b.round ? a.round - b.round : a.position - b.position);
 
   const scoringName1 = selectedScoringMatch ? nameOf(selectedScoringMatch.participant1Id) : "";
@@ -578,7 +518,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
           </Button>
           <span className="font-display font-bold text-sm tracking-wider uppercase text-[var(--text)]">Турнирная панель</span>
           <div className="flex items-center gap-3">
-            <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
               Кабинет
             </Button>
@@ -596,9 +535,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                 <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 mb-2">
                   <Badge tone="draft">{tournament?.tournamentType}</Badge>
                   <Badge tone="accent">{tournament?.bracketType}</Badge>
-                  {tournament?.isPrivate && (
-                    <Badge tone="accent"><Lock size={10} weight="bold" /> Приватный</Badge>
-                  )}
                   <Badge tone={tournamentStatusTone(tournamentStatusLabel)} dot={tournament?.isStarted && !tournament?.isCompleted}>
                     {tournamentStatusLabel}
                   </Badge>
@@ -938,7 +874,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                   <Card key={m.id}>
                     <div className="flex justify-between items-center text-[10px] text-[var(--text-muted)] font-mono pb-2 border-b border-[var(--hairline)]">
                       <span>Раунд {m.round} | Пара {m.position + 1}</span>
-                      <Button variant="ghost" size="sm" onClick={() => openMetadataModal(m)}>Инфо</Button>
                     </div>
 
                     {/* Inline live-score controls */}
@@ -981,7 +916,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                         setSelectedScoringMatch(m);
                         setScore1(s1);
                         setScore2(s2);
-                        setCustomFieldsData({});
                         setTechDefeat(false);
                         setTechLoserId("");
                       }}
@@ -1023,48 +957,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                       <span className="truncate max-w-[120px]">{nameOf(m.participant2Id)}</span>
                       <span className="font-mono font-bold">{m.score2 !== null ? m.score2 : "-"}</span>
                     </div>
-                  </div>
-                  <div className="mt-2 pt-2 border-t border-[var(--hairline)] flex flex-col gap-1.5">
-                    {/* Links */}
-                    {(m.customFieldsData?.stream_url || m.customFieldsData?.invite_link) && (
-                      <div className="flex gap-2">
-                        {m.customFieldsData?.stream_url && (
-                          <a href={m.customFieldsData.stream_url} target="_blank" rel="noopener noreferrer" className="px-2 py-0.5 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--hairline)] text-[8px] text-[var(--text)] hover:text-[var(--accent)] flex items-center gap-1 transition">
-                            <Tv size={8} className="text-[var(--status-danger)]" /><span>Стрим</span>
-                          </a>
-                        )}
-                        {m.customFieldsData?.invite_link && (
-                          <a href={m.customFieldsData.invite_link} target="_blank" rel="noopener noreferrer" className="px-2 py-0.5 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--hairline)] text-[8px] text-[var(--text)] hover:text-[var(--accent)] flex items-center gap-1 transition">
-                            <ExternalLink size={8} className="text-[var(--accent)]" /><span>Комната</span>
-                          </a>
-                        )}
-                      </div>
-                    )}
-                    {/* Dynamic custom fields */}
-                    {(() => {
-                      const schema: any[] = tournament?.customFieldsSchema || [];
-                      const data: Record<string, any> = m.customFieldsData || {};
-                      const fields = schema.filter(
-                        (f: any) => data[f.name] != null && data[f.name] !== ""
-                      );
-                      if (!fields.length) return null;
-                      return (
-                        <div className="flex flex-wrap gap-1.5">
-                          {fields.map((f: any) => (
-                            <span key={f.name} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--panel-sunken)] border border-[var(--hairline)] text-[8px] font-mono max-w-full">
-                              <span className="text-[var(--text-muted)] shrink-0">{f.label}:</span>
-                              <span className="text-[var(--text)] font-bold truncate">{String(data[f.name])}</span>
-                            </span>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                    {/* Referee info button */}
-                    {(m.refereeId === currentUser?.id || canManage) && (
-                      <div className="flex justify-end">
-                        <Button variant="ghost" size="sm" onClick={() => openMetadataModal(m)}>Инфо</Button>
-                      </div>
-                    )}
                   </div>
                 </Card>
               ))}
@@ -1185,21 +1077,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                   <Input type="number" required min={0} className="text-right font-mono" value={score2} onChange={(e) => setScore2(Number(e.target.value))} />
                 </Field>
               </div>
-
-              {tournament?.customFieldsSchema && tournament.customFieldsSchema.map((field: any) => (
-                <Field key={field.name} label={`${field.label}${field.required ? " *" : ""}`}>
-                  <Input
-                    type={field.type === "number" ? "number" : "text"}
-                    required={field.required}
-                    placeholder={`Введите ${field.label.toLowerCase()}`}
-                    value={customFieldsData[field.name] || ""}
-                    onChange={(e) => {
-                      const val = field.type === "number" ? Number(e.target.value) || 0 : e.target.value;
-                      setCustomFieldsData((prev) => ({ ...prev, [field.name]: val }));
-                    }}
-                  />
-                </Field>
-              ))}
             </>
           )}
         </form>
@@ -1272,46 +1149,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
               </Field>
             </>
           )}
-          <Checkbox
-            label="Приватный турнир (скрыт из общего каталога)"
-            checked={editIsPrivate}
-            onChange={(e) => setEditIsPrivate(e.target.checked)}
-          />
-        </form>
-      </Modal>
-
-      {/* Metadata modal */}
-      <Modal
-        open={!!selectedMetadataMatch}
-        title="Информация о матче"
-        onClose={() => setSelectedMetadataMatch(null)}
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setSelectedMetadataMatch(null)}>Отмена</Button>
-            <Button variant="gel" type="submit" form="metadata-form">Сохранить</Button>
-          </>
-        }
-      >
-        <form id="metadata-form" onSubmit={handleSaveMetadata} className="flex flex-col gap-4">
-          <Field label="Ссылка на стрим / трансляцию">
-            <Input type="url" placeholder="https://twitch.tv/..." value={metadataStreamUrl} onChange={(e) => setMetadataStreamUrl(e.target.value)} />
-          </Field>
-          <Field label="Ссылка-приглашение в комнату (лобби)">
-            <Input type="text" placeholder="https://lichess.org/..." value={metadataInviteLink} onChange={(e) => setMetadataInviteLink(e.target.value)} />
-          </Field>
-          {tournament?.customFieldsSchema && tournament.customFieldsSchema.map((field: any) => (
-            <Field key={field.name} label={field.label}>
-              <Input
-                type={field.type === "number" ? "number" : "text"}
-                placeholder={`Введите ${field.label.toLowerCase()}`}
-                value={metadataCustomFields[field.name] || ""}
-                onChange={(e) => {
-                  const val = field.type === "number" ? Number(e.target.value) || 0 : e.target.value;
-                  setMetadataCustomFields((prev) => ({ ...prev, [field.name]: val }));
-                }}
-              />
-            </Field>
-          ))}
         </form>
       </Modal>
     </div>

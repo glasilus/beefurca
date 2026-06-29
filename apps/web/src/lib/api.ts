@@ -104,8 +104,8 @@ export async function apiFetch(
 
 /**
  * Возвращает профиль текущего пользователя (через Bearer ИЛИ cookie) либо null.
- * Используется как guard на защищённых страницах: работает и для Discord-входа,
- * у которого нет токена в localStorage.
+ * Используется как guard на защищённых страницах: работает и когда токена нет
+ * в localStorage (сессия только в httpOnly-cookie).
  */
 export async function fetchProfile(): Promise<any | null> {
   try {

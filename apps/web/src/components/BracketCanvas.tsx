@@ -24,10 +24,7 @@ interface MatchData {
   score2: number | null;
   winnerId: string | null;
   isTechDefeat: boolean;
-  isVoidDraw?: boolean;
-  bracketSection?: string | null;
   nextMatchId?: string | null;
-  loserNextMatchId?: string | null;
 }
 
 interface ParticipantData {
@@ -143,16 +140,9 @@ const MatchNode: React.FC<NodeProps> = ({ data }) => {
   );
 };
 
-// Lane label node (for double elimination)
-const LaneLabel: React.FC<NodeProps> = ({ data }) => (
-  <div className="text-[11px] font-mono uppercase tracking-widest text-text-muted font-bold pointer-events-none">
-    {(data as Record<string, unknown>).label as string}
-  </div>
-);
+const nodeTypes = { matchNode: MatchNode };
 
-const nodeTypes = { matchNode: MatchNode, laneLabel: LaneLabel };
-
-// ---------- Flow graph (Single / Double Elim) ----------
+// ---------- Flow graph (Single Elimination) ----------
 const FlowBracket: React.FC<BracketCanvasProps> = ({
   matches,
   participants,
@@ -164,7 +154,7 @@ const FlowBracket: React.FC<BracketCanvasProps> = ({
 
     const nodesList: Node[] = [];
     const edgesList: Edge[] = [];
-    const valid = matches.filter((m) => m.round > 0 && !m.isVoidDraw);
+    const valid = matches.filter((m) => m.round > 0);
 
     const mkNode = (m: MatchData, x: number, y: number) =>
       nodesList.push({
@@ -192,97 +182,6 @@ const FlowBracket: React.FC<BracketCanvasProps> = ({
       ...(isLoser ? { strokeDasharray: "5 4" } : {}),
     });
 
-    if (bracketType === "DOUBLE_ELIM") {
-      const winners  = valid.filter((m) => m.bracketSection === "winners");
-      const losers   = valid.filter((m) => m.bracketSection === "losers");
-      const finals   = valid.filter(
-        (m) => m.bracketSection === "grand_final" || m.bracketSection === "grand_final_reset",
-      );
-      const allW = [...valid.filter((m) => !m.bracketSection), ...winners];
-
-      const wR1count = Math.max(1, allW.filter((m) => m.round === 1).length);
-      const maxWR    = allW.length ? Math.max(...allW.map((m) => m.round)) : 1;
-      const maxLR    = losers.length ? Math.max(...losers.map((m) => m.round)) : 0;
-
-      // Winners bracket — proper binary-tree vertical centering
-      if (allW.length) {
-        nodesList.push({
-          id: "lbl-w", type: "laneLabel",
-          position: { x: 0, y: -40 }, data: { label: "Winners Bracket" },
-          draggable: false, selectable: false,
-        });
-      }
-      allW.forEach((m) => {
-        const x       = (m.round - 1) * COL;
-        const spacing = ROW * Math.pow(2, m.round - 1);
-        const offset  = (Math.pow(2, m.round - 1) - 1) * (ROW / 2);
-        mkNode(m, x, m.position * spacing + offset);
-      });
-
-      // Gap between sections
-      const winnersH = wR1count * ROW + 140;
-
-      // Losers bracket — column width scaled so both sections have similar total width
-      const LCOL = maxLR > 0 ? Math.round((maxWR * COL) / maxLR) : COL;
-
-      // Group losers by round to center shorter rounds vertically
-      const lByRound = new Map<number, MatchData[]>();
-      losers.forEach((m) => {
-        const arr = lByRound.get(m.round) ?? [];
-        arr.push(m);
-        lByRound.set(m.round, arr);
-      });
-      const maxInLR = lByRound.size
-        ? Math.max(...Array.from(lByRound.values()).map((a) => a.length))
-        : 1;
-
-      if (losers.length) {
-        nodesList.push({
-          id: "lbl-l", type: "laneLabel",
-          position: { x: 0, y: winnersH - 40 }, data: { label: "Losers Bracket" },
-          draggable: false, selectable: false,
-        });
-        losers.forEach((m) => {
-          const rLen = lByRound.get(m.round)!.length;
-          const x    = (m.round - 1) * LCOL;
-          const yOff = Math.floor(((maxInLR - rLen) / 2) * ROW);
-          mkNode(m, x, winnersH + yOff + m.position * ROW);
-        });
-      }
-
-      // Grand Final — to the right of both brackets, centered vertically.
-      // grand_final_reset is hidden while neither finalist has been placed yet;
-      // it appears as soon as at least one participant or a winner is present.
-      const activeFinals = finals.filter(
-        (m) =>
-          m.bracketSection !== "grand_final_reset" ||
-          m.participant1Id ||
-          m.participant2Id ||
-          m.winnerId,
-      );
-      const rightEdge = Math.max(maxWR * COL, maxLR * LCOL);
-      const gfX       = rightEdge + Math.round(COL * 0.45);
-      const totalH    = winnersH + maxInLR * ROW;
-      const gfCenterY = totalH / 2 - ROW / 2 - ((activeFinals.length - 1) * (ROW + 16)) / 2;
-      activeFinals.forEach((m, i) => mkNode(m, gfX, gfCenterY + i * (ROW + 16)));
-
-      // Edges: winner-path only.
-      // loserNextMatchId lines (W→L drop) are intentionally omitted —
-      // they cross the entire canvas and make the bracket unreadable.
-      valid.forEach((m) => {
-        if (m.nextMatchId) {
-          edgesList.push({
-            id: `n-${m.id}`,
-            source: m.id,
-            target: m.nextMatchId,
-            type: "smoothstep",
-            animated: !!m.winnerId,
-            style: edgeStyle(m),
-          });
-        }
-      });
-    } else {
-      // SINGLE ELIM -- binary tree
       valid.forEach((m) => {
         const x = (m.round - 1) * COL;
         const spacing = ROW * Math.pow(2, m.round - 1);
@@ -299,7 +198,6 @@ const FlowBracket: React.FC<BracketCanvasProps> = ({
           });
         }
       });
-    }
 
     return { nodes: nodesList, edges: edgesList };
   }, [matches, participants, bracketType]);
@@ -569,195 +467,10 @@ const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({ matches, participants 
   );
 };
 
-// ---------- Columns by round (Swiss) ----------
-const SwissColumns: React.FC<BracketCanvasProps> = ({ matches, participants }) => {
-  const pMap = new Map<string, ParticipantData>();
-  participants.forEach((p) => pMap.set(p.id, p));
-  const nameOf = (id: string | null) => {
-    if (!id) return null;
-    const p = pMap.get(id);
-    return p ? p.teamSnapshot || p.nicknameSnapshot : "?";
-  };
-
-  // Points per participant from played matches
-  const pts = new Map<string, number>();
-  matches.forEach((m) => {
-    if (m.winnerId) {
-      pts.set(m.winnerId, (pts.get(m.winnerId) ?? 0) + 1);
-    } else if (m.score1 !== null && m.score2 !== null) {
-      if (m.participant1Id) pts.set(m.participant1Id, (pts.get(m.participant1Id) ?? 0) + 0.5);
-      if (m.participant2Id) pts.set(m.participant2Id, (pts.get(m.participant2Id) ?? 0) + 0.5);
-    }
-  });
-
-  const rounds = Array.from(new Set(matches.map((m) => m.round))).sort((a, b) => a - b);
-  const currentRound = rounds[rounds.length - 1] ?? 1;
-  const currentRoundMatches = matches.filter((m) => m.round === currentRound);
-  const allCurrentDone = currentRoundMatches.length > 0 && currentRoundMatches.every((m) => !!m.winnerId);
-
-  const leader = participants.length > 0
-    ? [...participants].sort((a, b) => (pts.get(b.id) ?? 0) - (pts.get(a.id) ?? 0))[0]
-    : null;
-  const leaderPts = leader ? (pts.get(leader.id) ?? 0) : 0;
-
-  return (
-    <div className="window-shell w-full flex flex-col" style={{ height: 580 }}>
-      {/* ── HEADER ── */}
-      <div className="brushed border-b border-border shrink-0 flex items-center justify-between px-4 gap-4" style={{ height: 52 }}>
-        <div className="flex items-center gap-2.5">
-          <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted">Швейцарская система</span>
-          <span className="text-[10px] font-mono text-text-muted opacity-40">·</span>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-widest" style={{ color: "var(--status-done)" }}>
-            {rounds.length} {rounds.length === 1 ? "тур" : rounds.length < 5 ? "тура" : "туров"}
-          </span>
-        </div>
-        {leader && leaderPts > 0 && (
-          <div className="flex items-center gap-2 shrink-0">
-            <FractalMedallion seed={leader.id} size={20} />
-            <span className="text-[10px] font-mono text-text-muted">лидер:</span>
-            <span className="text-[10px] font-mono font-bold truncate max-w-[110px]" style={{ color: "var(--status-win)" }}>
-              {nameOf(leader.id)}
-            </span>
-            <span className="text-[10px] font-mono font-bold" style={{ color: "var(--status-done)" }}>
-              {leaderPts % 1 === 0 ? leaderPts : leaderPts.toFixed(1)} оч.
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* ── BODY — horizontal scroll ── */}
-      <div className="flex-1 overflow-auto">
-        <div className="flex gap-4 p-4" style={{ minWidth: rounds.length * 218 + 32 }}>
-          {rounds.map((r) => {
-            const roundMatches = matches.filter((m) => m.round === r).sort((a, b) => a.position - b.position);
-            const roundDone = roundMatches.length > 0 && roundMatches.every((m) => !!m.winnerId);
-            const isCurrent = r === currentRound;
-
-            return (
-              <div key={r} className="flex flex-col gap-2 shrink-0" style={{ width: 206 }}>
-                {/* Round label */}
-                <div
-                  className="flex items-center justify-between px-3 py-2 rounded-win border"
-                  style={{
-                    background: isCurrent
-                      ? "color-mix(in srgb, var(--accent) 8%, var(--panel))"
-                      : "var(--panel)",
-                    borderColor: isCurrent
-                      ? "color-mix(in srgb, var(--accent) 45%, var(--border))"
-                      : "var(--border)",
-                    boxShadow: isCurrent ? "inset 0 1px 0 var(--gloss)" : undefined,
-                  }}
-                >
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider"
-                    style={{ color: isCurrent ? "var(--accent)" : "var(--text-muted)" }}>
-                    Тур {r}
-                  </span>
-                  {roundDone ? (
-                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded"
-                      style={{ background: "color-mix(in srgb, var(--status-win) 15%, transparent)", color: "var(--status-win)" }}>
-                      ✓ завершён
-                    </span>
-                  ) : isCurrent ? (
-                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded"
-                      style={{ background: "color-mix(in srgb, var(--status-live) 15%, transparent)", color: "var(--status-live)" }}>
-                      ● идёт
-                    </span>
-                  ) : null}
-                </div>
-
-                {/* Match cards */}
-                {roundMatches.map((m) => {
-                  const isBye = !m.participant2Id;
-                  const w1 = m.winnerId === m.participant1Id;
-                  const w2 = m.winnerId === m.participant2Id;
-                  const played = !!m.winnerId || (m.score1 !== null && m.score2 !== null);
-
-                  const rowStyle = (isWin: boolean, isLoss: boolean) => ({
-                    background: isWin
-                      ? "color-mix(in srgb, var(--status-win) 10%, var(--panel))"
-                      : undefined,
-                    borderLeft: isWin
-                      ? "2.5px solid var(--status-win)"
-                      : isLoss
-                      ? "2.5px solid var(--status-danger)"
-                      : "2.5px solid transparent",
-                    boxShadow: isWin ? "inset 0 1px 0 rgba(40,200,64,0.18)" : undefined,
-                  });
-
-                  return (
-                    <div key={m.id} className="rounded-card border border-border overflow-hidden"
-                      style={{ background: "var(--panel)", boxShadow: "inset 0 1px 0 var(--gloss), 0 2px 6px var(--shadow)" }}>
-                      {isBye ? (
-                        <div className="flex items-center gap-2 px-3 py-2.5">
-                          <FractalMedallion seed={m.participant1Id || "bye"} size={22} />
-                          <span className="text-xs font-semibold text-text truncate flex-1">{nameOf(m.participant1Id)}</span>
-                          <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0"
-                            style={{ background: "color-mix(in srgb, var(--status-win) 15%, transparent)", color: "var(--status-win)" }}>
-                            BYE
-                          </span>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-hairline"
-                            style={rowStyle(w1, played && !w1)}>
-                            <FractalMedallion seed={m.participant1Id || "p1"} size={22} />
-                            <span className="text-xs font-semibold truncate flex-1"
-                              style={{ color: w1 ? "var(--status-win)" : played && !w1 ? "var(--text-muted)" : "var(--text)" }}>
-                              {nameOf(m.participant1Id) ?? "Ожидание"}
-                            </span>
-                            <span className="font-mono font-bold text-sm shrink-0 ml-1" style={{ color: "var(--text)" }}>
-                              {m.score1 !== null ? m.score1 : "—"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 px-3 py-2.5"
-                            style={rowStyle(w2, played && !w2)}>
-                            <FractalMedallion seed={m.participant2Id || "p2"} size={22} />
-                            <span className="text-xs font-semibold truncate flex-1"
-                              style={{ color: w2 ? "var(--status-win)" : played && !w2 ? "var(--text-muted)" : "var(--text)" }}>
-                              {nameOf(m.participant2Id) ?? "Ожидание"}
-                            </span>
-                            <span className="font-mono font-bold text-sm shrink-0 ml-1" style={{ color: "var(--text)" }}>
-                              {m.score2 !== null ? m.score2 : "—"}
-                            </span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── FOOTER ── */}
-      <div className="brushed border-t border-border shrink-0 px-4 flex items-center gap-x-5 text-[9px] font-mono"
-        style={{ height: 38, color: "var(--text-muted)" }}>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-[2px] inline-block shrink-0"
-            style={{ background: "color-mix(in srgb, var(--status-win) 25%, var(--panel))", borderLeft: "2px solid var(--status-win)" }} />
-          победа
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-[2px] inline-block shrink-0"
-            style={{ background: "color-mix(in srgb, var(--status-danger) 18%, var(--panel))", borderLeft: "2px solid var(--status-danger)" }} />
-          поражение
-        </span>
-        <span className="ml-auto opacity-60">
-          {allCurrentDone
-            ? `Тур ${currentRound} завершён — можно начать следующий или закончить турнир`
-            : `Тур ${currentRound}: ещё идут матчи`}
-        </span>
-      </div>
-    </div>
-  );
-};
 
 // ---------- Dispatcher ----------
 export const BracketCanvas: React.FC<BracketCanvasProps> = (props) => {
   const { bracketType } = props;
   if (bracketType === "ROUND_ROBIN") return <RoundRobinMatrix {...props} />;
-  if (bracketType === "SWISS") return <SwissColumns {...props} />;
   return <FlowBracket {...props} />;
 };

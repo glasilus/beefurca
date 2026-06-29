@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MagnifyingGlass as Search, Calendar, ArrowRight, Lock } from "../../components/ui/icons";
+import { MagnifyingGlass as Search, Calendar, ArrowRight } from "../../components/ui/icons";
 import { apiFetch, fetchProfile, setSession } from "../../lib/api";
 import { Nav } from "../../components/Nav";
 import { FractalMedallion } from "../../components/Fractal";
@@ -118,12 +118,11 @@ export default function TournamentsListPage() {
                 {disciplinesList.map((d) => (<option key={d.id} value={d.name}>{d.name}</option>))}
               </Select>
             </Field>
-            <Field label="Уровень лиги">
+            <Field label="Режим">
               <Select value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
-                <option value="">Все уровни</option>
-                <option value="PRO">PRO Лиги</option>
-                <option value="AMATEUR">Amateur Турниры</option>
-                <option value="SANDBOX">Sandbox Песочницы</option>
+                <option value="">Все режимы</option>
+                <option value="STANDARD">Обычные</option>
+                <option value="SANDBOX">Автономные (песочница)</option>
               </Select>
             </Field>
             <Field label="Статус">
@@ -153,12 +152,7 @@ export default function TournamentsListPage() {
                   <div className="flex justify-between items-start mb-3">
                     <Badge tone={status.tone} dot={status.tone === "live"}>{status.label}</Badge>
                     <div className="flex items-center gap-1.5">
-                      {t.isPrivate && (
-                        <Badge tone="accent">
-                          <Lock size={10} weight="bold" /> Приватный
-                        </Badge>
-                      )}
-                      <Badge tone="draft">{t.tournamentType}</Badge>
+                      <Badge tone="draft">{t.tournamentType === "SANDBOX" ? "Автономный" : "Обычный"}</Badge>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 mb-2">

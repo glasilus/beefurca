@@ -25,7 +25,6 @@ import {
   Trash as Trash2,
   TrendUp as TrendingUp,
   PencilSimple,
-  DiscordLogo,
   Check,
   UserCircle,
 } from "../../components/ui/icons";
@@ -281,11 +280,6 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2 mb-1 flex-wrap justify-center sm:justify-start min-w-0">
                   <span className="text-lg font-bold text-[var(--text)] break-words min-w-0">{profile?.nickname}</span>
                   <Badge tone="draft">{profile?.role}</Badge>
-                  {profile?.discordLinked && (
-                    <Badge tone="accent">
-                      <DiscordLogo size={10} weight="fill" /> Discord
-                    </Badge>
-                  )}
                 </div>
                 <p className="text-xs text-[var(--text-muted)]">{profile?.email}</p>
                 {(profile?.fullName || profile?.phone) && (

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Television as Tv, Radio, Flame, Clock, Medal as Award, ArrowSquareOut as ExternalLink, ArrowLeft, Trophy } from "../../../../components/ui/icons";
+import { Radio, Flame, Medal as Award, ArrowLeft, Trophy } from "../../../../components/ui/icons";
 import { FractalAvatar } from "../../../../components/FractalAvatar";
 import { API_URL, apiFetch } from "../../../../lib/api";
 import { Window, Card } from "../../../../components/ui/Window";
@@ -227,53 +227,6 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
 
               </div>
 
-              {/* Match metadata: links + all dynamic schema fields */}
-              {(() => {
-                const data: Record<string, any> = featuredMatch.customFieldsData || {};
-                const schema: any[] = tournament?.customFieldsSchema || [];
-                const extraFields = schema.filter(
-                  (f: any) => data[f.name] != null && data[f.name] !== ""
-                );
-                const hasLinks = data.stream_url || data.invite_link;
-                if (!hasLinks && !extraFields.length) return null;
-                return (
-                  <div className="mt-8 pt-6 border-t border-[var(--hairline)]">
-                    {hasLinks && (
-                      <div className="flex flex-wrap gap-4 justify-center text-xs font-mono mb-4">
-                        {data.stream_url && (
-                          <a href={data.stream_url} target="_blank" rel="noopener noreferrer"
-                            className="px-4 py-2 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--border)] hover:border-[var(--status-danger)] text-[var(--text)] hover:text-[var(--status-danger)] flex items-center gap-2 transition">
-                            <Tv size={14} className="text-[var(--status-danger)]" />
-                            <span>Смотреть трансляцию матча</span>
-                            <ExternalLink size={12} />
-                          </a>
-                        )}
-                        {data.invite_link && (
-                          <a href={data.invite_link} target="_blank" rel="noopener noreferrer"
-                            className="px-4 py-2 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] hover:text-[var(--accent)] flex items-center gap-2 transition">
-                            <Clock size={14} className="text-[var(--accent)]" />
-                            <span>Присоединиться к комнате (Chess / Lobbies)</span>
-                            <ExternalLink size={12} />
-                          </a>
-                        )}
-                      </div>
-                    )}
-                    {extraFields.length > 0 && (
-                      <div className="flex flex-wrap gap-3 justify-center">
-                        {extraFields.map((f: any) => (
-                          <div key={f.name}
-                            className="flex flex-col items-center gap-0.5 px-4 py-2.5 rounded-win bg-[var(--panel-sunken)] border border-[var(--border)]"
-                            style={{ boxShadow: "inset 0 1px 0 var(--gloss)" }}
-                          >
-                            <span className="text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)]">{f.label}</span>
-                            <span className="text-sm font-bold font-mono text-[var(--text)] break-all">{String(data[f.name])}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
             </Window>
           </div>
         )}
@@ -328,33 +281,6 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
                       </div>
                     </div>
 
-                    {/* Metadata indicators */}
-                    {(m.customFieldsData?.stream_url || m.customFieldsData?.invite_link) && (
-                      <div className="flex gap-2 mt-3 pt-3 border-t border-[var(--hairline)]">
-                        {m.customFieldsData.stream_url && (
-                          <a
-                            href={m.customFieldsData.stream_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--hairline)] text-[8px] text-[var(--text-muted)] hover:text-[var(--text)] flex items-center gap-1 transition"
-                          >
-                            <Tv size={10} className="text-[var(--status-danger)]" />
-                            <span>Стрим</span>
-                          </a>
-                        )}
-                        {m.customFieldsData.invite_link && (
-                          <a
-                            href={m.customFieldsData.invite_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1 rounded-ctl bg-[var(--panel-sunken)] border border-[var(--hairline)] text-[8px] text-[var(--text-muted)] hover:text-[var(--text)] flex items-center gap-1 transition"
-                          >
-                            <Clock size={10} className="text-[var(--accent)]" />
-                            <span>Комната</span>
-                          </a>
-                        )}
-                      </div>
-                    )}
                   </Window>
                   </div>
                 );
