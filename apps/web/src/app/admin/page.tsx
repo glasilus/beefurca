@@ -13,7 +13,7 @@ import {
   Star,
   SealCheck,
   PencilSimple,
-} from "@phosphor-icons/react";
+} from "../../components/ui/icons";
 import { API_URL, apiFetch, fetchProfile, setSession } from "../../lib/api";
 import { Nav } from "../../components/Nav";
 import { useToast } from "../../components/Toast";

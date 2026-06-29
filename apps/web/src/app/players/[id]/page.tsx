@@ -17,7 +17,7 @@ import {
   TrendUp as TrendingUp,
   ArrowLeft,
   Calendar,
-} from "@phosphor-icons/react";
+} from "../../../components/ui/icons";
 
 export default function PlayerProfilePage() {
   const router = useRouter();

@@ -1,86 +1,49 @@
 "use client";
 
 import React from "react";
-import { useFractal } from "../lib/fractalClient";
-import type { FractalOpts } from "../lib/fractal";
+import { PixelAvatar } from "./PixelAvatar";
 
 /* ----------------------------------------------------------------
-   <Fractal> — renders a fractal as an <img> with lazy loading
+   Упрощённая версия: бывшие фрактальные компоненты теперь рендерят
+   детерминированный пиксельный идентикон (PixelAvatar). Имена и пропсы
+   сохранены ради обратной совместимости со страницами.
    ---------------------------------------------------------------- */
 
 interface FractalProps {
   seed?: string;
   size?: number;
   className?: string;
-  opts?: Omit<FractalOpts, "seed">;
+  opts?: unknown; // игнорируется (наследие фрактального API)
 }
-
-/** Max raster size for performance; CSS scales up beyond this. */
-const MAX_RASTER = 160;
 
 export const Fractal: React.FC<FractalProps> = ({
   seed = "beefurca",
   size = 64,
   className,
-  opts,
 }) => {
-  const rasterSize = Math.min(size, MAX_RASTER);
-  const mergedOpts: FractalOpts = { seed, ...opts };
-  const { ref, dataUrl } = useFractal(mergedOpts, rasterSize);
-
-  return (
-    <span
-      ref={ref as React.RefObject<HTMLSpanElement>}
-      className={className}
-      style={{
-        display: "inline-block",
-        width: size,
-        height: size,
-        borderRadius: "inherit",
-        overflow: "hidden",
-        background: "transparent",
-      }}
-    >
-      {dataUrl && (
-        <img
-          alt=""
-          src={dataUrl}
-          width={size}
-          height={size}
-          style={{ display: "block", width: "100%", height: "100%" }}
-        />
-      )}
-    </span>
-  );
+  return <PixelAvatar seed={seed} size={size} className={className} />;
 };
-
-/* ----------------------------------------------------------------
-   <FractalMedallion> — gel-lens wrapper around <Fractal>
-   ---------------------------------------------------------------- */
 
 interface FractalMedallionProps {
   seed?: string;
   size?: number;
   shape?: "circle" | "rounded";
   className?: string;
-  opts?: Omit<FractalOpts, "seed">;
+  opts?: unknown;
 }
 
+/** Пиксельный аватар в чанковой бевел-рамке PC-98. */
 export const FractalMedallion: React.FC<FractalMedallionProps> = ({
   seed = "beefurca",
   size = 64,
-  shape = "circle",
   className,
-  opts,
 }) => {
-  const medallionClass =
-    shape === "rounded"
-      ? `medallion medallion-rounded ${className ?? ""}`
-      : `medallion ${className ?? ""}`;
-
   return (
-    <span className={medallionClass} style={{ width: size, height: size }}>
-      <Fractal seed={seed} size={size} opts={opts} />
+    <span
+      className={`panel-98 inline-flex items-center justify-center ${className ?? ""}`}
+      style={{ width: size, height: size, padding: 2 }}
+    >
+      <PixelAvatar seed={seed} size={size - 4} />
     </span>
   );
 };

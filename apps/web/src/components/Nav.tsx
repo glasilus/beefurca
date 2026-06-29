@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { SignOut as LogOut, Plus, List as Menu, X } from "@phosphor-icons/react";
+import { SignOut as LogOut, Plus, List as Menu, X } from "./ui/icons";
 import { logout as apiLogout } from "../lib/api";
 import { ThemeToggle } from "./ThemeToggle";
 import { Logo } from "./Logo";

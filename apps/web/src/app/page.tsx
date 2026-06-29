@@ -3,7 +3,6 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { FractalAvatar } from "../components/FractalAvatar";
-import { FractalSeal } from "../components/FractalSeal";
 import { BracketCanvas } from "../components/BracketCanvas";
 import { Logo } from "../components/Logo";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -11,7 +10,7 @@ import { Button } from "../components/ui/Button";
 import { Window, Card } from "../components/ui/Window";
 import { Table } from "../components/ui/Table";
 import { Badge } from "../components/ui/Badge";
-import { Trophy, Shield, Users, Stack as Layers, Pulse as Activity, Calendar } from "@phosphor-icons/react";
+import { Trophy, Shield, Users, Stack as Layers, Pulse as Activity, Calendar } from "../components/ui/icons";
 
 export default function Home() {
   const router = useRouter();
@@ -231,7 +230,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Leaderboard and Cryptographic Seal Demo */}
+          {/* Leaderboard */}
           <section className="lg:col-span-5 flex flex-col gap-8">
             <div>
               <div className="flex items-center gap-2 mb-6">
@@ -244,22 +243,6 @@ export default function Home() {
                   rows={mockLeaderboard}
                   rowKey={(row) => row.rank}
                 />
-              </Window>
-            </div>
-
-            {/* Cryptographic Referee Seal Demo */}
-            <div>
-              <h2 className="font-display font-bold text-xl uppercase tracking-wider mb-6 flex items-center gap-2 text-[var(--text)]">
-                <Shield className="text-[var(--accent)]" size={18} />
-                Судейская пломба (Seal)
-              </h2>
-              <Window title="Верификация">
-                <div className="flex flex-col items-center justify-center min-h-[200px]">
-                  <FractalSeal hash="d3b07384d113edec49eaa6238ad5ff00" size={100} />
-                  <p className="text-[10px] text-center text-[var(--text-muted)] max-w-xs mt-8 leading-relaxed">
-                    Процедурный фрактал верифицирует неизменяемость спортивных результатов и автоматически генерируется при отправке транзакции на сервер.
-                  </p>
-                </div>
               </Window>
             </div>
           </section>

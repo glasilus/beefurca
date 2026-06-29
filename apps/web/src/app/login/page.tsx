@@ -2,14 +2,19 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { WarningOctagon, DiscordLogo, CheckCircle } from "@phosphor-icons/react";
-import { API_URL, apiFetch, setSession } from "../../lib/api";
+import { apiFetch, setSession } from "../../lib/api";
 import { ThemeToggle } from "../../components/ThemeToggle";
-import { Logo } from "../../components/Logo";
+import { PixelAvatar } from "../../components/PixelAvatar";
 import { Window } from "../../components/ui/Window";
 import { Button } from "../../components/ui/Button";
 import { Field, Input } from "../../components/ui/Field";
 
+// Демо-учётные записи (требование рекомендаций кафедры). Засеяны бэкендом.
+const DEMO_ACCOUNTS = [
+  { role: "Администратор", email: "admin@beefurca.com", password: "admin123" },
+  { role: "Организатор", email: "organizer@beefurca.com", password: "organizer123" },
+  { role: "Игрок", email: "player@beefurca.com", password: "player123" },
+];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -66,9 +71,12 @@ export default function LoginPage() {
     }
   };
 
-  const handleDiscordLogin = () => {
-    // replace предотвращает двойной запрос при Next.js prefetch/router interception.
-    window.location.replace(`${API_URL}/auth/discord`);
+  const fillDemo = (acc: { email: string; password: string }) => {
+    setIsRegister(false);
+    setError("");
+    setInfo("");
+    setEmail(acc.email);
+    setPassword(acc.password);
   };
 
   return (
@@ -82,55 +90,63 @@ export default function LoginPage() {
         onClose={() => router.push("/")}
         className="relative z-10 w-full max-w-md"
       >
-        {/* Logo fractal */}
+        {/* Пиксельный логотип-аватар */}
         <div className="flex flex-col items-center mb-6">
           <button
             type="button"
             onClick={() => router.push("/")}
             aria-label="На главную"
             title="На главную"
-            className="cursor-pointer rounded-[14px] transition-transform hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="cursor-pointer transition-transform hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
-            <Logo size={60} />
+            <span className="panel-98 inline-block p-1">
+              <PixelAvatar seed="BEEFURCA" size={60} />
+            </span>
           </button>
-          <h2 className="font-score text-2xl tracking-[.04em] text-[var(--text)] mt-3">
+          <h2 className="font-score text-2xl tracking-[.16em] text-[var(--text)] mt-3">
             BEEFURCA
           </h2>
           <p className="text-[10px] font-cond uppercase tracking-widest text-[var(--text-muted)] mt-1">
-            {isRegister ? "Создание учетной записи" : "Авторизация в системе"}
+            {isRegister ? "Создание учетной записи" : "Турнирная консоль"}
           </p>
         </div>
 
         {error && (
-          <div className="flex gap-2 p-3.5 mb-6 text-xs border border-[var(--status-danger)] bg-[color-mix(in_srgb,var(--status-danger)_10%,transparent)] text-[var(--status-danger)] rounded-ctl">
-            <WarningOctagon size={16} className="shrink-0" />
+          <div className="flex gap-2 p-3 mb-5 text-xs panel-98-sunken text-[var(--status-danger)]">
+            <span className="font-bold shrink-0">[ ! ]</span>
             <span>{error}</span>
           </div>
         )}
         {info && (
-          <div className="flex gap-2 p-3.5 mb-6 text-xs border border-[var(--status-win)] bg-[color-mix(in_srgb,var(--status-win)_10%,transparent)] text-[var(--status-win)] rounded-ctl">
-            <CheckCircle size={16} className="shrink-0" />
+          <div className="flex gap-2 p-3 mb-5 text-xs panel-98-sunken text-[var(--status-win)]">
+            <span className="font-bold shrink-0">[ OK ]</span>
             <span>{info}</span>
           </div>
         )}
 
-        {/* Вход через Discord */}
-        <Button
-          variant="secondary"
-          className="w-full mb-5"
-          leftIcon={<DiscordLogo size={18} weight="fill" />}
-          onClick={handleDiscordLogin}
-        >
-          Войти через Discord
-        </Button>
-
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex-1 h-px bg-[var(--hairline)]" />
-          <span className="text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
-            или по почте
-          </span>
-          <div className="flex-1 h-px bg-[var(--hairline)]" />
-        </div>
+        {/* Демо-учётки для защиты — клик подставляет логин/пароль */}
+        {!isRegister && (
+          <div className="panel-98 p-3 mb-6">
+            <div className="dither text-[9px] uppercase tracking-widest text-[var(--text-muted)] px-2 py-1 mb-2">
+              Демо-доступ — нажмите, чтобы подставить
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {DEMO_ACCOUNTS.map((acc) => (
+                <button
+                  key={acc.email}
+                  type="button"
+                  onClick={() => fillDemo(acc)}
+                  className="flex items-center justify-between text-left text-xs px-2 py-1.5 panel-98-sunken hover:text-[var(--accent)] transition-colors"
+                >
+                  <span className="font-semibold">{acc.role}</span>
+                  <span className="font-mono text-[var(--text-muted)]">
+                    {acc.email} / {acc.password}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleAuth} className="flex flex-col gap-4">
           {isRegister && (

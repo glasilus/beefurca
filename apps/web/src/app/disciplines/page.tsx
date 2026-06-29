@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Trophy, Pulse as Activity, Medal as Award, ArrowRight, Star, SealCheck } from "@phosphor-icons/react";
+import { Trophy, Pulse as Activity, Medal as Award, ArrowRight, Star, SealCheck } from "../../components/ui/icons";
 import { apiFetch, fetchProfile, setSession } from "../../lib/api";
 import { Nav } from "../../components/Nav";
 import { Window, Card } from "../../components/ui/Window";

@@ -3,54 +3,155 @@
 @tailwind utilities;
 
 /* ================================================================
-   Aqua x Fractal — semantic design tokens
+   PC-98 / RPG — упрощённая дизайн-система (только coursework).
+   Скупая приглушённая палитра, дизеринг, чанковые бевелы, пиксельный шрифт.
+   Палитра одна (тёмная), :root и .dark совпадают.
    ================================================================ */
 @layer base {
-  :root {
-    --surface: #EDF1F6;
-    --panel: #FBFCFE;
-    --panel-sunken: #E7ECF2;
-    --chrome-top: #EEF3FA;
-    --chrome-bot: #CFD9E6;
-    --border: #B7C4D6;
-    --hairline: #D7DEE6;
-    --text: #16202B;
-    --text-muted: #54657A;
-    --shadow: rgba(13, 18, 22, 0.16);
-    --gloss: rgba(255, 255, 255, 0.9);
-    --accent-hi: #8FC0FF;
-    --accent: #2E86F0;
-    --accent-lo: #0A5BD0;
-    --status-live: #F5A623;
-    --status-done: #18B5C7;
-    --status-win: #28C840;
-    --status-danger: #FF5F57;
-    --panel-rgb: 251 252 254;
-    --panel-alpha: 0.80;
-  }
-
+  :root,
   .dark {
-    --surface: #0A1320;
-    --panel: #161D26;
-    --panel-sunken: #0E141B;
-    --chrome-top: #28333F;
-    --chrome-bot: #161D26;
-    --border: #2E3A47;
-    --hairline: #1B232C;
-    --text: #EAF1F8;
-    --text-muted: #8FA0B2;
-    --shadow: rgba(0, 0, 0, 0.55);
-    --gloss: rgba(255, 255, 255, 0.10);
-    --panel-rgb: 22 29 38;
-    --panel-alpha: 0.62;
+    --surface: #14141d;       /* холодный почти-чёрный фон */
+    --panel: #33333f;         /* холодная сине-серая «каменная» панель */
+    --panel-sunken: #100f16;  /* утопленный жёлоб */
+    --chrome-top: #56556a;    /* светлая грань бевела (верх-лево) */
+    --chrome-bot: #26252f;    /* тёмная грань бевела (низ-право) */
+    --border: #0a0a0f;        /* жёсткая тёмная рамка */
+    --hairline: #3c3b48;
+    --text: #e7e6ef;          /* почти белый, чуть холодный */
+    --text-muted: #9a98ad;
+    --shadow: rgba(0, 0, 0, 0.6);
+    --gloss: rgba(255, 255, 255, 0.08);
+    --accent-hi: #c8c0f2;     /* сиренево-периvинкловый акцент (по рефу) */
+    --accent: #a89ee0;
+    --accent-lo: #7a6fc0;
+    --status-live: #d6c074;   /* приглушённое золото */
+    --status-done: #6fb3c0;   /* приглушённый циан */
+    --status-win: #8fbf6f;    /* приглушённый зелёный */
+    --status-danger: #d97a8a; /* приглушённый розово-красный */
+    --panel-rgb: 51 51 63;
+    --panel-alpha: 0.92;
+    --dither: rgba(255, 255, 255, 0.05); /* цвет дизер-точек по умолчанию */
+
+    /* Все шрифтовые токены → один пиксельный шрифт, чтобы существующие классы
+       font-display/sans/cond/mono/score продолжали работать. */
+    --font-display: var(--font-pixel);
+    --font-sans: var(--font-pixel);
+    --font-cond: var(--font-pixel);
+    --font-mono: var(--font-pixel);
+    --font-score: var(--font-pixel);
   }
 
   body {
     background-color: var(--surface);
     color: var(--text);
-    font-family: var(--font-sans), "Fira Sans", sans-serif;
-    -webkit-font-smoothing: antialiased;
+    font-family: var(--font-pixel), "Courier New", monospace;
+    /* Пиксельный шрифт лучше читается без сглаживания */
+    -webkit-font-smoothing: none;
+    image-rendering: pixelated;
   }
+
+  /* Картинки и пиксель-арт — без размытия */
+  img {
+    image-rendering: pixelated;
+  }
+
+  /* Никаких скруглений — всё боксовое (PC-98). Убивает любые rounded-*. */
+  *,
+  *::before,
+  *::after {
+    border-radius: 0 !important;
+  }
+}
+
+/* ================================================================
+   Дизеринг — фишка стиля. Упорядоченный 1-битный паттерн на чистом CSS.
+   ================================================================ */
+/* Шахматный 2px-дизер (true 1-bit) — для шапок панелей, ховеров, фонов. */
+.dither {
+  background-image:
+    linear-gradient(45deg, var(--dither) 25%, transparent 25%, transparent 75%, var(--dither) 75%),
+    linear-gradient(45deg, var(--dither) 25%, transparent 25%, transparent 75%, var(--dither) 75%);
+  background-size: 2px 2px;
+  background-position: 0 0, 1px 1px;
+}
+/* Точечный полутон — мягче, для больших поверхностей. */
+.dither-dots {
+  background-image: radial-gradient(var(--dither) 0.5px, transparent 0.6px);
+  background-size: 3px 3px;
+}
+
+/* ================================================================
+   Чанковая панель PC-98: двойной бевел (светлый верх-лево, тёмный низ-право).
+   ================================================================ */
+.panel-98 {
+  background-color: var(--panel);
+  border: 2px solid;
+  border-color: var(--chrome-top) var(--border) var(--border) var(--chrome-top);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.10),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.55),
+    3px 3px 0 rgba(0, 0, 0, 0.45);
+}
+/* Утопленная панель (инверсия бевела) — для полей ввода и жёлобов. */
+.panel-98-sunken {
+  background-color: var(--panel-sunken);
+  border: 2px solid;
+  border-color: var(--border) var(--chrome-top) var(--chrome-top) var(--border);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- Кнопки PC-98: плоский бевел, инверсия при нажатии ---------- */
+.btn-98 {
+  background-color: var(--panel);
+  color: var(--text);
+  border: 2px solid;
+  border-color: var(--chrome-top) var(--border) var(--border) var(--chrome-top);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.10),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.55);
+}
+.btn-98:active:not(:disabled) {
+  border-color: var(--border) var(--chrome-top) var(--chrome-top) var(--border);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.55);
+}
+.btn-98:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+.btn-98-primary {
+  background-color: var(--accent);
+  color: #16121f;
+  border-color: var(--accent-hi) var(--accent-lo) var(--accent-lo) var(--accent-hi);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.btn-98-danger {
+  background-color: var(--status-danger);
+  color: #1a1010;
+  border-color: color-mix(in srgb, var(--status-danger) 70%, white)
+    color-mix(in srgb, var(--status-danger) 60%, black)
+    color-mix(in srgb, var(--status-danger) 60%, black)
+    color-mix(in srgb, var(--status-danger) 70%, white);
+}
+
+/* ---------- Поле ввода PC-98 ---------- */
+.input-98 {
+  background-color: var(--panel-sunken);
+  color: var(--text);
+  border: 2px solid;
+  border-color: var(--border) var(--chrome-top) var(--chrome-top) var(--border);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.55);
+}
+.input-98:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ---------- Мигающий «курсор» загрузки вместо спиннера-иконки ---------- */
+@keyframes blink98 {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.2; }
+}
+.blink-98 {
+  animation: blink98 0.8s steps(1) infinite;
 }
 
 /* ================================================================
@@ -102,102 +203,76 @@
 }
 
 /* ================================================================
-   Utility classes — copied verbatim from design-preview.html
+   Легаси-утилиты переопределены под плоский PC-98 (страницы, ещё
+   использующие эти классы, получают единый стиль без правок).
    ================================================================ */
 
-/* ---------- Brushed metal ---------- */
-.brushed {
-  background:
-    repeating-linear-gradient(180deg, rgba(255,255,255,0.05) 0 1px, rgba(0,0,0,0.02) 1px 3px),
-    linear-gradient(180deg, var(--chrome-top), var(--chrome-bot));
-}
+/* Бывший «брашированный металл» → ровная панель-фон. */
+.brushed { background-color: var(--chrome-bot); }
 
-/* ---------- Pinstripe ---------- */
+/* Бывший пинстрайп → лёгкий дизер-полутон. */
 .pinstripe {
-  background-image: repeating-linear-gradient(180deg, transparent 0 3px, rgba(0,0,0,0.022) 3px 4px);
+  background-image: radial-gradient(var(--dither) 0.5px, transparent 0.6px);
+  background-size: 3px 3px;
 }
 
-/* ---------- App header: opaque retro brushed-metal bar ----------
-   Гарантированно непрозрачный (backgroundColor база) монохромный
-   металлический хедер в духе титлбара Aqua. */
+/* Хедер приложения → плоская панель с нижним бевелом. */
 .app-header {
-  background-color: var(--chrome-bot);
-  background-image:
-    repeating-linear-gradient(180deg, rgba(255,255,255,0.06) 0 1px, rgba(0,0,0,0.03) 1px 3px),
-    linear-gradient(180deg, var(--chrome-top), var(--chrome-bot));
-  border-bottom: 1px solid var(--border);
-  box-shadow:
-    0 1px 0 var(--gloss) inset,
-    0 -1px 0 rgba(0,0,0,0.04) inset,
-    0 6px 16px var(--shadow);
+  background-color: var(--panel);
+  border-bottom: 2px solid var(--border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 0 rgba(0, 0, 0, 0.5);
 }
 
-/* ---------- Frost (frosted glass panel) ---------- */
-.frost {
-  background: rgb(var(--panel-rgb) / var(--panel-alpha));
-  backdrop-filter: blur(22px) saturate(1.3);
-  -webkit-backdrop-filter: blur(22px) saturate(1.3);
-}
+/* Бывшее «матовое стекло» → непрозрачная панель (без blur). */
+.frost { background-color: var(--panel); }
 
-/* ---------- Gel button ---------- */
+/* Бывшая гель-кнопка → плоский бевел с акцентной заливкой. */
 .gel {
-  background: linear-gradient(180deg, var(--accent-hi) 0%, var(--accent) 50%, var(--accent-lo) 51%, var(--accent) 100%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -10px 14px -8px rgba(0,0,0,.25), 0 2px 6px var(--shadow);
-  text-shadow: 0 -1px 0 rgba(0,0,0,.18);
-  color: #fff;
-  position: relative;
-  overflow: hidden;
+  background-color: var(--accent);
+  color: #16121f;
+  border: 2px solid;
+  border-color: var(--accent-hi) var(--accent-lo) var(--accent-lo) var(--accent-hi);
 }
-.gel::after {
-  content: "";
-  position: absolute;
-  left: 6%;
-  right: 6%;
-  top: 3px;
-  height: 42%;
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,0));
-  pointer-events: none;
+.gel:active:not(:disabled) {
+  border-color: var(--accent-lo) var(--accent-hi) var(--accent-hi) var(--accent-lo);
 }
-.gel:hover {
-  filter: brightness(1.05) saturate(1.05);
-}
+.gel:hover { filter: brightness(1.1); }
 
-/* ---------- Window shell ---------- */
+/* Оболочка окна и титлбар → чанковая бевел-панель. */
 .window-shell {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: inset 0 1px 0 var(--gloss), 0 10px 34px var(--shadow);
+  background-color: var(--panel);
+  border: 2px solid;
+  border-color: var(--chrome-top) var(--border) var(--border) var(--chrome-top);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.10),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.55),
+    3px 3px 0 rgba(0, 0, 0, 0.45);
 }
-
-/* ---------- Titlebar ---------- */
 .titlebar {
-  height: 40px;
+  height: 34px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--border);
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
+  gap: 8px;
+  padding: 0 10px;
+  border-bottom: 2px solid var(--border);
+  background-image:
+    linear-gradient(45deg, var(--dither) 25%, transparent 25%, transparent 75%, var(--dither) 75%),
+    linear-gradient(45deg, var(--dither) 25%, transparent 25%, transparent 75%, var(--dither) 75%);
+  background-size: 2px 2px;
+  background-position: 0 0, 1px 1px;
 }
 
-/* ---------- Fluted glass (modals) ---------- */
+/* Модалки → плоская панель. */
 .fluted-glass {
-  position: relative;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
-  background: rgb(var(--panel-rgb) / calc(var(--panel-alpha) - 0.12));
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  background-image: repeating-linear-gradient(90deg, transparent 0 4px, color-mix(in srgb, var(--text) 4%, transparent) 4px 8px);
-  box-shadow: 0 16px 48px var(--shadow), inset 0 1px 0 var(--gloss);
-  padding: 20px;
+  background-color: var(--panel);
+  border: 2px solid;
+  border-color: var(--chrome-top) var(--border) var(--border) var(--chrome-top);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+  padding: 18px;
 }
 
 /* ================================================================
-   Aqua Aurora background
+   Фон-«aurora» (переопределён под дизер-камень)
    ================================================================ */
 .aurora {
   position: fixed;
@@ -211,81 +286,34 @@
   position: absolute;
   inset: 0;
 }
-/* Light theme — silky blue ribbons */
+/* PC-98 фон: глубокий индиго-виньетка с дизер-точками вместо «авроры». */
 .aurora::before {
   background:
-    radial-gradient(45% 60% at 18% 12%, #FFFFFF 0%, transparent 60%),
-    radial-gradient(55% 72% at 84% 2%, #BBD6FA 0%, transparent 62%),
-    radial-gradient(72% 82% at 28% 98%, #7FB6EE 0%, transparent 60%),
-    radial-gradient(82% 72% at 78% 82%, #A6D2F2 0%, transparent 60%),
-    linear-gradient(158deg, #D6E6FF 0%, #9AC2F0 42%, #5B9BE8 74%, #AED4F5 100%);
-  animation: aurora-drift 38s ease-in-out infinite alternate;
+    radial-gradient(60% 60% at 50% 0%, #2a2342 0%, transparent 60%),
+    radial-gradient(80% 80% at 50% 120%, #1c1730 0%, transparent 60%),
+    linear-gradient(180deg, #181426 0%, #0f0c18 100%);
 }
 .aurora::after {
-  background:
-    radial-gradient(42% 32% at 48% 36%, rgba(255,255,255,.62), transparent 70%),
-    radial-gradient(36% 26% at 78% 70%, rgba(120,180,250,.40), transparent 72%);
-  animation: aurora-drift2 30s ease-in-out infinite alternate;
-}
-/* Dark theme — deep midnight aurora */
-.dark .aurora::before {
-  background:
-    radial-gradient(52% 62% at 14% 8%, #1A4E86 0%, transparent 60%),
-    radial-gradient(56% 72% at 86% 0%, #103C6E 0%, transparent 62%),
-    radial-gradient(72% 82% at 34% 100%, #14506E 0%, transparent 58%),
-    radial-gradient(62% 60% at 82% 86%, #1E6A90 0%, transparent 60%),
-    linear-gradient(160deg, #0A1730 0%, #0E2B50 45%, #06121F 80%);
-}
-.dark .aurora::after {
-  background:
-    radial-gradient(46% 34% at 54% 38%, rgba(70,165,245,.42), transparent 72%),
-    radial-gradient(34% 24% at 22% 78%, rgba(40,200,210,.22), transparent 74%);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 0.5px, transparent 0.6px);
+  background-size: 3px 3px;
 }
 
 /* ================================================================
-   Medallion gel-lens (fractal avatar wrapper)
+   Medallion (обёртка аватара) → плоская пиксельная бевел-рамка
    ================================================================ */
 .medallion {
   position: relative;
-  border-radius: 50%;
   overflow: hidden;
   flex: none;
-  box-shadow: 0 3px 10px var(--shadow), inset 0 0 0 2px rgba(255,255,255,.22);
+  background-color: var(--panel-sunken);
+  border: 2px solid;
+  border-color: var(--border) var(--chrome-top) var(--chrome-top) var(--border);
 }
 .medallion img {
   display: block;
-  border-radius: 50%;
   width: 100%;
   height: 100%;
-}
-.medallion::before {
-  content: "";
-  position: absolute;
-  left: 8%;
-  right: 8%;
-  top: 4%;
-  height: 42%;
-  background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0));
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 2;
-}
-.medallion::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  box-shadow: inset 0 -3px 8px rgba(0,0,0,.35), inset 0 2px 4px rgba(255,255,255,.4);
-  pointer-events: none;
-  z-index: 2;
-}
-.medallion-rounded {
-  border-radius: 16px;
-}
-.medallion-rounded img,
-.medallion-rounded::before,
-.medallion-rounded::after {
-  border-radius: 16px;
+  image-rendering: pixelated;
 }
 
 /* ================================================================

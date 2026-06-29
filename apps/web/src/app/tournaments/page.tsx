@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MagnifyingGlass as Search, Calendar, ArrowRight, Lock } from "@phosphor-icons/react";
+import { MagnifyingGlass as Search, Calendar, ArrowRight, Lock } from "../../components/ui/icons";
 import { apiFetch, fetchProfile, setSession } from "../../lib/api";
 import { Nav } from "../../components/Nav";
 import { FractalMedallion } from "../../components/Fractal";

@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { BracketCanvas } from "../../../components/BracketCanvas";
 import { FractalAvatar } from "../../../components/FractalAvatar";
-import { FractalSeal } from "../../../components/FractalSeal";
 import { FractalMedallion } from "../../../components/Fractal";
 import { API_URL, apiFetch, fetchProfile, setSession } from "../../../lib/api";
 import { useToast } from "../../../components/Toast";
@@ -39,7 +38,7 @@ import {
   Trash as Trash2,
   Lock,
   PencilSimple,
-} from "@phosphor-icons/react";
+} from "../../../components/ui/icons";
 
 export default function TournamentDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -74,7 +73,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
   const [customFieldsData, setCustomFieldsData] = useState<Record<string, any>>({});
   const [techDefeat, setTechDefeat] = useState(false);
   const [techLoserId, setTechLoserId] = useState("");
-  const [confirmedSealHash, setConfirmedSealHash] = useState<string | null>(null);
 
   // Import
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -463,7 +461,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
       }
       const data = await res.json();
       if (res.ok) {
-        setConfirmedSealHash(selectedScoringMatch.id);
         closeScoreModal();
         await loadTournamentDetails();
       } else {
@@ -854,19 +851,6 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
               </span>
             </div>
             <BracketCanvas matches={matches} participants={approvedParticipants} bracketType={tournament?.bracketType} />
-          </div>
-        )}
-
-        {confirmedSealHash && (
-          <div className="lg:col-span-12">
-            <Window title="Результат зафиксирован судьей" status="done">
-              <div className="flex flex-col items-center justify-center py-10">
-                <FractalSeal hash={confirmedSealHash} size={110} />
-                <Button variant="ghost" size="sm" className="mt-8" onClick={() => setConfirmedSealHash(null)}>
-                  Закрыть
-                </Button>
-              </div>
-            </Window>
           </div>
         )}
 

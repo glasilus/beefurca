@@ -14,7 +14,7 @@ import {
   Info,
   XCircle,
   X,
-} from "@phosphor-icons/react";
+} from "./ui/icons";
 
 export type ToastVariant = "success" | "error" | "info" | "warning";
 

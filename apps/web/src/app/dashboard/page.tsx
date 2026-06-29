@@ -28,7 +28,7 @@ import {
   DiscordLogo,
   Check,
   UserCircle,
-} from "@phosphor-icons/react";
+} from "../../components/ui/icons";
 
 export default function DashboardPage() {
   const router = useRouter();

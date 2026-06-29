@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Television as Tv, Radio, Flame, Clock, Medal as Award, ArrowSquareOut as ExternalLink, ArrowLeft, Trophy } from "@phosphor-icons/react";
+import { Television as Tv, Radio, Flame, Clock, Medal as Award, ArrowSquareOut as ExternalLink, ArrowLeft, Trophy } from "../../../../components/ui/icons";
 import { FractalAvatar } from "../../../../components/FractalAvatar";
 import { API_URL, apiFetch } from "../../../../lib/api";
 import { Window, Card } from "../../../../components/ui/Window";

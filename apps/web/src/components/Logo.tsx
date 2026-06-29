@@ -1,85 +1,56 @@
 "use client";
 
 import React from "react";
-import { Fractal } from "./Fractal";
 
 /**
- * Единый бренд-знак Beefurca — это фавикон, но «живой»: вместо плоского
- * линейного градиента — фрактал в тех же цветах (#FF1F44 → #4D00FF → #FFDE00),
- * разложенный по диагонали (paletteMode "diagonal") и слегка размытый, чтобы
- * читался как мягкий градиент фавикона. Поверх — та же белая буква «B» снизу
- * (точный путь из icon.svg) и Aqua-блик.
+ * Бренд-знак Beefurca — пиксельная турнирная «вилка» (furca = развилка/сетка):
+ * четыре участника слева сходятся к чемпиону справа. Чистый crispEdges-SVG,
+ * цвета берутся из токенов палитры.
  */
-export const LOGO_OPTS = {
-  // Параметр Жюлиа с выразительной, но спокойной структурой.
-  cre: -0.512511,
-  cim: 0.521296,
-  palette: ["#FF1F44", "#4D00FF", "#FFDE00"] as [string, string, string],
-  paletteMode: "diagonal" as const,
-} as const;
-
-/** Точный путь буквы «B» из apps/web/src/app/icon.svg (viewBox 0 0 1024 1024). */
-const B_PATH =
-  "M562.56 859.52L562.56 805.12Q562.56 796.16 556.48 790.40Q550.40 784.64 542.08 784.64L542.08 784.64L229.76 784.64Q220.80 784.64 215.04 790.40Q209.28 796.16 209.28 805.12L209.28 805.12L209.28 859.52Q209.28 868.48 215.04 874.24Q220.80 880 229.76 880L229.76 880L542.08 880Q550.40 880 556.48 874.24Q562.56 868.48 562.56 859.52L562.56 859.52ZM209.28 648.32L209.28 680.32Q209.28 689.28 215.04 695.04Q220.80 700.80 229.76 700.80L229.76 700.80L469.12 700.80Q478.08 700.80 483.84 695.04Q489.60 689.28 489.60 680.96L489.60 680.96L489.60 648.32Q489.60 639.36 483.84 633.60Q478.08 627.84 469.12 627.84L469.12 627.84L229.76 627.84Q220.80 627.84 215.04 633.60Q209.28 639.36 209.28 648.32L209.28 648.32ZM845.44 745.60L845.44 745.60Q867.84 745.60 883.20 760.96Q898.56 776.32 898.56 798.08L898.56 798.08L898.56 933.76Q898.56 945.92 894.08 956.48Q889.60 967.04 881.60 975.04Q873.60 983.04 862.72 987.52Q851.84 992 839.68 992L839.68 992L176.00 992Q154.88 992 140.16 977.28Q125.44 962.56 125.44 941.44L125.44 941.44L125.44 563.84Q125.44 555.52 131.20 549.76Q136.96 544 145.92 544L145.92 544L771.84 544Q794.24 544 809.92 559.68Q825.60 575.36 825.60 597.76L825.60 597.76L825.60 725.12Q825.60 734.08 831.36 739.84Q837.12 745.60 845.44 745.60Z";
+export const BeefurcaMark: React.FC<{ size?: number; className?: string }> = ({
+  size = 32,
+  className,
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 16 16"
+    shapeRendering="crispEdges"
+    className={className}
+    role="img"
+    aria-label="Beefurca"
+  >
+    <g fill="var(--accent)">
+      {/* верхняя пара → верхний полуфинал */}
+      <rect x="1" y="3" width="4" height="1" />
+      <rect x="1" y="6" width="4" height="1" />
+      <rect x="4" y="3" width="1" height="4" />
+      <rect x="4" y="4" width="4" height="1" />
+      {/* нижняя пара → нижний полуфинал */}
+      <rect x="1" y="9" width="4" height="1" />
+      <rect x="1" y="12" width="4" height="1" />
+      <rect x="4" y="9" width="1" height="4" />
+      <rect x="4" y="11" width="4" height="1" />
+      {/* центральная ось → финал */}
+      <rect x="8" y="4" width="1" height="8" />
+      <rect x="8" y="7" width="4" height="1" />
+    </g>
+    {/* чемпион */}
+    <rect x="12" y="6" width="3" height="3" fill="var(--accent-hi)" />
+  </svg>
+);
 
 interface LogoProps {
   size?: number;
-  /** Показывать белую букву «B» (как на фавиконе). */
-  letter?: boolean;
+  letter?: boolean; // наследие API, игнорируется
   className?: string;
 }
 
-export const Logo: React.FC<LogoProps> = ({
-  size = 34,
-  letter = true,
-  className,
-}) => {
-  const radius = Math.round(size * 0.22);
-  return (
-    <span
-      className={`relative inline-block flex-none align-middle ${className ?? ""}`}
-      style={{
-        width: size,
-        height: size,
-        borderRadius: radius,
-        overflow: "hidden",
-        boxShadow:
-          "inset 0 1px 0 rgba(255,255,255,.85), 0 1px 3px var(--shadow)",
-      }}
-    >
-      {/* Фрактал-градиент: лёгкое размытие сглаживает структуру в градиент. */}
-      <span
-        className="absolute inset-0"
-        style={{ filter: `blur(${Math.max(0.4, size * 0.012)}px)` }}
-      >
-        <Fractal seed="beefurca" size={size} opts={LOGO_OPTS} />
-      </span>
-      {letter && (
-        <svg
-          viewBox="0 0 1024 1024"
-          className="absolute inset-0 z-10"
-          width={size}
-          height={size}
-          style={{
-            filter: "drop-shadow(0 1px 2px rgba(0,0,0,.45))",
-          }}
-        >
-          <path d={B_PATH} fill="#FFFFFF" />
-        </svg>
-      )}
-      {/* Aqua gel gloss */}
-      <span
-        className="absolute pointer-events-none z-20"
-        style={{
-          left: "6%",
-          right: "6%",
-          top: "3%",
-          height: "44%",
-          borderRadius: radius,
-          background:
-            "linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,0))",
-        }}
-      />
-    </span>
-  );
-};
+export const Logo: React.FC<LogoProps> = ({ size = 34, className }) => (
+  <span
+    className={`panel-98-sunken inline-flex items-center justify-center ${className ?? ""}`}
+    style={{ width: size, height: size, padding: Math.max(2, Math.round(size * 0.12)) }}
+  >
+    <BeefurcaMark size={Math.round(size * 0.74)} />
+  </span>
+);

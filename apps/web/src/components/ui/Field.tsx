@@ -20,7 +20,7 @@ export const Field: React.FC<FieldProps> = ({
 }) => (
   <div className={className}>
     {label && (
-      <label className="block font-cond uppercase tracking-[.06em] text-[11px] text-[var(--text-muted)] mb-1.5">
+      <label className="block uppercase tracking-widest text-[11px] text-[var(--text-muted)] mb-1.5">
         {label}
       </label>
     )}
@@ -42,12 +42,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     <input
       ref={ref}
       className={[
-        "w-full h-[38px] px-3 text-[14px] font-sans",
-        "text-[var(--text)] bg-[var(--panel-sunken)]",
-        "border border-[var(--border)] rounded-ctl",
-        "shadow-[inset_0_2px_4px_rgba(0,0,0,.12)]",
-        "outline-none",
-        "focus:border-[var(--accent)] focus:shadow-[inset_0_2px_4px_rgba(0,0,0,.12),0_0_0_3px_color-mix(in_srgb,var(--accent)_30%,transparent)]",
+        "input-98 w-full h-[38px] px-3 text-[14px]",
         "placeholder:text-[var(--text-muted)]",
         className,
       ]
@@ -70,15 +65,9 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     <select
       ref={ref}
       className={[
-        "w-full h-[38px] px-3 text-[14px] font-sans appearance-none",
-        "text-[var(--text)] bg-[var(--panel-sunken)]",
-        "border border-[var(--border)] rounded-ctl",
-        "shadow-[inset_0_2px_4px_rgba(0,0,0,.12)]",
-        "outline-none",
-        "focus:border-[var(--accent)] focus:shadow-[inset_0_2px_4px_rgba(0,0,0,.12),0_0_0_3px_color-mix(in_srgb,var(--accent)_30%,transparent)]",
-        "bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%2354657A%22%20d%3D%22M2%204l4%204%204-4%22%2F%3E%3C%2Fsvg%3E')]",
+        "input-98 w-full h-[38px] px-3 pr-8 text-[14px] appearance-none",
+        "bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%239b93b8%22%20d%3D%22M2%204l4%204%204-4%22%2F%3E%3C%2Fsvg%3E')]",
         "bg-[length:12px] bg-[right_12px_center] bg-no-repeat",
-        "pr-8",
         className,
       ]
         .filter(Boolean)

@@ -2,14 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Trash as Trash2, Info, Plus, Trophy, Users, Sword, Globe, Lock, Star, CheckCircle } from "@phosphor-icons/react";
+import { Info, Trophy, Users, Sword, Globe, CheckCircle } from "../../../components/ui/icons";
 import { apiFetch, fetchProfile, setSession } from "../../../lib/api";
 import { Nav } from "../../../components/Nav";
 import { useToast } from "../../../components/Toast";
 import { Window, Card } from "../../../components/ui/Window";
 import { Button } from "../../../components/ui/Button";
-import { Field, Input, Select, Checkbox } from "../../../components/ui/Field";
-import { Badge } from "../../../components/ui/Badge";
+import { Field, Input, Select } from "../../../components/ui/Field";
 import { FractalMedallion } from "../../../components/Fractal";
 
 /* ----------------------------------------------------------------
@@ -86,19 +85,13 @@ export default function CreateTournamentPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedDisciplineId, setSelectedDisciplineId] = useState("");
-  const [tournamentType, setTournamentType] = useState("AMATEUR");
+  // Режим: STANDARD (с регистрацией и рейтингом) или SANDBOX (автономный учёт).
+  const [tournamentType, setTournamentType] = useState("SANDBOX");
   const [bracketType, setBracketType] = useState("SINGLE_ELIM");
   const [prizePool, setPrizePool] = useState("");
   const [entryFee, setEntryFee] = useState(0);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [isPrivate, setIsPrivate] = useState(false);
-
-  const [customFields, setCustomFields] = useState<any[]>([]);
-  const [fieldName, setFieldName] = useState("");
-  const [fieldLabel, setFieldLabel] = useState("");
-  const [fieldType, setFieldType] = useState("text");
-  const [fieldRequired, setFieldRequired] = useState(false);
 
   const [disciplinesList, setDisciplinesList] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -119,7 +112,8 @@ export default function CreateTournamentPage() {
       if (!prof) { router.push("/login"); return; }
       setProfile(prof);
       setSession(prof);
-      if (prof.role === "Organizer" || prof.role === "Admin") setTournamentType("PRO");
+      // Организаторы/админы по умолчанию создают STANDARD-турнир (с рейтингом).
+      if (prof.role === "Organizer" || prof.role === "Admin") setTournamentType("STANDARD");
 
       // Auto-set today's date/time
       const now = new Date();
@@ -142,19 +136,10 @@ export default function CreateTournamentPage() {
     } catch (err) { console.error(err); }
   };
 
-  const handleAddCustomField = () => {
-    if (!fieldName.trim() || !fieldLabel.trim()) { toast.error("Заполните техническое имя и метку поля"); return; }
-    const cleanName = fieldName.trim().replace(/\s+/g, "_").toLowerCase();
-    if (!/^[a-z0-9_]+$/.test(cleanName)) { toast.error("Техническое имя: только латиница, цифры и подчёркивание"); return; }
-    if (customFields.some((f) => f.name === cleanName)) { toast.error("Поле с таким именем уже существует"); return; }
-    setCustomFields((prev) => [...prev, { name: cleanName, label: fieldLabel.trim(), type: fieldType, required: fieldRequired }]);
-    setFieldName(""); setFieldLabel(""); setFieldType("text"); setFieldRequired(false);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (tournamentType === "PRO" && !isPrivileged) {
-      toast.error("PRO-турниры могут создавать только организаторы и администраторы.");
+    if (tournamentType === "STANDARD" && !isPrivileged) {
+      toast.error("STANDARD-турниры могут создавать только организаторы и администраторы.");
       return;
     }
 
@@ -185,8 +170,6 @@ export default function CreateTournamentPage() {
       entryFee: Number(entryFee) || 0,
       startDate: new Date(startDate).toISOString(),
       endDate: endDate ? new Date(endDate).toISOString() : undefined,
-      isPrivate,
-      customFieldsSchema: customFields.length > 0 ? customFields : undefined,
     };
 
     setSubmitting(true);
@@ -229,7 +212,7 @@ export default function CreateTournamentPage() {
             {name.trim() || "Новый турнир"}
           </h1>
           <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
-            Любой может создать Amateur или Sandbox турнир. PRO — только для организаторов.
+            Автономный турнир (без регистрации) может создать любой. Обычный, с рейтингом — организаторы.
           </p>
         </div>
 
@@ -335,34 +318,26 @@ export default function CreateTournamentPage() {
             )}
           </Window>
 
-          {/* ── Секция 3: Уровень лиги ── */}
-          <Window title="Уровень лиги">
-            <SectionLabel step={3} label="Тип турнира (лига)" />
+          {/* ── Секция 3: Режим ── */}
+          <Window title="Режим">
+            <SectionLabel step={3} label="Режим проведения" />
             <div className="flex flex-col gap-3">
               {isPrivileged && (
                 <OptionCard
-                  selected={tournamentType === "PRO"}
-                  onClick={() => setTournamentType("PRO")}
-                  icon={<Star size={18} weight="fill" />}
-                  title="PRO"
-                  desc="Официальная лига. ELO начисляется по строгим правилам. Только для организаторов."
-                  accent="var(--status-danger)"
+                  selected={tournamentType === "STANDARD"}
+                  onClick={() => setTournamentType("STANDARD")}
+                  icon={<Trophy size={18} />}
+                  title="Обычный (с рейтингом)"
+                  desc="Участники регистрируются на платформе, организатор подтверждает заявки. Результаты влияют на глобальный ELO-рейтинг. Только для организаторов."
+                  accent="var(--accent)"
                 />
               )}
               <OptionCard
-                selected={tournamentType === "AMATEUR"}
-                onClick={() => setTournamentType("AMATEUR")}
-                icon={<Trophy size={18} weight="fill" />}
-                title="AMATEUR"
-                desc="Любительский турнир. ELO начисляется при флаге доверия. Автоподтверждение участников."
-                accent="var(--accent)"
-              />
-              <OptionCard
                 selected={tournamentType === "SANDBOX"}
                 onClick={() => setTournamentType("SANDBOX")}
-                icon={<Users size={18} weight="fill" />}
-                title="SANDBOX"
-                desc="Песочница без ELO. Ручной ввод участников. Идеально для быстрых мероприятий."
+                icon={<Users size={18} />}
+                title="Автономный (песочница)"
+                desc="Имена участников вводятся вручную, без регистрации. Рейтинг не затрагивается. Идеально для быстрого локального учёта."
                 accent="var(--text-muted)"
               />
             </div>
@@ -384,34 +359,18 @@ export default function CreateTournamentPage() {
               <OptionCard
                 selected={bracketType === "SINGLE_ELIM"}
                 onClick={() => setBracketType("SINGLE_ELIM")}
-                icon={<Sword size={18} weight="fill" />}
-                title="Single Elimination"
-                desc={`Олимпийская сетка. Одно поражение — выбывание. ${isTeam ? "Подходит для командных турниров любого размера." : "Классика 1v1. От 4 до 256 участников."}`}
-                accent="#5B8EF0"
-              />
-              <OptionCard
-                selected={bracketType === "DOUBLE_ELIM"}
-                onClick={() => setBracketType("DOUBLE_ELIM")}
-                icon={<Sword size={18} weight="duotone" />}
-                title="Double Elimination"
-                desc={`Сетка с шансом на реванш. Два поражения — выбывание. ${isTeam ? "Командный формат, популярен в киберспорте." : "Даёт второй шанс в 1v1."}`}
-                accent="#8B5CF6"
+                icon={<Sword size={18} />}
+                title="Олимпийская (на вылет)"
+                desc={`Single Elimination. Одно поражение — выбывание. ${isTeam ? "Подходит для командных турниров любого размера." : "Классика 1v1. От 4 до 256 участников."}`}
+                accent="var(--accent)"
               />
               <OptionCard
                 selected={bracketType === "ROUND_ROBIN"}
                 onClick={() => setBracketType("ROUND_ROBIN")}
-                icon={<Globe size={18} weight="fill" />}
-                title="Round Robin"
-                desc={`Каждый против каждого. ${isTeam ? "Рекомендуется до 8–10 команд (число матчей растёт квадратично)." : "Оптимально до 8–10 участников."}`}
+                icon={<Globe size={18} />}
+                title="Круговая (каждый с каждым)"
+                desc={`Round Robin. ${isTeam ? "Рекомендуется до 8–10 команд (число матчей растёт квадратично)." : "Оптимально до 8–10 участников."}`}
                 accent="var(--status-done)"
-              />
-              <OptionCard
-                selected={bracketType === "SWISS"}
-                onClick={() => setBracketType("SWISS")}
-                icon={<Users size={18} weight="fill" />}
-                title="Swiss System"
-                desc={`Балансировка по очкам. ${isTeam ? "Отлично для командных лиг от 6 команд." : "Лучший выбор для 1v1 с 6+ участниками."}`}
-                accent="var(--status-live)"
               />
             </div>
           </Window>
@@ -456,73 +415,6 @@ export default function CreateTournamentPage() {
                   onChange={(e) => setEntryFee(Number(e.target.value))}
                 />
               </Field>
-            </div>
-
-            {/* Приватность */}
-            <div className="mt-4 p-4 rounded-xl border border-[var(--border)] bg-[var(--panel-sunken)]">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isPrivate}
-                  onChange={(e) => setIsPrivate(e.target.checked)}
-                  className="mt-0.5 accent-[var(--accent)]"
-                />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Lock size={13} className="text-[var(--text-muted)]" />
-                    <span className="font-bold text-sm text-[var(--text)]">Приватный турнир</span>
-                    {isPrivate && <Badge tone="accent">Вкл</Badge>}
-                  </div>
-                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed mt-0.5">
-                    Не отображается в каталоге. Доступ только по ссылке-приглашению.
-                  </p>
-                </div>
-              </label>
-            </div>
-          </Window>
-
-          {/* ── Секция 6: Кастомные поля (опциональная) ── */}
-          <Window title="Судейские поля">
-            <SectionLabel step={6} label="Кастомные поля матчей (необязательно)" />
-            <p className="text-[11px] text-[var(--text-muted)] mb-4 leading-relaxed">
-              Дополнительные данные, которые судья заполнит при подтверждении результата (например, «Игровая карта», «Номер стола»).
-            </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3 items-end">
-              <Field label="Имя (лат.)">
-                <Input type="text" placeholder="game_map" className="h-8 text-xs" value={fieldName} onChange={(e) => setFieldName(e.target.value)} />
-              </Field>
-              <Field label="Метка">
-                <Input type="text" placeholder="Игровая карта" className="h-8 text-xs" value={fieldLabel} onChange={(e) => setFieldLabel(e.target.value)} />
-              </Field>
-              <Field label="Тип">
-                <Select className="h-8 text-xs" value={fieldType} onChange={(e) => setFieldType(e.target.value)}>
-                  <option value="text">Текст</option>
-                  <option value="number">Число</option>
-                </Select>
-              </Field>
-              <Button type="button" variant="gel" size="sm" onClick={handleAddCustomField} leftIcon={<Plus size={12} />}>
-                Добавить
-              </Button>
-            </div>
-
-            <Checkbox label="Следующее поле — обязательное" className="text-[11px] mb-3" checked={fieldRequired} onChange={(e) => setFieldRequired(e.target.checked)} />
-
-            <div className="flex flex-col gap-2 max-h-[140px] overflow-y-auto pr-1">
-              {customFields.map((field, idx) => (
-                <div key={field.name} className="flex justify-between items-center p-2.5 bg-[var(--panel-sunken)] border border-[var(--hairline)] rounded-ctl">
-                  <div className="flex items-center gap-3 text-xs font-mono">
-                    <span className="font-bold text-[var(--text)]">{field.label}</span>
-                    <span className="text-[var(--text-muted)] text-[10px]">({field.name} / {field.type === "number" ? "число" : "текст"}{field.required ? " / обяз." : ""})</span>
-                  </div>
-                  <button type="button" onClick={() => setCustomFields((p) => p.filter((_, i) => i !== idx))} className="p-1.5 hover:bg-[color-mix(in_srgb,var(--status-danger)_10%,transparent)] rounded text-[var(--status-danger)]">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-              {customFields.length === 0 && (
-                <div className="text-[11px] text-[var(--text-muted)] italic font-mono text-center py-2">Кастомных полей нет</div>
-              )}
             </div>
           </Window>
 

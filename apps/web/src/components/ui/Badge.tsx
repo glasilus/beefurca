@@ -37,7 +37,7 @@ export const Badge: React.FC<BadgeProps> = ({
 }) => (
   <span
     className={[
-      "inline-flex items-center gap-1.5 font-cond font-semibold uppercase tracking-[.05em] text-[11px] py-1 px-2.5 rounded-full border",
+      "inline-flex items-center gap-1.5 font-semibold uppercase tracking-[.08em] text-[10px] py-0.5 px-2 border-2",
       TONE_STYLES[tone],
       className,
     ]
@@ -46,19 +46,9 @@ export const Badge: React.FC<BadgeProps> = ({
   >
     {dot && (
       <span
-        className={[
-          "w-[7px] h-[7px] rounded-full",
-          tone === "live"
-            ? "animate-[pulse_1.6s_ease-in-out_infinite] motion-reduce:animate-none"
-            : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-        style={{
-          background: DOT_COLORS[tone],
-          boxShadow:
-            tone === "live" ? `0 0 6px ${DOT_COLORS[tone]}` : undefined,
-        }}
+        className="w-[6px] h-[6px]"
+        style={{ background: DOT_COLORS[tone] }}
+        aria-hidden
       />
     )}
     {children}
