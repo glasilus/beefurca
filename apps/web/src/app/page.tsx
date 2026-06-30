@@ -96,13 +96,13 @@ export default function Home() {
                 Войти в систему
               </Button>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-x-3 text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-widest">
-                <span>Стандартный</span>
+                <span>Схватки</span>
                 <span className="opacity-30">·</span>
-                <span>Sandbox</span>
+                <span>Баталии</span>
                 <span className="opacity-30">·</span>
-                <span>ELO-рейтинг</span>
+                <span>От крестиков-ноликов</span>
                 <span className="opacity-30">·</span>
-                <span>Реальное время</span>
+                <span>До C.S. 1.6</span>
               </div>
             </div>
           </section>
@@ -170,7 +170,7 @@ export default function Home() {
       {/* ── Подвал ── */}
       <footer className="border-t-2 border-[var(--border)] py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-widest">
-          <span>Beefurca - ИС организации соревнований</span>
+          <span>Beefurca - соревновательный хаб</span>
           <span>Петунов Н.О. · Курсовой проект · 2026</span>
         </div>
       </footer>
