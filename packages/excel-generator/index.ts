@@ -3,8 +3,8 @@ import Workbook from "exceljs";
 export interface DisciplineReportItem {
   disciplineName: string;
   tournamentsCount: number;
-  officialCount: number; // STANDARD — официальные турниры (влияют на рейтинг)
-  autonomousCount: number; // SANDBOX — автономный учёт
+  officialCount: number; // STANDARD - официальные турниры (влияют на рейтинг)
+  autonomousCount: number; // SANDBOX - автономный учёт
   participantsCount: number;
   avgParticipants: number;
   matchesCount: number;
@@ -19,7 +19,7 @@ export interface PlayerReportItem {
 }
 
 /**
- * Generates the Discipline Popularity Report Excel file.
+ * Формирует Excel-файл отчёта о популярности дисциплин.
  */
 export async function generateDisciplinePopularityReport(
   startDateStr: string,
@@ -29,7 +29,7 @@ export async function generateDisciplinePopularityReport(
   const workbook = new Workbook.Workbook();
   const worksheet = workbook.addWorksheet("Популярность дисциплин");
 
-  // Title block
+  // заголовок
   worksheet.mergeCells("A1:G1");
   const titleCell = worksheet.getCell("A1");
   titleCell.value = `Отчет о популярности дисциплин за период с ${startDateStr} по ${endDateStr}`;
@@ -37,10 +37,10 @@ export async function generateDisciplinePopularityReport(
   titleCell.alignment = { horizontal: "center", vertical: "middle" };
   worksheet.getRow(1).height = 40;
 
-  // Blank row
+  // пустая строка
   worksheet.addRow([]);
 
-  // Table Headers
+  // заголовки таблицы
   const headerRow = worksheet.addRow([
     "Наименование дисциплины",
     "Кол-во турниров",
@@ -68,7 +68,7 @@ export async function generateDisciplinePopularityReport(
   });
   worksheet.getRow(3).height = 30;
 
-  // Add Data Rows
+  // строки данных
   const startRow = 4;
   data.forEach((item) => {
     const row = worksheet.addRow([
@@ -102,7 +102,7 @@ export async function generateDisciplinePopularityReport(
 
   const endRow = startRow + data.length - 1;
 
-  // Add Sum Row
+  // строка итогов
   if (data.length > 0) {
     const sumRow = worksheet.addRow([
       "Итого",
@@ -137,7 +137,7 @@ export async function generateDisciplinePopularityReport(
     });
   }
 
-  // Adjust Column Widths
+  // подгоняем ширину столбцов
   worksheet.columns.forEach((column) => {
     let maxLength = 0;
     column.eachCell!({ includeEmpty: false }, (cell) => {
@@ -154,7 +154,7 @@ export async function generateDisciplinePopularityReport(
 }
 
 /**
- * Generates the Player Statistics Report Excel file.
+ * Формирует Excel-файл статистического отчёта по игроку.
  */
 export async function generatePlayerReport(
   nickname: string,
@@ -165,7 +165,7 @@ export async function generatePlayerReport(
   const workbook = new Workbook.Workbook();
   const worksheet = workbook.addWorksheet("Статистика игрока");
 
-  // Title block
+  // заголовок
   worksheet.mergeCells("A1:F1");
   const titleCell = worksheet.getCell("A1");
   titleCell.value = `Статистический отчет по результатам игрока ${nickname}`;
@@ -173,7 +173,7 @@ export async function generatePlayerReport(
   titleCell.alignment = { horizontal: "center", vertical: "middle" };
   worksheet.getRow(1).height = 30;
 
-  // Period block
+  // строка периода
   worksheet.mergeCells("A2:F2");
   const periodCell = worksheet.getCell("A2");
   periodCell.value = `Период: с ${startDateStr} по ${endDateStr}`;
@@ -181,10 +181,10 @@ export async function generatePlayerReport(
   periodCell.alignment = { horizontal: "center", vertical: "middle" };
   worksheet.getRow(2).height = 20;
 
-  // Blank row
+  // пустая строка
   worksheet.addRow([]);
 
-  // Table Headers
+  // заголовки таблицы
   const headerRow = worksheet.addRow([
     "Дисциплина",
     "Сыграно матчей (официальных)",
@@ -211,7 +211,7 @@ export async function generatePlayerReport(
   });
   worksheet.getRow(4).height = 30;
 
-  // Add Data Rows
+  // строки данных
   const startRow = 5;
   data.forEach((item, index) => {
     const rowNum = startRow + index;
@@ -219,7 +219,7 @@ export async function generatePlayerReport(
       item.disciplineName,
       item.matchesCount,
       item.winsCount,
-      // Winrate as formula: =IF(B{row}>0, C{row}/B{row}, 0) - formatted as percentage
+      // Winrate формулой: =IF(B{row}>0, C{row}/B{row}, 0), формат - проценты
       { formula: `=IF(B${rowNum}>0, C${rowNum}/B${rowNum}, 0)` },
       item.eloDelta,
       item.currentElo,
@@ -251,7 +251,7 @@ export async function generatePlayerReport(
 
   const endRow = startRow + data.length - 1;
 
-  // Add Sum/Average Row
+  // строка итогов и среднего
   if (data.length > 0) {
     const sumRow = worksheet.addRow([
       "Всего / Среднее",
@@ -289,7 +289,7 @@ export async function generatePlayerReport(
     });
   }
 
-  // Adjust Column Widths
+  // подгоняем ширину столбцов
   worksheet.columns.forEach((column) => {
     let maxLength = 0;
     column.eachCell!({ includeEmpty: false }, (cell) => {

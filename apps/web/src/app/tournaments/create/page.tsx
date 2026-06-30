@@ -101,7 +101,7 @@ export default function CreateTournamentPage() {
   const [inlineDiscGameType, setInlineDiscGameType] = useState("SINGLE");
   const [inlineDiscRules, setInlineDiscRules] = useState("");
 
-  // Resolved discipline meta (computed from state, after all useState)
+  // данные выбранной дисциплины (из состояния)
   const selectedDiscipline = disciplinesList.find((d) => d.id === selectedDisciplineId) ?? null;
   const effectiveGameType = createInlineDiscipline ? inlineDiscGameType : (selectedDiscipline?.gameType ?? "SINGLE");
   const isTeam = effectiveGameType === "TEAM";
@@ -115,7 +115,7 @@ export default function CreateTournamentPage() {
       // Организаторы/админы по умолчанию создают STANDARD-турнир (с рейтингом).
       if (prof.role === "Organizer" || prof.role === "Admin") setTournamentType("STANDARD");
 
-      // Auto-set today's date/time
+      // автоподстановка текущей даты и времени
       const now = new Date();
       now.setSeconds(0, 0);
       setStartDate(now.toISOString().slice(0, 16));
@@ -212,7 +212,7 @@ export default function CreateTournamentPage() {
             {name.trim() || "Новый турнир"}
           </h1>
           <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
-            Автономный турнир (без регистрации) может создать любой. Обычный, с рейтингом — организаторы.
+            Автономный турнир (без регистрации) может создать любой. Обычный, с рейтингом - организаторы.
           </p>
         </div>
 
@@ -256,7 +256,7 @@ export default function CreateTournamentPage() {
 
             {!createInlineDiscipline ? (
               <Select value={selectedDisciplineId} onChange={(e) => setSelectedDisciplineId(e.target.value)}>
-                {disciplinesList.length === 0 && <option value="">Нет дисциплин — создайте свою</option>}
+                {disciplinesList.length === 0 && <option value="">Нет дисциплин - создайте свою</option>}
                 {disciplinesList.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name} ({d.gameType === "TEAM" ? "Командная" : "Одиночная"}){d.isOfficial ? " [офиц.]" : ""}
@@ -351,8 +351,8 @@ export default function CreateTournamentPage() {
             <div className="flex items-center gap-2 mb-4 text-[11px] text-[var(--text-muted)] bg-[var(--panel-sunken)] rounded-lg px-3 py-2 border border-[var(--hairline)]">
               <Info size={13} className="shrink-0 text-[var(--accent)]" />
               {isTeam
-                ? "Все форматы совместимы с командными дисциплинами. Участники — команды, созданные в кабинете."
-                : "Все форматы совместимы с одиночными дисциплинами (1v1). Участники — отдельные игроки."}
+                ? "Все форматы совместимы с командными дисциплинами. Участники - команды, созданные в кабинете."
+                : "Все форматы совместимы с одиночными дисциплинами (1v1). Участники - отдельные игроки."}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -361,7 +361,7 @@ export default function CreateTournamentPage() {
                 onClick={() => setBracketType("SINGLE_ELIM")}
                 icon={<Sword size={18} />}
                 title="Олимпийская (на вылет)"
-                desc={`Single Elimination. Одно поражение — выбывание. ${isTeam ? "Подходит для командных турниров любого размера." : "Классика 1v1. От 4 до 256 участников."}`}
+                desc={`Single Elimination. Одно поражение - выбывание. ${isTeam ? "Подходит для командных турниров любого размера." : "Классика 1v1. От 4 до 256 участников."}`}
                 accent="var(--accent)"
               />
               <OptionCard
@@ -369,7 +369,7 @@ export default function CreateTournamentPage() {
                 onClick={() => setBracketType("ROUND_ROBIN")}
                 icon={<Globe size={18} />}
                 title="Круговая (каждый с каждым)"
-                desc={`Round Robin. ${isTeam ? "Рекомендуется до 8–10 команд (число матчей растёт квадратично)." : "Оптимально до 8–10 участников."}`}
+                desc={`Round Robin. ${isTeam ? "Рекомендуется до 8-10 команд (число матчей растёт квадратично)." : "Оптимально до 8-10 участников."}`}
                 accent="var(--status-done)"
               />
             </div>

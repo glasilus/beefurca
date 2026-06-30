@@ -1,12 +1,12 @@
 import { Participant, GeneratedMatch } from "./types";
 
 /**
- * Standard tournament bracket seeding.
- * Returns slot indices in seeding priority order (seed 1, seed 2, seed 3, …).
- * Placing players at these slot positions distributes byes evenly so that
- * no two null slots land in the same first-round pair, eliminating dead matches.
+ * Стандартный посев турнирной сетки.
+ * Возвращает индексы слотов в порядке приоритета посева (1-й, 2-й, 3-й, ...).
+ * Размещение игроков по этим слотам равномерно распределяет проходы без игры:
+ * два пустых слота не попадают в одну пару первого раунда, мёртвых матчей не возникает.
  *
- * Examples (0-indexed):
+ * Примеры (индексация с нуля):
  *   size=2: [0, 1]
  *   size=4: [0, 3, 1, 2]
  *   size=8: [0, 7, 3, 4, 1, 6, 2, 5]
@@ -23,7 +23,7 @@ function standardSeeding(size: number): number[] {
 }
 
 /**
- * Returns the next power of 2 greater than or equal to n.
+ * Возвращает ближайшую степень двойки, большую или равную n.
  */
 function nextPowerOfTwo(n: number): number {
   if (n <= 1) return 1;
@@ -88,7 +88,7 @@ function resolveByes(matches: GeneratedMatch[]): void {
       } else if (m.participant2Id != null && p1Empty) {
         advance(m.participant2Id);
       } else if (p1Empty && p2Empty) {
-        // «Мёртвый» матч: участники не придут никогда — снимаем питатель.
+        // «Мёртвый» матч: участники не придут никогда - снимаем питатель.
         resolved.add(i);
         if (m.nextMatchIndex != null) removeFeeder(m.nextMatchIndex, m.nextMatchIsP1);
         changed = true;
@@ -98,8 +98,8 @@ function resolveByes(matches: GeneratedMatch[]): void {
 }
 
 /**
- * Generates a Single Elimination bracket.
- * If the number of participants is not a power of 2, it pads with byes (null).
+ * Генерирует сетку олимпийской системы (на вылет).
+ * Если число участников не степень двойки, добавляет проходы без игры (null).
  * @param resolve когда true (по умолчанию), автоматически разрешает bye-матчи.
  */
 export function generateSingleElimination(
@@ -112,27 +112,21 @@ export function generateSingleElimination(
   const size = nextPowerOfTwo(numPlayers);
   const matches: GeneratedMatch[] = [];
 
-  // We build the bracket from the finals back to the first round.
-  // This helps establish links easily.
-  // Final round is Round X.
-  // Total rounds: log2(size)
+  // строим сетку от финала к первому раунду - так проще проставить связи
+  // всего раундов: log2(size)
   const totalRounds = Math.log2(size);
 
-  // We will build the matches array. To resolve nextMatchIndex,
-  // we can create matches in reverse order: final match first, then semi-finals, etc.
-  // Final Match: Round = totalRounds, Position = 0
-  // Next round back: Round = totalRounds - 1, 2 matches
-  // So for round R, there are 2^(totalRounds - R) matches.
+  // массив матчей строим в обратном порядке (финал - индекс 0),
+  // это упрощает вычисление nextMatchIndex
+  // в раунде R содержится 2^(totalRounds - R) матчей
   
-  // Let's create an array of matches where the final is at index 0.
-  // Round R, Position P (0-indexed)
-  // The match at index `i` has child match at index `Math.floor((i - 1) / 2)`.
-  // If `i` is odd, it goes to participant1 (nextMatchIsP1 = true). If even, participant2.
+  // матч с индексом i имеет дочерний матч с индексом floor((i-1)/2):
+  // нечётный i ведёт в participant1 (nextMatchIsP1 = true), чётный - в participant2
   
-  // Total matches in a full tree of size S: S - 1
+  // всего матчей в полном дереве размера S: S - 1
   const totalMatchesCount = size - 1;
   
-  // Initialize placeholders
+  // инициализация заготовок матчей
   for (let i = 0; i < totalMatchesCount; i++) {
     matches.push({
       round: 0,
@@ -144,7 +138,7 @@ export function generateSingleElimination(
     });
   }
 
-  // Populate round, position and nextMatch links
+  // заполняем раунд, позицию и связи nextMatch
   let matchIndex = 0;
   for (let r = totalRounds; r >= 1; r--) {
     const roundMatchesCount = Math.pow(2, totalRounds - r);
@@ -162,34 +156,28 @@ export function generateSingleElimination(
     }
   }
 
-  // Now we need to fill in the participants for the first round.
-  // The first round matches are at the end of the matches array.
-  // For size = 8, totalMatchesCount = 7.
-  // Round 1 matches are positions 0, 1, 2, 3.
-  // They correspond to indices 3, 4, 5, 6 in our array.
-  // Let's find indices of Round 1 matches:
+  // заполняем участников первого раунда
   const firstRoundStartIndex = totalMatchesCount - (size / 2);
 
-  // Distribute players into slots using standard tournament seeding.
-  // Byes (null) end up at the remaining slot positions, always separated by at
-  // least one real player, so no pair can be (null, null) — no dead matches.
+  // раскладываем игроков по слотам стандартным посевом:
+  // проходы без игры (null) попадают на оставшиеся слоты, всегда разделённые
+  // хотя бы одним игроком, поэтому пары (null, null) не возникает
   const seededSlots = standardSeeding(size);
   const paddedParticipants: (string | null)[] = new Array(size).fill(null);
   for (let i = 0; i < numPlayers; i++) {
     paddedParticipants[seededSlots[i]] = participants[i].id;
   }
 
-  // Distribute players to Round 1 matches
+  // распределяем игроков по матчам первого раунда
   for (let i = 0; i < size / 2; i++) {
     const idx = firstRoundStartIndex + i;
     matches[idx].participant1Id = paddedParticipants[2 * i];
     matches[idx].participant2Id = paddedParticipants[2 * i + 1];
   }
 
-  // Return matches in chronological order (Round 1 first, then Round 2, etc.)
-  // This is easier to display and save.
+  // возвращаем матчи в хронологическом порядке (раунд 1, затем раунд 2, ...)
   const result = matches.reverse().map((m) => {
-    // Need to adjust the nextMatchIndex because we reversed the array
+    // корректируем nextMatchIndex, так как массив был развёрнут
     let nextRevIndex: number | null = null;
     if (m.nextMatchIndex !== null) {
       nextRevIndex = totalMatchesCount - 1 - m.nextMatchIndex;
@@ -210,8 +198,8 @@ export function generateSingleElimination(
   return result;
 }
 /**
- * Generates a Round Robin (Круговая) tournament structure.
- * Standard circle method.
+ * Генерирует структуру турнира по круговой системе (каждый с каждым).
+ * Стандартный метод «карусели».
  */
 export function generateRoundRobin(
   participants: Participant[]
@@ -219,7 +207,7 @@ export function generateRoundRobin(
   const numPlayers = participants.length;
   if (numPlayers < 2) return [];
 
-  // If odd, add a dummy bye player
+  // при нечётном числе добавляем фиктивного игрока (BYE)
   const list = [...participants];
   const hasBye = numPlayers % 2 !== 0;
   if (hasBye) {
@@ -235,7 +223,7 @@ export function generateRoundRobin(
       const p1 = list[i];
       const p2 = list[n - 1 - i];
 
-      // Skip match if one of the participants is bye
+      // пропускаем матч, если один из участников - BYE
       if (p1.id !== "bye" && p2.id !== "bye") {
         matches.push({
           round,
@@ -248,7 +236,7 @@ export function generateRoundRobin(
       }
     }
 
-    // Rotate list (keep first element fixed, shift others)
+    // сдвигаем список по кругу (первый элемент фиксирован)
     const last = list[n - 1];
     for (let k = n - 1; k > 1; k--) {
       list[k] = list[k - 1];

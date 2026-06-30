@@ -51,31 +51,31 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
   const [myTeams, setMyTeams] = useState<any[]>([]);
   const [disciplineGameType, setDisciplineGameType] = useState<string>("SINGLE");
 
-  // Join
+  // заявка на участие
   const [joinTeamId, setJoinTeamId] = useState("");
   const [joining, setJoining] = useState(false);
 
-  // Sandbox manual add
+  // ручное добавление участника (песочница)
   const [sbNickname, setSbNickname] = useState("");
   const [sbTeamName, setSbTeamName] = useState("");
 
-  // Referee assign
+  // назначение судьи
   const [selectedRefereeId, setSelectedRefereeId] = useState("");
 
-  // Score modal
+  // модалка ввода счёта
   const [selectedScoringMatch, setSelectedScoringMatch] = useState<any>(null);
   const [score1, setScore1] = useState(0);
   const [score2, setScore2] = useState(0);
   const [techDefeat, setTechDefeat] = useState(false);
   const [techLoserId, setTechLoserId] = useState("");
 
-  // Import
+  // импорт участников
   const [importFile, setImportFile] = useState<File | null>(null);
 
-  // Invite link
+  // ссылка-приглашение
   const [inviteCopied, setInviteCopied] = useState(false);
 
-  // Edit tournament modal
+  // модалка редактирования турнира
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -331,7 +331,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
   };
 
   const handleDeleteTournament = async () => {
-    if (!(await confirm(`Удалить турнир «${tournament?.name}»? Это действие необратимо — все матчи и участники будут удалены.`))) return;
+    if (!(await confirm(`Удалить турнир «${tournament?.name}»? Это действие необратимо - все матчи и участники будут удалены.`))) return;
     try {
       const res = await apiFetch(`/tournaments/${params.id}`, { method: "DELETE" });
       if (res.ok) {
@@ -643,7 +643,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
           const activeM = matches.filter((m: any) => m.winnerId);
           let winnerParticipant: any = null;
           if (tournament.bracketType === "SINGLE_ELIM") {
-            // Победитель — обладатель победы в матче последнего раунда (финале).
+            // Победитель - обладатель победы в матче последнего раунда (финале).
             const fm = [...activeM].sort((a: any, b: any) => b.round - a.round)[0];
             if (fm?.winnerId) winnerParticipant = participantMap.get(fm.winnerId) || null;
           } else if (standings.length > 0) {
@@ -724,7 +724,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                   <span className="font-cond font-semibold uppercase text-[12px] text-[var(--text-muted)]">Добавить участника вручную</span>
                 </div>
                 <p className="text-[10px] text-[var(--text-muted)] mb-4 leading-relaxed">
-                  Регистрация на платформе не требуется. Для командного турнира: заполните «Никнейм» (представитель или капитан) и «Название команды» — в сетке будет отображаться название команды.
+                  Регистрация на платформе не требуется. Для командного турнира: заполните «Никнейм» (представитель или капитан) и «Название команды» - в сетке будет отображаться название команды.
                 </p>
                 <form onSubmit={handleSandboxAdd} className="flex flex-col gap-3">
                   <Field label="ФИО / Никнейм участника">

@@ -16,7 +16,7 @@ import { redis } from "../utils/redis";
 
 export const matchRoutes = new Elysia({ prefix: "/matches" })
   .use(authPlugin)
-  // 1. Submit match score (Referee only)
+  // фиксация счёта матча (судья)
   .post(
     "/:id/score",
     async ({ user, params, body, set }) => {
@@ -25,7 +25,7 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
         return { error: "Unauthorized" };
       }
 
-      // --- REDIS RATE LIMITING FOR REFEREE ENDPOINTS ---
+      // ограничение частоты судейских запросов через Redis
       const rateLimitKey = `rate_limit:matches_score:${user.id}`;
       const requestCount = await redis.incr(rateLimitKey);
       if (requestCount === 1) {
@@ -36,7 +36,6 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
         return { error: "Too many match score requests. Please wait 10 seconds." };
       }
 
-      // Fetch match and check exist
       const [match] = await db
         .select()
         .from(matches)
@@ -48,23 +47,18 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
         return { error: "Match not found" };
       }
 
-      // Check if match already has winner
       if (match.winnerId) {
         set.status = 400;
         return { error: "Match results have already been confirmed" };
       }
 
-      // Fetch tournament details
       const [tournament] = await db
         .select()
         .from(tournaments)
         .where(eq(tournaments.id, match.tournamentId))
         .limit(1);
 
-      // Verify referee privileges
-      // Standard referee: assigned refereeId in match.
-      // Amateur/Sandbox: creator of tournament is automatic referee.
-      // Organizer: tournament organizer can always update.
+      // право судить: назначенный судья матча, организатор турнира или администратор
       const isCreator = tournament.organizerId === user.id;
       const isAssignedReferee = match.refereeId === user.id;
       const isAdmin = user.role === "Admin";
@@ -74,7 +68,6 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
         return { error: "Forbidden: You are not authorized to score this match." };
       }
 
-      // Determine winner
       const score1 = body.score1;
       const score2 = body.score2;
       let winnerId: string | null = null;
@@ -91,10 +84,9 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
         set.status = 400;
         return { error: "Ничья недопустима в олимпийской системе. Введите счёт с победителем." };
       }
-      // Круговая система: ничья допустима — матч фиксируется без победителя (winnerId = null).
+      // Круговая система: ничья допустима - матч фиксируется без победителя (winnerId = null).
 
       await db.transaction(async (tx) => {
-        // Update match with scores and winner
         await tx
           .update(matches)
           .set({
@@ -106,12 +98,10 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
           })
           .where(eq(matches.id, match.id));
 
-        // --- ELO UPDATE LOGIC ---
         // Начисление рейтинга вынесено в общий помощник applyEloForMatch,
         // чтобы /score и /tech-defeat вели себя одинаково (см. helper ниже).
         await applyEloForMatch(tx, tournament, match, winnerId, loserId);
 
-        // --- ADVANCE WINNER IN BRACKET ---
         if (winnerId) {
           if (match.nextMatchId) {
             const nextMatchCol = match.nextMatchIsP1 ? "participant1Id" : "participant2Id";
@@ -121,7 +111,7 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
               .where(eq(matches.id, match.nextMatchId));
           }
 
-          // Продвижение могло вскрыть bye (мёртвая ветка) — разрешаем цепочкой
+          // Продвижение могло вскрыть bye (мёртвая ветка) - разрешаем цепочкой
           await resolveByeChain(tx, match.nextMatchId);
         }
       });
@@ -141,7 +131,7 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
       }),
     }
   )
-  // 2. Submit Technical Defeat (Referee only)
+  // фиксация технического поражения (судья)
   .post(
     "/:id/tech-defeat",
     async ({ user, params, body, set }) => {
@@ -150,7 +140,7 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
         return { error: "Unauthorized" };
       }
 
-      // --- RATE LIMITING (судейский эндпоинт, как и /score) ---
+      // ограничение частоты (судейский эндпоинт, как и /score)
       const rateLimitKey = `rate_limit:matches_tech_defeat:${user.id}`;
       const requestCount = await redis.incr(rateLimitKey);
       if (requestCount === 1) {
@@ -161,7 +151,6 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
         return { error: "Too many requests. Please wait 10 seconds." };
       }
 
-      // Check match
       const [match] = await db
         .select()
         .from(matches)
@@ -178,14 +167,12 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
         return { error: "Match results have already been confirmed" };
       }
 
-      // Fetch tournament
       const [tournament] = await db
         .select()
         .from(tournaments)
         .where(eq(tournaments.id, match.tournamentId))
         .limit(1);
 
-      // Verify privileges
       const isCreator = tournament.organizerId === user.id;
       const isAssignedReferee = match.refereeId === user.id;
       const isAdmin = user.role === "Admin";
@@ -209,7 +196,6 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
       }
 
       await db.transaction(async (tx) => {
-        // Update match as technical defeat
         await tx
           .update(matches)
           .set({
@@ -221,11 +207,10 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
           })
           .where(eq(matches.id, match.id));
 
-        // Техническое поражение — полноценный исход матча: начисляем ELO так же,
+        // Техническое поражение - полноценный исход матча: начисляем ELO так же,
         // как при обычном вводе счёта.
         await applyEloForMatch(tx, tournament, match, winnerId, loserId);
 
-        // Advance winner
         if (match.nextMatchId) {
           const nextMatchCol = match.nextMatchIsP1 ? "participant1Id" : "participant2Id";
           await tx
@@ -315,7 +300,7 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
   )
   // Обновить счёт в прямом эфире без финализации матча.
   // Судья нажимает +/- → счёт транслируется на табло через SSE в реальном времени.
-  // Победитель не определяется — для финализации используется POST /:id/score.
+  // Победитель не определяется - для финализации используется POST /:id/score.
   .put(
     "/:id/live-score",
     async ({ user, params, body, set }) => {
@@ -369,18 +354,17 @@ export const matchRoutes = new Elysia({ prefix: "/matches" })
     }
   );
 
-// --- HELPERS ---
 
 /**
  * Рантайм-разрешение BYE. После того как победитель помещён в слот матча,
  * этот матч может оказаться bye: один участник есть, а второй слот никогда не
- * заполнится (нет неразрешённого матча-питателя, ведущего в пустой слот —
+ * заполнится (нет неразрешённого матча-питателя, ведущего в пустой слот -
  * например, «мёртвая» ветка при нечётном числе участников). Тогда объявляем
  * единственного участника победителем без игры и продвигаем дальше по цепочке.
  */
 async function resolveByeChain(tx: any, startMatchId: string | null): Promise<void> {
   let currentId: string | null = startMatchId;
-  // ограничение на число итераций — страховка от зацикливания
+  // ограничение на число итераций - страховка от зацикливания
   for (let guard = 0; currentId && guard < 256; guard++) {
     const [m] = await tx
       .select()
@@ -393,7 +377,7 @@ async function resolveByeChain(tx: any, startMatchId: string | null): Promise<vo
     let soleWinner: string | null = null;
     if (m.participant1Id && !m.participant2Id) soleWinner = m.participant1Id;
     else if (m.participant2Id && !m.participant1Id) soleWinner = m.participant2Id;
-    else break; // оба слота заняты (играбельный матч) или оба пусты — не bye
+    else break; // оба слота заняты (играбельный матч) или оба пусты - не bye
 
     const emptyIsP1 = !m.participant1Id; // какой слот пуст
 
@@ -410,7 +394,7 @@ async function resolveByeChain(tx: any, startMatchId: string | null): Promise<vo
       )
       .limit(1);
 
-    if (pendingFeeder) break; // слот ещё будет заполнен — это не bye
+    if (pendingFeeder) break; // слот ещё будет заполнен - это не bye
 
     // Объявляем bye-победу и продвигаем дальше
     await tx
@@ -563,12 +547,12 @@ async function applyEloForMatch(
     }
   }
 
-  // Рейтинги изменились — сбрасываем кэш лидербордов дисциплины
+  // Рейтинги изменились - сбрасываем кэш лидербордов дисциплины
   await clearLeaderboardCache(tournament.disciplineId);
 }
 
 async function clearLeaderboardCache(disciplineId: string) {
-  // Clear leaderboard Redis cache keys
+  // сбрасываем кэш лидербордов в Redis
   const pattern = `leaderboard:${disciplineId}:*`;
   let cursor = "0";
   do {

@@ -29,13 +29,13 @@ describe("Bracket Engine Tests", () => {
     expect(round2.length).toBe(2);
     expect(round3.length).toBe(1);
 
-    // All R1 matches have real players (8 = power of 2, no byes)
+    // во всех матчах R1 реальные игроки (8 - степень двойки, без BYE)
     const r1WithBothPlayers = round1.filter(
       (m) => m.participant1Id && m.participant2Id
     );
     expect(r1WithBothPlayers.length).toBe(4);
 
-    // All R1 matches point to a next match
+    // все матчи R1 ведут в следующий матч
     for (const m of round1) {
       expect(m.nextMatchIndex).not.toBeNull();
     }
@@ -43,7 +43,7 @@ describe("Bracket Engine Tests", () => {
 
   it("should auto-advance BYE players when participant count is not a power of two", () => {
     // 3 игрока: size=4, R1 = 2 матча.
-    // Standard seeding: slot order [0,3,1,2] → p1→slot0, p2→slot3, p3→slot1, bye→slot2.
+    // стандартный посев: порядок слотов [0,3,1,2] → p1→slot0, p2→slot3, p3→slot1, BYE→slot2.
     // Пары: (slot0,slot1)=p1 vs p3 (реальный матч), (slot2,slot3)=null vs p2 (bye → p2).
     const three: Participant[] = [
       { id: "p1", name: "P1" },
@@ -74,7 +74,7 @@ describe("Bracket Engine Tests", () => {
 
   it("should not create dead matches with 6 players", () => {
     // Это был основной баг: 6 игроков → size=8, sequential placement давал
-    // последнюю пару R1 как (null, null) — dead match, из-за которого турнир
+    // последнюю пару R1 как (null, null) - dead match, из-за которого турнир
     // не мог продвинуться дальше 2-го этапа.
     const six: Participant[] = [
       { id: "p1", name: "P1" },
@@ -150,7 +150,7 @@ describe("Bracket Engine Tests", () => {
 
   it("should generate Round Robin matches", () => {
     const matches = generateRoundRobin(participants);
-    // For 8 players, total rounds = 7, each round has 4 matches -> 28 matches.
+    // для 8 игроков (круговая): 7 раундов по 4 матча -> 28 матчей
     expect(matches.length).toBe(28);
 
     const rounds = new Set(matches.map((m) => m.round));

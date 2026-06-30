@@ -9,16 +9,16 @@ export interface KeyPair {
 
 /**
  * Loads RSA keys in priority order:
- *  1. JWT_PRIVATE_KEY / JWT_PUBLIC_KEY env vars (production — survives redeployment)
+ *  1. JWT_PRIVATE_KEY / JWT_PUBLIC_KEY env vars (production - survives redeployment)
  *  2. Key files at JWT_PRIVATE_KEY_PATH / JWT_PUBLIC_KEY_PATH (dev convenience)
- *  3. Auto-generate and save to files (first-run dev only — NOT suitable for production)
+ *  3. Auto-generate and save to files (first-run dev only - NOT suitable for production)
  */
 export function getOrGenerateKeys(): KeyPair {
   const privateKeyEnv = process.env.JWT_PRIVATE_KEY;
   const publicKeyEnv = process.env.JWT_PUBLIC_KEY;
 
   if (privateKeyEnv && publicKeyEnv) {
-    // Env vars may have literal \n instead of real newlines (Railway/Vercel quirk)
+    // в переменных окружения \n может быть литералом вместо перевода строки (особенность Railway/Vercel)
     return {
       privateKey: privateKeyEnv.replace(/\\n/g, "\n"),
       publicKey: publicKeyEnv.replace(/\\n/g, "\n"),
@@ -35,10 +35,10 @@ export function getOrGenerateKeys(): KeyPair {
     };
   }
 
-  // Dev fallback: generate and save for this session
+  // для разработки: генерируем и сохраняем на сессию
   console.warn(
     "JWT_PRIVATE_KEY / JWT_PUBLIC_KEY env vars not set. " +
-    "Generating ephemeral RSA keys — tokens will be invalidated on restart. " +
+    "Generating ephemeral RSA keys - tokens will be invalidated on restart. " +
     "Set these vars in production."
   );
 

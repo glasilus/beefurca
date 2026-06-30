@@ -100,7 +100,7 @@ export const Nav: React.FC<NavProps> = ({ active, profile }) => {
               <LogOut size={14} />
               <span>Выйти</span>
             </button>
-            {/* Hamburger — mobile only */}
+            {/* Hamburger - mobile only */}
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className="md:hidden p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--panel-sunken)] transition-colors"

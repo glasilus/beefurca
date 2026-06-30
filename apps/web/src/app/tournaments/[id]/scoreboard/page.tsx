@@ -48,7 +48,7 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
         setTournament(data.tournament);
         setParticipants(data.participants || []);
         setMatches(data.matches || []);
-        // disciplineName is now included directly in the tournament detail response
+        // disciplineName приходит прямо в ответе детали турнира
         if (data.tournament.disciplineName) {
           setDisciplineName(data.tournament.disciplineName);
         } else {
@@ -81,7 +81,7 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
     );
   }
 
-  // Create participant mapping for quick lookup
+  // индекс участников для быстрого поиска
   const participantMap = new Map<string, any>();
   participants.forEach((p) => participantMap.set(p.id, p));
 
@@ -91,7 +91,6 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
     return p ? (p.teamSnapshot || p.nicknameSnapshot) : "Ожидание";
   };
 
-  // Group matches
   const activeMatches = matches.filter((m) => !m.winnerId && m.participant1Id && m.participant2Id);
   const completedMatches = matches
     .filter((m) => m.winnerId)
@@ -130,13 +129,13 @@ export default function TournamentScoreboardPage({ params }: { params: { id: str
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 mt-10">
 
-        {/* Заголовок турнира — чистый текст, без картинки */}
+        {/* Заголовок турнира - чистый текст, без картинки */}
         <div className="text-center mb-6">
           <h2 className="text-3xl font-display font-extrabold uppercase tracking-wider text-[var(--text)] break-words">
             {tournament?.name}
           </h2>
           <p className="text-xs text-[var(--text-muted)] mt-2 font-mono uppercase tracking-widest">
-            {disciplineName || "—"} · Трансляция в реальном времени
+            {disciplineName || "-"} · Трансляция в реальном времени
           </p>
           {tournament?.prizePool && (
             <div className="inline-flex items-center gap-2.5 mt-4 px-5 py-2 border font-bold text-sm tracking-wide"

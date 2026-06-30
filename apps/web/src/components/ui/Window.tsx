@@ -3,7 +3,7 @@
 import React from "react";
 
 /* ----------------------------------------------------------------
-   <Window> — окно PC-98: чанковая бевел-рамка, дизер-титлбар, [X].
+   <Window> - окно PC-98: чанковая бевел-рамка, дизер-титлбар, [X].
    ---------------------------------------------------------------- */
 type WindowStatus = "live" | "done" | "draft" | null;
 
@@ -18,7 +18,7 @@ export interface WindowProps extends React.HTMLAttributes<HTMLDivElement> {
   status?: WindowStatus;
   lights?: boolean;
   frosted?: boolean;
-  /** Если задан — в титлбаре появляется кнопка закрытия [X]. */
+  /** Если задан - в титлбаре появляется кнопка закрытия [X]. */
   onClose?: () => void;
   children: React.ReactNode;
 }
@@ -26,7 +26,7 @@ export interface WindowProps extends React.HTMLAttributes<HTMLDivElement> {
 export const Window: React.FC<WindowProps> = ({
   title,
   status = null,
-  // lights/frosted — наследие старого API, игнорируются
+  // lights/frosted - наследие старого API, игнорируются
   lights,
   frosted,
   onClose,
@@ -52,7 +52,7 @@ export const Window: React.FC<WindowProps> = ({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Закрыть — на главную"
+              aria-label="Закрыть - на главную"
               title="На главную"
               className="btn-98 w-5 h-5 grid place-items-center text-[11px] font-bold leading-none"
             >
@@ -67,7 +67,7 @@ export const Window: React.FC<WindowProps> = ({
 };
 
 /* ----------------------------------------------------------------
-   <Card> — панель без титлбара
+   <Card> - панель без титлбара
    ---------------------------------------------------------------- */
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;

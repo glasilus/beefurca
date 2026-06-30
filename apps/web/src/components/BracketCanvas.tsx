@@ -42,7 +42,7 @@ interface BracketCanvasProps {
 const FRAME =
   "w-full h-[600px] border border-border bg-surface rounded-win overflow-hidden relative";
 
-// ---------- Match node for ReactFlow (tree / double bracket) ----------
+// узел матча для ReactFlow
 const MatchNode: React.FC<NodeProps> = ({ data }) => {
   const m = data.match as MatchData;
   const p1 = data.p1 as ParticipantData | null;
@@ -142,7 +142,7 @@ const MatchNode: React.FC<NodeProps> = ({ data }) => {
 
 const nodeTypes = { matchNode: MatchNode };
 
-// ---------- Flow graph (Single Elimination) ----------
+// граф сетки (олимпийская система)
 const FlowBracket: React.FC<BracketCanvasProps> = ({
   matches,
   participants,
@@ -171,7 +171,7 @@ const FlowBracket: React.FC<BracketCanvasProps> = ({
     const COL = 300;
     const ROW = 120;
 
-    // Edge style helper: completed path = done cyan, active = live, inactive = hairline
+    // стиль рёбер: пройденный путь, активный матч и неактивный (тонкая линия)
     const edgeStyle = (m: MatchData, isLoser = false) => ({
       stroke: isLoser
         ? "var(--status-danger)"
@@ -220,7 +220,7 @@ const FlowBracket: React.FC<BracketCanvasProps> = ({
   );
 };
 
-// ---------- Cross-table (Round Robin) ----------
+// таблица результатов (круговая система)
 const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({ matches, participants }) => {
   const nameOf = (p: ParticipantData) => p.teamSnapshot || p.nicknameSnapshot;
 
@@ -235,7 +235,7 @@ const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({ matches, participants 
         (x.participant1Id === colId && x.participant2Id === rowId),
     );
     if (!m || m.score1 === null || m.score2 === null)
-      return { score: "—", type: "pending" };
+      return { score: "-", type: "pending" };
     const rowIsP1 = m.participant1Id === rowId;
     const s = rowIsP1 ? m.score1 : m.score2;
     const o = rowIsP1 ? m.score2 : m.score1;
@@ -279,7 +279,7 @@ const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({ matches, participants 
       className="window-shell w-full flex flex-col"
       style={{ height: needsScroll ? 600 : contentH }}
     >
-      {/* ── HEADER — brushed metal bar ── */}
+      {/* ── HEADER - brushed metal bar ── */}
       <div
         className="brushed border-b border-border shrink-0"
         style={{ display: "grid", gridTemplateColumns: cols }}
@@ -313,7 +313,7 @@ const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({ matches, participants 
         </div>
       </div>
 
-      {/* ── BODY — scrollable when tall ── */}
+      {/* ── BODY - scrollable when tall ── */}
       <div className="flex-1" style={{ overflowY: needsScroll ? "auto" : "hidden", overflowX: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: cols, width: "100%" }}>
           {ranked.map((row, ri) => {
@@ -444,7 +444,7 @@ const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({ matches, participants 
         </div>
       </div>
 
-      {/* ── LEGEND — brushed footer ── */}
+      {/* ── LEGEND - brushed footer ── */}
       <div
         className="brushed border-t border-border shrink-0 px-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-[9px] font-mono"
         style={{ height: LEG_H, color: "var(--text-muted)" }}
@@ -468,7 +468,7 @@ const RoundRobinMatrix: React.FC<BracketCanvasProps> = ({ matches, participants 
 };
 
 
-// ---------- Dispatcher ----------
+// диспетчер
 export const BracketCanvas: React.FC<BracketCanvasProps> = (props) => {
   const { bracketType } = props;
   if (bracketType === "ROUND_ROBIN") return <RoundRobinMatrix {...props} />;

@@ -20,7 +20,7 @@ import Workbook from "exceljs";
 export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
   .use(authPlugin)
   .get("/disciplines", async () => {
-    // Официальные дисциплины — выше, затем по алфавиту.
+    // Официальные дисциплины - выше, затем по алфавиту.
     return db
       .select()
       .from(disciplines)
@@ -44,7 +44,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         return { error: "gameType must be SINGLE or TEAM" };
       }
 
-      // Если дисциплина с таким именем уже есть — переиспользуем её,
+      // Если дисциплина с таким именем уже есть - переиспользуем её,
       // чтобы не плодить дубликаты и не спотыкаться об unique-индекс.
       const [existing] = await db
         .select()
@@ -80,7 +80,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       }),
     }
   )
-  // 1. Create Tournament (STANDARD: Organizer/Admin; SANDBOX: любой пользователь)
+  // создание турнира (STANDARD: организатор/администратор; SANDBOX: любой пользователь)
   .post(
     "/",
     async ({ user, body, set }) => {
@@ -99,7 +99,6 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         return { error: "Invalid tournament type" };
       }
 
-      // Check if discipline exists
       const [discipline] = await db
         .select()
         .from(disciplines)
@@ -148,7 +147,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       }),
     }
   )
-  // 2. List Tournaments (All roles)
+  // список турниров (все роли)
   .get("/", async () => {
     return db
       .select({
@@ -166,7 +165,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       .from(tournaments)
       .innerJoin(disciplines, eq(tournaments.disciplineId, disciplines.id));
   })
-  // 3. Get Tournament Details (Includes participants and matches)
+  // детали турнира (с участниками и матчами)
   .get(
     "/:id",
     async ({ params, set, user }) => {
@@ -209,7 +208,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       }),
     }
   )
-  // 3b. Edit Tournament (Organizer / Admin only)
+  // редактирование турнира (организатор/администратор)
   .put(
     "/:id",
     async ({ user, params, body, set }) => {
@@ -266,7 +265,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       }),
     }
   )
-  // 3c. Delete Tournament (Admin only)
+  // удаление турнира (только администратор)
   .delete(
     "/:id",
     async ({ user, params, set }) => {
@@ -292,7 +291,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
     },
     { params: t.Object({ id: t.String() }) }
   )
-  // 4. Join Tournament (Players only, Sandbox does not use registration)
+  // подача заявки на турнир (SANDBOX заявки не использует)
   .post(
     "/:id/join",
     async ({ user, params, body, set }) => {
@@ -322,7 +321,6 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         return { error: "Sandbox tournaments do not accept registrations." };
       }
 
-      // Check if already registered
       const [existing] = await db
         .select()
         .from(tournamentParticipants)
@@ -339,7 +337,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         return { error: "You are already registered for this tournament." };
       }
 
-      // Get discipline to check Single vs Team format
+      // дисциплина: одиночная или командная
       const [disc] = await db
         .select()
         .from(disciplines)
@@ -393,7 +391,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       }),
     }
   )
-  // 4b. Manually add a participant by name (SANDBOX only).
+  // добавление участника по имени вручную (только SANDBOX)
   // Ключевой сценарий «песочницы»: организатор вписывает имена строками вручную,
   // без привязки к зарегистрированным аккаунтам.
   .post(
@@ -466,7 +464,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       }),
     }
   )
-  // 5. Approve Participant (Organizer only)
+  // подтверждение заявки участника (организатор)
   .post(
     "/:id/approve/:participantId",
     async ({ user, params, set }) => {
@@ -516,7 +514,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       }),
     }
   )
-  // 5b. Reject participant application (Organizer/Admin only)
+  // отклонение заявки участника (организатор/администратор)
   .post(
     "/:id/reject/:participantId",
     async ({ user, params, set }) => {
@@ -571,7 +569,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       }),
     }
   )
-  // 6. Generate Bracket / Start Tournament (Organizer only)
+  // генерация сетки и старт турнира (организатор)
   .post(
     "/:id/generate-bracket",
     async ({ user, params, set }) => {
@@ -601,7 +599,6 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         return { error: "Tournament has already started!" };
       }
 
-      // Fetch approved participants
       const approved = await db
         .select()
         .from(tournamentParticipants)
@@ -636,17 +633,14 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         return { error: "Failed to generate tournament bracket structure." };
       }
 
-      // Save matches in database (in a transaction to maintain integrity)
       await db.transaction(async (tx) => {
-        // Mark tournament as started
         await tx
           .update(tournaments)
           .set({ isStarted: true })
           .where(eq(tournaments.id, tournament.id));
 
-        // Insert matches without IDs first, then retrieve IDs to wire connections.
         // Для матчей, разрешённых движком как BYE (winnerParticipantId), сразу
-        // проставляем winnerId и playedAt — игрок проходит без игры, и сетка не
+        // проставляем winnerId и playedAt - игрок проходит без игры, и сетка не
         // зависает при нечётном числе участников.
         const matchPlaceholders = generatedMatches.map((m) => ({
           tournamentId: tournament.id,
@@ -656,7 +650,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
           participant2Id: m.participant2Id,
           winnerId: m.winnerParticipantId || null,
           playedAt: m.winnerParticipantId ? new Date() : null,
-          refereeId: tournament.organizerId, // Organizer is default referee
+          refereeId: tournament.organizerId, // организатор - судья по умолчанию
         }));
 
         const insertedMatches = await tx
@@ -664,7 +658,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
           .values(matchPlaceholders)
           .returning();
 
-        // Map arrayIndex -> generated database ID
+        // сопоставляем индекс в массиве с id матча в БД
         const indexToIdMap = insertedMatches.map((im) => im.id);
 
         // Update links: nextMatchId (продвижение победителя по сетке)
@@ -692,7 +686,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       }),
     }
   )
-  // 7. Bulk Import Participants via Excel (Organizer only)
+  // импорт участников из Excel (организатор)
   .post(
     "/:id/participants/import",
     async ({ user, params, body, set }) => {
@@ -736,7 +730,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
 
         const importedRows: { nickname: string; teamName?: string }[] = [];
 
-        // Skip headers, read rows. Column 1: Nickname, Column 2: Team Name (optional)
+        // пропускаем заголовок; столбец 1 - никнейм, столбец 2 - команда (опционально)
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber > 1) {
             const nickname = row.getCell(1).text?.trim();
@@ -752,8 +746,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
           return { error: "No valid rows found in Excel sheet. Ensure headers match." };
         }
 
-        // For SANDBOX tournaments, we register them as approved participants immediately.
-        // For STANDARD, we try to match the Nickname with existing users in DB.
+        // SANDBOX: участники сразу со статусом APPROVED; STANDARD: сопоставляем никнейм с пользователем БД
         const isSandbox = tournament.tournamentType === "SANDBOX";
 
         await db.transaction(async (tx) => {
@@ -762,7 +755,6 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
             let matchedTeamId: string | null = null;
 
             if (!isSandbox) {
-              // Find user
               const [dbUser] = await tx
                 .select({ id: users.id })
                 .from(users)
@@ -773,7 +765,6 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
                 matchedUserId = dbUser.id;
               }
 
-              // Find team if provided
               if (row.teamName) {
                 const [dbTeam] = await tx
                   .select({ id: teams.id })
@@ -786,14 +777,13 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
               }
             }
 
-            // Insert approved participant
             await tx.insert(tournamentParticipants).values({
               tournamentId: tournament.id,
               userId: matchedUserId,
               teamId: matchedTeamId,
               nicknameSnapshot: row.nickname,
               teamSnapshot: row.teamName || null,
-              status: "APPROVED", // Imported is automatically approved
+              status: "APPROVED", // импортированные сразу подтверждены
             });
           }
         });
@@ -815,7 +805,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       }),
     }
   )
-  // 8. Stream Real-Time Tournament Grid updates (SSE Connection)
+  // поток обновлений сетки в реальном времени (SSE)
   .get("/:id/stream", ({ params, set, request }) => {
     const tournamentId = params.id;
     const clientId = crypto.randomUUID();
@@ -824,7 +814,6 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
     set.headers["cache-control"] = "no-cache";
     set.headers["connection"] = "keep-alive";
 
-    // Set up readable stream for Elysia
     let clientCloseCallback: (() => void) | null = null;
 
     const stream = new ReadableStream({
@@ -854,7 +843,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
 
     return stream;
   })
-  // 9. Mass Assign Referee to all matches of a tournament (Organizer only)
+  // массовое назначение судьи на все матчи турнира (организатор)
   .put(
     "/:id/matches/referee",
     async ({ user, params, body, set }) => {
@@ -912,7 +901,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
       }),
     }
   )
-  // 10. Get Tournament Standings (All roles)
+  // турнирная таблица (все роли)
   .get(
     "/:id/standings",
     async ({ params, set }) => {
@@ -927,7 +916,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         return { error: "Tournament not found" };
       }
 
-      // Fetch participants and calculate standings dynamically
+      // турнирная таблица рассчитывается на лету
       const standings = await db.execute(sql`
         SELECT 
           tp.id as "participantId",
@@ -945,9 +934,7 @@ export const tournamentRoutes = new Elysia({ prefix: "/tournaments" })
         ORDER BY "wins" DESC, "eloChange" DESC
       `);
 
-      // db.execute() returns a postgres.js RowList (Array subclass with extra properties).
-      // Elysia may not serialize Array subclasses as plain JSON arrays, so we
-      // explicitly convert to a plain array of plain objects.
+      // приводим результат db.execute() (RowList) к простому массиву объектов
       return Array.from(standings as any[]).map((r) => ({ ...r }));
     },
     {

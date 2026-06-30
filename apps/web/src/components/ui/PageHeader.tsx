@@ -8,7 +8,7 @@ export interface PageHeaderProps {
 }
 
 /**
- * Standard page header — title in font-display, optional eyebrow + actions slot.
+ * Standard page header - title in font-display, optional eyebrow + actions slot.
  */
 export const PageHeader: React.FC<PageHeaderProps> = ({
   title,

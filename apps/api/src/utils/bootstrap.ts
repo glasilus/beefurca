@@ -8,7 +8,7 @@ import bcrypt from "bcryptjs";
  */
 export async function bootstrapAdmin(): Promise<void> {
   try {
-    // Check if there's any user with Admin role
+    // есть ли хоть один администратор
     const existingAdmins = await db
       .select({ id: users.id })
       .from(users)
@@ -48,7 +48,7 @@ export async function bootstrapAdmin(): Promise<void> {
 }
 
 /**
- * Демо-учётные записи для защиты курсовой (требование рекомендаций кафедры —
+ * Демо-учётные записи для защиты курсовой (требование рекомендаций кафедры -
  * предзаданные логин/пароль для каждой роли). Создаются один раз, если ещё нет.
  * Учётные данные продублированы на странице входа.
  */

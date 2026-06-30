@@ -18,7 +18,7 @@ export const users = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     nickname: text("nickname").notNull().unique(),
     email: text("email").notNull().unique(),
-    // ФИО и телефон — опциональные контактные данные (требование ТЗ кафедры).
+    // ФИО и телефон - опциональные контактные данные (требование ТЗ кафедры).
     fullName: text("full_name"),
     phone: text("phone"),
     // passwordHash допускает NULL: служебные/демо-аккаунты могут не иметь пароля.
@@ -227,7 +227,7 @@ export const eloHistory = pgTable(
   })
 );
 
-// --- RELATIONS FOR ORM ---
+// связи для ORM
 
 export const usersRelations = relations(users, ({ many }) => ({
   captainOfTeams: many(teams),

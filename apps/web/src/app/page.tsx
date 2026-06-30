@@ -71,7 +71,7 @@ export default function Home() {
         {/* ── Общая обёртка: спрайты позиционируются здесь ── */}
         <div className="relative">
 
-          {/* Спрайты: z-[2] — за текстом hero (z-10), впереди демо (z-0) */}
+          {/* Спрайты: z-[2] - за текстом hero (z-10), впереди демо (z-0) */}
           <div className="hidden md:block absolute top-0 left-0 z-[2] pointer-events-none select-none leading-none">
             <Sprite src="/sprites/raver-lord.png" alt="" height={460} />
           </div>
@@ -90,7 +90,7 @@ export default function Home() {
                 BEEFURCA
               </h1>
               <p className="text-sm text-[var(--text-muted)] mb-8 leading-relaxed">
-                Независимый турнирный движок — для любой дисциплины и любого масштаба.
+                Независимый турнирный движок - для любой дисциплины и любого масштаба.
               </p>
               <Button variant="gel" onClick={() => router.push("/login")}>
                 Войти в систему
@@ -107,7 +107,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* ── Bracket demo: z-0 — спрайты частично заходят сверху ── */}
+          {/* ── Bracket demo: z-0 - спрайты частично заходят сверху ── */}
           <section className="py-12">
             <p className="text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-widest mb-4">
               Интерактивная турнирная сетка
@@ -127,7 +127,7 @@ export default function Home() {
                 </p>
                 <div className="flex flex-col gap-3">
                   {[
-                    ["Администратор", "Управляет системой — создаёт дисциплины, назначает роли пользователям."],
+                    ["Администратор", "Управляет системой - создаёт дисциплины, назначает роли пользователям."],
                     ["Организатор",   "Создаёт турниры, принимает заявки, строит сетку, назначает судей."],
                     ["Игрок",         "Подаёт заявки на участие, отслеживает сетку и свой ELO-рейтинг."],
                     ["Судья",         "Вводит результаты закреплённых за ним матчей."],
@@ -147,11 +147,11 @@ export default function Home() {
                 <ol className="flex flex-col gap-3">
                   {[
                     "Администратор создаёт дисциплину.",
-                    "Организатор создаёт турнир — стандартный или sandbox.",
+                    "Организатор создаёт турнир - стандартный или sandbox.",
                     "Игроки регистрируются и подают заявки.",
                     "Организатор принимает заявки и строит сетку.",
                     "Назначаются судьи для каждого матча.",
-                    "Судьи вводят результаты — сетка обновляется в реальном времени.",
+                    "Судьи вводят результаты - сетка обновляется в реальном времени.",
                     "В стандартном режиме ELO пересчитывается автоматически.",
                   ].map((step, i) => (
                     <li key={i} className="flex gap-3 items-start text-[11px] text-[var(--text-muted)] leading-relaxed">
@@ -170,7 +170,7 @@ export default function Home() {
       {/* ── Подвал ── */}
       <footer className="border-t-2 border-[var(--border)] py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-widest">
-          <span>Beefurca — ИС организации соревнований</span>
+          <span>Beefurca - ИС организации соревнований</span>
           <span>Петунов Н.О. · Курсовой проект · 2026</span>
         </div>
       </footer>

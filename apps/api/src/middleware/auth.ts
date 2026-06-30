@@ -10,7 +10,7 @@ const { privateKey, publicKey } = getOrGenerateKeys();
 // Re-export общего Redis-клиента для обратной совместимости импортов.
 export { redis };
 
-// Access/Refresh TTL configurations
+// время жизни access- и refresh-токенов
 const accessTTL = process.env.JWT_ACCESS_TTL || "15m";
 const refreshTTL = process.env.JWT_REFRESH_TTL || "7d";
 const refreshTTLSeconds = 7 * 24 * 60 * 60; // 7 days in seconds
@@ -49,7 +49,7 @@ export async function signRefreshToken(
     .setExpirationTime(refreshTTL)
     .sign(pkey);
 
-  // Store in Redis: key is refresh_token:<userId>:<jti>, value is "active"
+  // храним в Redis: ключ refresh_token:<userId>:<jti>, значение active
   const redisKey = `refresh_token:${payload.userId}:${jti}`;
   await redis.set(redisKey, "active", "EX", refreshTTLSeconds);
 
@@ -77,7 +77,6 @@ export async function revokeRefreshToken(userId: string, jti: string): Promise<v
  * Revoke ALL refresh tokens for a user (useful for bans or global logouts)
  */
 export async function revokeAllUserTokens(userId: string): Promise<void> {
-  // Find all keys for this user in Redis
   const pattern = `refresh_token:${userId}:*`;
   let cursor = "0";
   do {
@@ -109,7 +108,7 @@ export const authPlugin = (app: Elysia) =>
     if (authHeader && authHeader.startsWith("Bearer ")) {
       token = authHeader.substring(7);
     } else {
-      // Check cookies as fallback
+      // запасной вариант - токен из cookie
       const cookieHeader = headers["cookie"] || "";
       const match = cookieHeader.match(/access_token=([^;]+)/);
       if (match) {
@@ -124,7 +123,7 @@ export const authPlugin = (app: Elysia) =>
     try {
       const payload = await verifyToken(token);
 
-      // Verify database status to handle instant bans / deletions
+      // сверяем статус в БД - мгновенная реакция на бан и удаление
       const [dbUser] = await db
         .select({
           isBanned: users.isBanned,

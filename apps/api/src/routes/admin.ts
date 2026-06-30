@@ -17,7 +17,7 @@ import {
 
 export const adminRoutes = new Elysia({ prefix: "/admin" })
   .use(authPlugin)
-  // 1. Add Official Discipline (Admin only)
+  // добавление официальной дисциплины (только администратор)
   .post(
     "/disciplines",
     async ({ user, body, set }) => {
@@ -63,7 +63,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
       }),
     }
   )
-  // 1b. Edit discipline name and/or rules (Admin only)
+  // редактирование названия и правил дисциплины (только администратор)
   .put(
     "/disciplines/:id",
     async ({ user, params, body, set }) => {
@@ -75,7 +75,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
 
       const updateData: { name?: string; rules?: string | null } = {};
       if (body.name !== undefined) {
-        // Check uniqueness only if name actually changes
+        // проверяем уникальность только при смене имени
         const [existing] = await db
           .select({ id: disciplines.id })
           .from(disciplines)
@@ -115,7 +115,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
       }),
     }
   )
-  // 1c. Delete discipline (Admin only) — blocked if tournaments reference it
+  // удаление дисциплины (только администратор); запрещено, если на неё ссылаются турниры
   .delete(
     "/disciplines/:id",
     async ({ user, params, set }) => {
@@ -153,7 +153,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
       params: t.Object({ id: t.String() }),
     }
   )
-  // 1d. Promote/demote discipline to official (Admin only)
+  // перевод дисциплины в официальные и обратно (только администратор)
   .put(
     "/disciplines/:id/official",
     async ({ user, params, body, set }) => {
@@ -183,7 +183,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
       body: t.Object({ isOfficial: t.Boolean() }),
     }
   )
-  // 2. Ban/Unban User (Admin only)
+  // блокировка и разблокировка пользователя (только администратор)
   .put(
     "/users/:id/ban",
     async ({ user, params, body, set }) => {
@@ -209,7 +209,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         return { error: "User not found" };
       }
 
-      // If banned, instantly revoke all active refresh tokens in Redis
+      // при бане немедленно отзываем все refresh-токены в Redis
       if (body.isBanned) {
         await revokeAllUserTokens(params.id);
         console.log(`User ${params.id} has been banned. Revoked all session tokens.`);
@@ -230,7 +230,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
       }),
     }
   )
-  // 4. Generate Discipline Popularity Report (Excel Export, Admin only)
+  // отчёт о популярности дисциплин в Excel (только администратор)
   .get(
     "/reports/popularity",
     async ({ user, query, set }) => {
@@ -243,7 +243,6 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
       const start = query.startDate ? new Date(query.startDate) : new Date(0);
       const end = query.endDate ? new Date(query.endDate) : new Date();
 
-      // Aggregate data using SQL queries
       const reportData = await db.execute(sql`
         SELECT
           d.name as "disciplineName",
@@ -293,7 +292,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
       }),
     }
   )
-  // 5. Generate Player statistics report (Excel Export, Admin only)
+  // отчёт по статистике игрока в Excel (только администратор)
   .get(
     "/reports/player/:id",
     async ({ user, params, query, set }) => {
@@ -303,7 +302,6 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
       }
       checkRole(user, ["Admin"], set);
 
-      // Verify user exists
       const [player] = await db
         .select()
         .from(users)
@@ -318,8 +316,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
       const start = query.startDate ? new Date(query.startDate) : new Date(0);
       const end = query.endDate ? new Date(query.endDate) : new Date();
 
-      // Query database for ELO stats and wins/matches per discipline
-      // We will perform SQL aggregate query for matches played and wins:
+      // агрегирующий SQL-запрос: число сыгранных матчей и побед
       // Период считается по дате сыгранного матча (m.played_at), а не по дате
       // регистрации участника. SANDBOX-турниры в отчёт не включаются (kursovik).
       const stats = await db.execute(sql`

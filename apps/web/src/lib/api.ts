@@ -1,7 +1,7 @@
 // Единый слой работы с API для веб-клиента.
 // Поддерживает обе модели аутентификации бэкенда одновременно:
 //  - Bearer-токен из localStorage (вход по паролю);
-//  - httpOnly cookie (вход через Discord OAuth) — за счёт credentials: "include".
+//  - httpOnly cookie (вход через Discord OAuth) - за счёт credentials: "include".
 // Автоматически обновляет access-токен по refresh-токену при истечении 15-минутного TTL.
 
 export const API_URL =
@@ -122,7 +122,7 @@ export async function logout() {
   try {
     await apiFetch("/auth/logout", { method: "POST" });
   } catch {
-    /* игнорируем — всё равно чистим локальную сессию */
+    /* игнорируем - всё равно чистим локальную сессию */
   }
   clearSession();
 }

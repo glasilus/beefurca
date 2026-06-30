@@ -1,14 +1,14 @@
 /**
- * Basic ELO expectation calculation.
+ * Расчёт ожидаемого результата по системе ELO.
  */
 export function getExpectedScore(ratingA: number, ratingB: number): number {
   return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
 }
 
 /**
- * Calculates ELO change for single participants.
- * scoreA, scoreB: actual scores (e.g., 1 for win, 0 for loss, 0.5 for draw)
- * kFactor: ELO coefficient (standard is 32)
+ * Расчёт изменения рейтинга ELO для одиночных участников.
+ * scoreA, scoreB: фактический результат (1 - победа, 0 - поражение, 0.5 - ничья)
+ * kFactor: коэффициент ELO (стандартно 32)
  */
 export function calculateEloChange(
   ratingA: number,
@@ -31,7 +31,7 @@ export function calculateEloChange(
     actualB = 1;
   }
 
-  // Calculate delta and round to nearest integer
+  // вычисляем дельту и округляем до целого
   const deltaA = Math.round(kFactor * (actualA - expectedA));
   const deltaB = Math.round(kFactor * (actualB - expectedB));
 
@@ -44,8 +44,8 @@ export function calculateEloChange(
 }
 
 /**
- * Calculates ELO changes for team members.
- * Computes average ELO for both teams, calculates team delta, and returns individual ELO deltas.
+ * Расчёт изменения рейтинга ELO для игроков команд.
+ * Берёт средний ELO обеих команд, считает командную дельту и возвращает дельты по игрокам.
  */
 export function calculateTeamEloChange(
   teamARatings: number[],
@@ -94,7 +94,7 @@ export function calculateTeamEloChange(
 }
 
 /**
- * Returns the K-Factor based on tournament mode.
+ * Возвращает коэффициент K в зависимости от режима турнира.
  * - STANDARD: 32 (рейтинг пересчитывается)
  * - SANDBOX: 0 (автономный учёт, ELO не затрагивается)
  */

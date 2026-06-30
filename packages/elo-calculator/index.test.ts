@@ -8,10 +8,10 @@ import {
 
 describe("ELO Calculator Tests", () => {
   it("should calculate expected scores correctly", () => {
-    // Equal ratings should give 0.5 expected score
+    // равные рейтинги дают ожидание 0.5
     expect(getExpectedScore(1000, 1000)).toBeCloseTo(0.5, 4);
 
-    // Higher rating should have higher expected score
+    // более высокий рейтинг - большее ожидание
     expect(getExpectedScore(1200, 1000)).toBeGreaterThan(0.5);
     expect(getExpectedScore(800, 1000)).toBeLessThan(0.5);
   });
@@ -20,7 +20,7 @@ describe("ELO Calculator Tests", () => {
     const ratingA = 1000;
     const ratingB = 1000;
     
-    // Player A wins
+    // побеждает игрок A
     const result = calculateEloChange(ratingA, ratingB, 1, 0, 32);
 
     expect(result.deltaA).toBe(16);
@@ -33,16 +33,16 @@ describe("ELO Calculator Tests", () => {
     const teamA = [1000, 1100, 1050]; // Avg ELO = 1050
     const teamB = [950, 1000, 900];   // Avg ELO = 950
 
-    // Team A wins
+    // побеждает команда A
     const result = calculateTeamEloChange(teamA, teamB, 1, 0, 32);
 
-    // Since Team A had higher avg ELO, their expected score was higher,
-    // so delta A should be positive but less than 16 (for equal match).
+    // у команды A средний ELO выше, поэтому её ожидание больше,
+    // значит дельта A положительна, но меньше 16 (как для равного матча)
     expect(result.deltaA).toBeGreaterThan(0);
     expect(result.deltaA).toBeLessThan(16);
     expect(result.deltaB).toBeLessThan(0);
     
-    // Check members new ELO
+    // проверяем новый ELO участников
     expect(result.newRatingsA[0]).toBe(teamA[0] + result.deltaA);
     expect(result.newRatingsB[0]).toBe(teamB[0] + result.deltaB);
   });

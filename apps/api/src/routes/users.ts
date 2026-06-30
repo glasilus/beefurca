@@ -28,7 +28,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
       .where(eq(users.id, user.id))
       .limit(1);
 
-    // Get user's teams where they are a member or captain
+    // команды пользователя, где он состоит или является капитаном
     const userTeams = await db
       .select({
         teamId: teams.id,
@@ -51,7 +51,6 @@ export const userRoutes = new Elysia({ prefix: "/users" })
 
       const updates: any = {};
       if (body.nickname) {
-        // Check if nickname is taken by someone else
         const [existing] = await db
           .select({ id: users.id })
           .from(users)
@@ -144,7 +143,6 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         return { error: "Unauthorized" };
       }
 
-      // Check if team name already exists
       const [existing] = await db
         .select({ id: teams.id })
         .from(teams)
@@ -156,7 +154,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         return { error: "Team name is already taken" };
       }
 
-      // Create team and add captain as the first member in a transaction
+      // создаём команду и добавляем капитана первым участником (в транзакции)
       const newTeam = await db.transaction(async (tx) => {
         const [insertedTeam] = await tx
           .insert(teams)
@@ -190,7 +188,6 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         return { error: "Unauthorized" };
       }
 
-      // Verify team exists and requester is the captain
       const [team] = await db
         .select()
         .from(teams)
@@ -207,7 +204,6 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         return { error: "Forbidden: Only the captain can manage members" };
       }
 
-      // Find user to add by nickname
       const [playerToAdd] = await db
         .select({ id: users.id })
         .from(users)
@@ -219,7 +215,6 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         return { error: "User not found" };
       }
 
-      // Check if already in the team
       const [existingMember] = await db
         .select({ id: teamMembers.id })
         .from(teamMembers)
@@ -271,7 +266,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         return { error: "Team not found" };
       }
 
-      // Only captain can kick, except if a player wants to leave themselves
+      // удалять может только капитан; игрок может выйти сам
       if (team.captainId !== user.id && params.playerId !== user.id) {
         set.status = 403;
         return { error: "Forbidden: Only the captain can remove other members" };
@@ -344,7 +339,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
       params: t.Object({ id: t.String() }),
     }
   )
-  // Роспуск команды (только капитан) — софт-делит: строка сохраняется ради
+  // Роспуск команды (только капитан) - софт-делит: строка сохраняется ради
   // целостности истории турниров, но команда скрывается из активных списков,
   // её состав очищается, а имя освобождается для повторного использования.
   .delete(
@@ -411,7 +406,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
       params: t.Object({ id: t.String() }),
     }
   )
-  // 7. Get user's tournament history (where they are a registered participant)
+  // история турниров пользователя (где он зарегистрирован участником)
   .get("/me/tournaments", async ({ user, set }) => {
     if (!user) {
       set.status = 401;
@@ -438,7 +433,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
 
     return history;
   })
-  // 8. Get player's ELO history for drawing charts
+  // история рейтинга ELO игрока (для графиков)
   .get(
     "/:id/elo-history",
     async ({ params, set }) => {
@@ -583,7 +578,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
       }),
     }
   )
-  // Public player profile — no auth required
+  // публичный профиль игрока - без авторизации
   .get(
     "/:id/public",
     async ({ params, set }) => {

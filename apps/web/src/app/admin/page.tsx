@@ -215,7 +215,7 @@ export default function AdminPanelPage() {
     }
   };
 
-  // Отчёты: top-level навигация на API-домен — cookie-сессия отправится автоматически.
+  // Отчёты: top-level навигация на API-домен - cookie-сессия отправится автоматически.
   const handleDownloadPopularityReport = () => {
     let url = `${API_URL}/admin/reports/popularity`;
     const params = [];

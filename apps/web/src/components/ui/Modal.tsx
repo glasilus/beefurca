@@ -29,7 +29,7 @@ export const Modal: React.FC<ModalProps> = ({
     [onClose],
   );
 
-  // Focus first focusable element only when the modal transitions to open.
+  // фокус на первый доступный элемент при открытии модалки
   useEffect(() => {
     if (!open) return;
     const el = panelRef.current;
@@ -41,7 +41,7 @@ export const Modal: React.FC<ModalProps> = ({
     }
   }, [open]);
 
-  // Keyboard listener — may re-attach when onClose identity changes, but no side effects.
+  // слушатель клавиатуры; может пере-подписаться при смене onClose, без побочных эффектов
   useEffect(() => {
     if (!open) return;
     document.addEventListener("keydown", handleKeyDown);

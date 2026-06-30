@@ -17,14 +17,13 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
   .post(
     "/register",
     async ({ body, set }) => {
-      // Strict validation via shared Zod schema (email format, password/nickname length)
+      // строгая валидация общей Zod-схемой (формат email, длина пароля и никнейма)
       const parsed = RegisterInputSchema.safeParse(body);
       if (!parsed.success) {
         set.status = 400;
         return { error: "Validation failed", details: parsed.error.format() };
       }
 
-      // Check if email or nickname is already taken
       const [existingUser] = await db
         .select({ id: users.id })
         .from(users)
@@ -47,8 +46,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         return { error: "Nickname is already taken" };
       }
 
-      // Hash password and insert user.
-      // SECURITY: роль НИКОГДА не берётся из тела запроса — иначе любой
+      // SECURITY: роль НИКОГДА не берётся из тела запроса - иначе любой
       // зарегистрировался бы как Organizer/Admin. Все регистрируются как Player;
       // повышение роли возможно только через PUT /admin/users/:id/role.
       const passwordHash = await bcrypt.hash(body.password, 12);
@@ -128,7 +126,6 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         role: user.role,
       };
 
-      // Sign tokens
       const accessToken = await signAccessToken(payload);
       const refreshToken = await signRefreshToken(payload);
 
@@ -182,7 +179,6 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         return { error: "Refresh token is expired or revoked" };
       }
 
-      // Verify db user is active
       const [dbUser] = await db
         .select()
         .from(users)
@@ -194,7 +190,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         return { error: "User is banned or no longer exists" };
       }
 
-      // Rotate: revoke old, sign new
+      // ротация: отзываем старый токен, выпускаем новый
       await revokeRefreshToken(payload.userId, payload.jti);
 
       const userPayload = {
@@ -234,11 +230,10 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
           await revokeRefreshToken(payload.userId, payload.jti);
         }
       } catch (err) {
-        // Ignore invalid token on logout
+        // при выходе игнорируем невалидный токен
       }
     }
 
-    // Clear cookies
     set.headers["set-cookie"] = [
       "access_token=; Path=/; Max-Age=0",
       "refresh_token=; Path=/; Max-Age=0",

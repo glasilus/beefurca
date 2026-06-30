@@ -1,0 +1,79 @@
+@startuml use_case
+' Диаграмма вариантов использования — ИС организации и учёта соревнований (Beefurca)
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam ArrowColor #2D3A55
+skinparam actorBorderColor #283A5A
+skinparam usecaseBorderColor #283A5A
+skinparam usecaseBackgroundColor #ECF0F8
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+
+actor "Игрок" as Player
+actor "Организатор" as Organizer
+actor "Судья" as Referee
+actor "Администратор" as Admin
+
+' Организатор и Администратор — тоже зарегистрированные пользователи
+Organizer --|> Player
+Admin --|> Player
+
+rectangle "ИС организации и учёта соревнований" {
+  usecase "Регистрация и\nавторизация" as UC_Auth
+  usecase "Редактировать\nпрофиль" as UC_Profile
+  usecase "Создавать команду\nи ростер" as UC_Team
+  usecase "Просматривать каталог\nтурниров (фильтр)" as UC_Browse
+  usecase "Подать заявку\nна турнир" as UC_Join
+  usecase "Просматривать статистику\nи рейтинг ELO" as UC_Stats
+  usecase "Создать SANDBOX-турнир\n(автономный учёт)" as UC_Sandbox
+  usecase "Добавить участников\nвручную" as UC_ManualP
+
+  usecase "Создать STANDARD-турнир" as UC_CreateT
+  usecase "Выбрать/создать\nдисциплину" as UC_Disc
+  usecase "Подтвердить/отклонить\nзаявки" as UC_Approve
+  usecase "Импортировать участников\nиз Excel" as UC_Import
+  usecase "Сгенерировать\nтурнирную сетку" as UC_Bracket
+  usecase "Назначить судью\nна матч" as UC_AssignRef
+
+  usecase "Ввести счёт матча" as UC_Score
+  usecase "Зафиксировать\nтехническое поражение" as UC_Tech
+
+  usecase "Вести справочник\nдисциплин" as UC_AdminDisc
+  usecase "Управлять пользователями\n(роли, блокировка)" as UC_AdminUsers
+  usecase "Сформировать\nExcel-отчёты" as UC_Reports
+}
+
+' Игрок
+Player --> UC_Auth
+Player --> UC_Profile
+Player --> UC_Team
+Player --> UC_Browse
+Player --> UC_Join
+Player --> UC_Stats
+Player --> UC_Sandbox
+
+' Организатор
+Organizer --> UC_CreateT
+Organizer --> UC_Approve
+Organizer --> UC_Import
+Organizer --> UC_Bracket
+Organizer --> UC_AssignRef
+
+' Судья
+Referee --> UC_Score
+
+' Администратор
+Admin --> UC_AdminDisc
+Admin --> UC_AdminUsers
+Admin --> UC_Reports
+
+' Связи include / extend
+UC_CreateT ..> UC_Disc : <<include>>
+UC_Sandbox ..> UC_ManualP : <<include>>
+UC_Bracket ..> UC_AssignRef : <<include>>
+UC_Tech ..> UC_Score : <<extend>>
+UC_Join ..> UC_Auth : <<include>>
+UC_Score ..> UC_Auth : <<include>>
+@enduml

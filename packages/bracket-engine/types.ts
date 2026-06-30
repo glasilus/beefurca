@@ -10,7 +10,7 @@ export interface GeneratedMatch {
   participant2Id: string | null;
   nextMatchIndex: number | null; // Index of the target match in the generated list
   nextMatchIsP1: boolean | null; // Is the winner participant 1 or participant 2 of the next match?
-  // Если матч разрешён автоматически как BYE (соперника не будет) — здесь
+  // Если матч разрешён автоматически как BYE (соперника не будет) - здесь
   // указан id участника-победителя, прошедшего без игры. Используется бэкендом,
   // чтобы сразу проставить winnerId/playedAt и продвинуть игрока по сетке.
   winnerParticipantId?: string | null;

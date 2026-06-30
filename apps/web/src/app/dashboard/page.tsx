@@ -46,7 +46,7 @@ export default function DashboardPage() {
   const [newTeamName, setNewTeamName] = useState("");
   const [newMemberNickname, setNewMemberNickname] = useState<Record<string, string>>({});
 
-  // Edit-profile modal
+  // модалка редактирования профиля
   const [editOpen, setEditOpen] = useState(false);
   const [editFullName, setEditFullName] = useState("");
   const [editPhone, setEditPhone] = useState("");
@@ -263,7 +263,7 @@ export default function DashboardPage() {
     { key: "currentElo", header: "ELO", numeric: true, render: (row: any) => <span className="font-bold font-mono text-[var(--status-done)]">{1000 + row.eloDelta}</span> },
     { key: "matchesCount", header: "Матчи", numeric: true },
     { key: "winsCount", header: "Победы", numeric: true, render: (row: any) => <span className="text-[var(--status-win)]">{row.winsCount}</span> },
-    { key: "winrate", header: "WR%", numeric: true, render: (row: any) => <span>{row.matchesCount > 0 ? `${Math.round((row.winsCount / row.matchesCount) * 100)}%` : "—"}</span> },
+    { key: "winrate", header: "WR%", numeric: true, render: (row: any) => <span>{row.matchesCount > 0 ? `${Math.round((row.winsCount / row.matchesCount) * 100)}%` : "-"}</span> },
     { key: "eloDelta", header: "Δ ELO", numeric: true, render: (row: any) => <span className={`font-bold ${row.eloDelta >= 0 ? "text-[var(--status-win)]" : "text-[var(--status-danger)]"}`}>{row.eloDelta >= 0 ? `+${row.eloDelta}` : row.eloDelta}</span> },
   ];
 
@@ -271,7 +271,7 @@ export default function DashboardPage() {
     <div className="min-h-screen pb-16 relative">
       <Nav active="dashboard" profile={profile} />
 
-      {/* Май — фиксированный правый нижний угол, частично за краем */}
+      {/* Май - фиксированный правый нижний угол, частично за краем */}
       <div
         aria-hidden="true"
         className="hidden lg:block fixed bottom-0 right-0 z-0 pointer-events-none select-none"
@@ -302,7 +302,7 @@ export default function DashboardPage() {
                     <span className="text-[10px] uppercase font-cond text-[var(--text-muted)] block">Среднее ELO</span>
                     {avgElo !== null
                       ? <span className="text-sm font-bold text-[var(--status-done)]">{avgElo}</span>
-                      : <span className="text-xs text-[var(--text-muted)] font-mono">—</span>
+                      : <span className="text-xs text-[var(--text-muted)] font-mono">-</span>
                     }
                     {disciplineStats.length > 0 && (
                       <span className="text-[9px] text-[var(--text-muted)] font-cond block">по {disciplineStats.length} дисц.</span>

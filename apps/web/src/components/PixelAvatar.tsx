@@ -3,9 +3,9 @@
 import React from "react";
 
 /**
- * PixelAvatar — детерминированный пиксельный идентикон вместо фрактального аватара.
+ * PixelAvatar - детерминированный пиксельный идентикон вместо фрактального аватара.
  * Из хеша строки (ник) генерируется симметричная 5×5 сетка в одном из цветов
- * палитры на тёмном фоне с дизер-точками. Без canvas/worker — чистый инлайн-SVG.
+ * палитры на тёмном фоне с дизер-точками. Без canvas/worker - чистый инлайн-SVG.
  */
 
 function hashString(str: string): number {
@@ -40,7 +40,7 @@ export function PixelAvatar({
   const h = hashString(seed || "?");
   const fg = PALETTE[h % PALETTE.length];
 
-  // Линейный конгруэнтный генератор, засеянный хешем — детерминированная сетка.
+  // Линейный конгруэнтный генератор, засеянный хешем - детерминированная сетка.
   let rnd = h;
   const nextBit = () => {
     rnd = (Math.imul(rnd, 1103515245) + 12345) >>> 0;
@@ -48,7 +48,7 @@ export function PixelAvatar({
   };
 
   const grid = 5;
-  const half = Math.ceil(grid / 2); // 3 левых столбца, остальные — зеркало
+  const half = Math.ceil(grid / 2); // 3 левых столбца, остальные - зеркало
   const left: number[][] = [];
   for (let y = 0; y < grid; y++) {
     left[y] = [];

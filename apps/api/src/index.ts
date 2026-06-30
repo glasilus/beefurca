@@ -10,11 +10,10 @@ import { adminRoutes } from "./routes/admin";
 import { bootstrapAdmin, seedDemoUsers } from "./utils/bootstrap";
 import { startSseListener } from "./utils/sse";
 
-// Load environment variables
 dotenv.config();
 
 // CORS: список разрешённых источников задаётся через ALLOWED_ORIGINS
-// (через запятую). Если не задан — в dev разрешаем localhost-фронты.
+// (через запятую). Если не задан - в dev разрешаем localhost-фронты.
 // Конкретные домены вместе с credentials:true защищают от CSRF (origin:true был
 // небезопасен).
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ||
@@ -23,7 +22,7 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS ||
   .map((o) => o.trim())
   .filter(Boolean);
 
-// adapter: node() — Elysia рассчитан на Bun; этот адаптер позволяет запускать
+// adapter: node() - Elysia рассчитан на Bun; этот адаптер позволяет запускать
 // его под Node.js (иначе app.listen() падает: "WebStandard does not support listen").
 const app = new Elysia({ adapter: node() })
   .use(cors({
@@ -37,7 +36,7 @@ const app = new Elysia({ adapter: node() })
   .use(adminRoutes)
   .get("/health", () => ({ status: "OK", timestamp: new Date().toISOString() }));
 
-// Bootstrap first admin account, subscribe to PG LISTEN, then start server
+// создаём первого администратора, подписываемся на PG LISTEN и стартуем сервер
 bootstrapAdmin()
   .then(() => seedDemoUsers())
   .then(() => startSseListener())

@@ -24,7 +24,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Единая тёмная PC-98 палитра — класс dark зафиксирован (переключения тем нет).
+  // Единая тёмная PC-98 палитра - класс dark зафиксирован (переключения тем нет).
   return (
     <html lang="ru" className={`dark ${dot.variable}`}>
       <body className="antialiased relative min-h-screen">

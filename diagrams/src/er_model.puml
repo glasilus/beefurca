@@ -1,0 +1,129 @@
+@startuml er_model
+' ER-модель базы данных — ИС учёта соревнований (Beefurca). СУБД: PostgreSQL.
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam linetype ortho
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam entity {
+  BorderColor #283A5A
+  BackgroundColor #ECF0F8
+}
+
+entity "users" as users {
+  * id : uuid <<PK>>
+  --
+  * nickname : text <<unique>>
+  * email : text <<unique>>
+  fullName : text
+  phone : text
+  passwordHash : text
+  * role : text
+  * elo : int
+  * isBanned : bool
+  * isDeleted : bool
+  * createdAt : timestamp
+}
+
+entity "disciplines" as disciplines {
+  * id : uuid <<PK>>
+  --
+  * name : text <<unique>>
+  * gameType : text
+  rules : text
+  * isActive : bool
+  * isOfficial : bool
+  createdBy : uuid <<FK>>
+}
+
+entity "teams" as teams {
+  * id : uuid <<PK>>
+  --
+  * name : text <<unique>>
+  * captainId : uuid <<FK>>
+  * isDisbanded : bool
+}
+
+entity "team_members" as team_members {
+  * id : uuid <<PK>>
+  --
+  * teamId : uuid <<FK>>
+  * playerId : uuid <<FK>>
+  * joinedAt : timestamp
+}
+
+entity "tournaments" as tournaments {
+  * id : uuid <<PK>>
+  --
+  * name : text
+  * disciplineId : uuid <<FK>>
+  * organizerId : uuid <<FK>>
+  * tournamentType : text
+  * bracketType : text
+  prizePool : text
+  * entryFee : int
+  * startDate : timestamp
+  endDate : timestamp
+  * isStarted : bool
+  * isCompleted : bool
+}
+
+entity "tournament_participants" as tp {
+  * id : uuid <<PK>>
+  --
+  * tournamentId : uuid <<FK>>
+  userId : uuid <<FK,null>>
+  teamId : uuid <<FK,null>>
+  * nicknameSnapshot : text
+  teamSnapshot : text
+  * status : text
+  * joinedAt : timestamp
+}
+
+entity "matches" as matches {
+  * id : uuid <<PK>>
+  --
+  * tournamentId : uuid <<FK>>
+  participant1Id : uuid <<FK,null>>
+  participant2Id : uuid <<FK,null>>
+  * round : int
+  * position : int
+  score1 : int
+  score2 : int
+  winnerId : uuid <<FK,null>>
+  refereeId : uuid <<FK,null>>
+  * isTechDefeat : bool
+  nextMatchId : uuid <<FK,null>>
+  nextMatchIsP1 : bool
+  playedAt : timestamp
+}
+
+entity "elo_history" as elo {
+  * id : uuid <<PK>>
+  --
+  * userId : uuid <<FK>>
+  * matchId : uuid <<FK>>
+  * tournamentId : uuid <<FK>>
+  * oldElo : int
+  * newElo : int
+  * recordedAt : timestamp
+}
+
+' --- Связи (кратность «один ко многим», нотация «вороньей лапки») ---
+users ||--o{ teams : "captainId (restrict)"
+users ||--o{ team_members : "playerId (cascade)"
+teams ||--o{ team_members : "teamId (cascade)"
+users |o--o{ disciplines : "createdBy (set null)"
+disciplines ||--o{ tournaments : "disciplineId (restrict)"
+users ||--o{ tournaments : "organizerId (restrict)"
+tournaments ||--o{ tp : "tournamentId (cascade)"
+users |o--o{ tp : "userId (restrict)"
+teams |o--o{ tp : "teamId (restrict)"
+tournaments ||--o{ matches : "tournamentId (cascade)"
+tp |o--o{ matches : "participant1/2/winner (restrict)"
+users |o--o{ matches : "refereeId (set null)"
+matches |o--o{ matches : "nextMatchId"
+users ||--o{ elo : "userId (cascade)"
+matches ||--o{ elo : "matchId (cascade)"
+tournaments ||--o{ elo : "tournamentId (cascade)"
+@enduml

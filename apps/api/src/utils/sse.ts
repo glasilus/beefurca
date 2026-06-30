@@ -68,7 +68,7 @@ const SSE_CHANNEL = "tournament_update";
 
 /**
  * Публикует событие обновления турнира во ВСЕ инстансы API через PostgreSQL
- * NOTIFY. Полезная нагрузка — id турнира; сами данные сетки каждый инстанс
+ * NOTIFY. Полезная нагрузка - id турнира; сами данные сетки каждый инстанс
  * подтягивает у себя в обработчике LISTEN.
  */
 export async function publishTournamentUpdate(tournamentId: string): Promise<void> {

@@ -43,7 +43,7 @@ function RadarChart({ stats }: { stats: DisciplineStat[] }) {
   const polygon = points.map((p) => `${p.x},${p.y}`).join(" ");
   const outerRing = points.map((p) => `${p.gx},${p.gy}`).join(" ");
 
-  // Grid rings at 25%, 50%, 75%, 100%
+  // кольца сетки на 25%, 50%, 75%, 100%
   const gridRings = [0.25, 0.5, 0.75, 1.0].map((frac) =>
     stats.map((_, i) => {
       const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
@@ -225,8 +225,8 @@ function MatchRose({ stats }: { stats: DisciplineStat[] }) {
   const innerR = 42;
 
   const total = stats.reduce((a, s) => a + s.matchesCount, 0);
-  // With 0 or 1 discipline an arc spanning 2π has coincident start/end points
-  // and is dropped by SVG — render a simple fallback instead.
+  // при 0-1 дисциплине дуга в 2π вырождается (концы совпадают) и не рисуется SVG -
+  // поэтому показываем простой запасной вариант
   if (total === 0 || stats.length === 0) return null;
   if (stats.length === 1) {
     const s = stats[0];

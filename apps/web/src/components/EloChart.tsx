@@ -23,8 +23,8 @@ export const EloChart: React.FC<EloChartProps> = ({ history, width = 600, height
   const chartData = useMemo(() => {
     if (history.length === 0) return null;
 
-    // Map history to sequential points
-    // Let's include the starting ELO of 1000 if not empty
+    // преобразуем историю в последовательность точек
+    // добавляем стартовый рейтинг 1000, если история не пуста
     const pointsList = [1000, ...history.map((h) => h.newElo)];
     const labels = ["Регистрация", ...history.map((h) => h.tournamentName)];
 
@@ -39,12 +39,12 @@ export const EloChart: React.FC<EloChartProps> = ({ history, width = 600, height
 
     const coordinates = pointsList.map((elo, index) => {
       const x = paddingX + (index / (pointsList.length - 1 || 1)) * chartWidth;
-      // SVG Y is inverted
+      // ось Y в SVG инвертирована
       const y = paddingY + chartHeight - ((elo - minElo) / eloRange) * chartHeight;
       return { x, y, elo, label: labels[index] };
     });
 
-    // Build SVG Path string
+    // строим строку пути SVG
     let pathD = "";
     if (coordinates.length > 0) {
       pathD = `M ${coordinates[0].x} ${coordinates[0].y}`;
@@ -53,7 +53,7 @@ export const EloChart: React.FC<EloChartProps> = ({ history, width = 600, height
       }
     }
 
-    // Build Area Path string for gradient fill below line
+    // путь области под линией для градиентной заливки
     let areaD = "";
     if (coordinates.length > 0) {
       areaD = `${pathD} L ${coordinates[coordinates.length - 1].x} ${height - paddingY} L ${coordinates[0].x} ${height - paddingY} Z`;
@@ -94,21 +94,21 @@ export const EloChart: React.FC<EloChartProps> = ({ history, width = 600, height
             </feMerge>
           </filter>
 
-          {/* Area Fill Gradient — accent tokens */}
+          {/* Area Fill Gradient - accent tokens */}
           <linearGradient id="area-grad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.25" />
             <stop offset="100%" stopColor="var(--accent-lo)" stopOpacity="0.0" />
           </linearGradient>
         </defs>
 
-        {/* Grid lines — hairline token */}
+        {/* Grid lines - hairline token */}
         <line x1="40" y1={height - 30} x2={width - 40} y2={height - 30} stroke="var(--hairline)" strokeWidth="1" />
         <line x1="40" y1="30" x2={width - 40} y2="30" stroke="var(--hairline)" strokeWidth="0.5" />
 
         {/* Area Gradient Fill */}
         {areaD && <path d={areaD} fill="url(#area-grad)" />}
 
-        {/* ELO Trend Line — accent token */}
+        {/* ELO Trend Line - accent token */}
         {pathD && (
           <path
             d={pathD}
@@ -121,7 +121,7 @@ export const EloChart: React.FC<EloChartProps> = ({ history, width = 600, height
           />
         )}
 
-        {/* Point Dots — done token */}
+        {/* Point Dots - done token */}
         {coordinates.map((pt, idx) => (
           <g key={idx} className="group cursor-pointer">
             <circle

@@ -1,0 +1,145 @@
+@startuml class_diagram
+' Диаграмма классов — доменная модель ИС учёта соревнований (Beefurca)
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam classBorderColor #283A5A
+skinparam classBackgroundColor #ECF0F8
+skinparam classArrowColor #2D3A55
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+hide circle
+
+class User {
+  +id : UUID <<PK>>
+  +nickname : text <<unique>>
+  +email : text <<unique>>
+  +fullName : text
+  +phone : text
+  +passwordHash : text
+  +role : {Player|Organizer|Admin}
+  +elo : int = 1000
+  +isBanned : bool
+  +isDeleted : bool
+  +createdAt : timestamp
+  --
+  +register()
+  +updateProfile()
+  +softDelete()
+}
+
+class Team {
+  +id : UUID <<PK>>
+  +name : text <<unique>>
+  +captainId : UUID <<FK>>
+  +isDisbanded : bool
+  --
+  +addMember()
+  +removeMember()
+  +disband()
+}
+
+class TeamMember {
+  +id : UUID <<PK>>
+  +teamId : UUID <<FK>>
+  +playerId : UUID <<FK>>
+  +joinedAt : timestamp
+}
+
+class Discipline {
+  +id : UUID <<PK>>
+  +name : text <<unique>>
+  +gameType : {SINGLE|TEAM}
+  +rules : text
+  +isActive : bool
+  +isOfficial : bool
+  +createdBy : UUID <<FK>>
+  --
+  +create()
+  +setOfficial()
+}
+
+class Tournament {
+  +id : UUID <<PK>>
+  +name : text
+  +disciplineId : UUID <<FK>>
+  +organizerId : UUID <<FK>>
+  +tournamentType : {STANDARD|SANDBOX}
+  +bracketType : {SINGLE_ELIM|ROUND_ROBIN}
+  +prizePool : text
+  +entryFee : int
+  +startDate : timestamp
+  +endDate : timestamp
+  +isStarted : bool
+  +isCompleted : bool
+  --
+  +approveParticipant()
+  +generateBracket()
+  +complete()
+}
+
+class TournamentParticipant {
+  +id : UUID <<PK>>
+  +tournamentId : UUID <<FK>>
+  +userId : UUID <<FK, null>>
+  +teamId : UUID <<FK, null>>
+  +nicknameSnapshot : text
+  +teamSnapshot : text
+  +status : {PENDING|APPROVED|REJECTED}
+  +joinedAt : timestamp
+}
+
+class Match {
+  +id : UUID <<PK>>
+  +tournamentId : UUID <<FK>>
+  +participant1Id : UUID <<FK, null>>
+  +participant2Id : UUID <<FK, null>>
+  +round : int
+  +position : int
+  +score1 : int
+  +score2 : int
+  +winnerId : UUID <<FK, null>>
+  +refereeId : UUID <<FK, null>>
+  +isTechDefeat : bool
+  +nextMatchId : UUID <<FK, null>>
+  +nextMatchIsP1 : bool
+  +playedAt : timestamp
+  --
+  +submitScore()
+  +techDefeat()
+  +advanceWinner()
+  +assignReferee()
+}
+
+class EloHistory {
+  +id : UUID <<PK>>
+  +userId : UUID <<FK>>
+  +matchId : UUID <<FK>>
+  +tournamentId : UUID <<FK>>
+  +oldElo : int
+  +newElo : int
+  +recordedAt : timestamp
+}
+
+' --- Ассоциации с кратностями ---
+User "1" --> "0..*" Team : капитан\n(captainId)
+User "1" --> "0..*" TeamMember : участие
+Team "1" --> "0..*" TeamMember : состав
+note bottom of TeamMember : Связь M:N между User и Team\nреализована через TeamMember\n(unique: teamId+playerId)
+
+Discipline "1" --> "0..*" Tournament : проводится по
+User "1" --> "0..*" Tournament : организует\n(organizerId)
+User "0..1" --> "0..*" Discipline : создал\n(createdBy)
+
+Tournament "1" --> "0..*" TournamentParticipant : заявки
+User "0..1" --> "0..*" TournamentParticipant : регистрация
+Team "0..1" --> "0..*" TournamentParticipant : команда
+
+Tournament "1" --> "0..*" Match : матчи
+TournamentParticipant "0..1" --> "0..*" Match : участвует / победитель
+User "0..1" --> "0..*" Match : судит\n(refereeId)
+Match "0..1" --> "0..*" Match : следующий матч\n(nextMatchId)
+
+User "1" --> "0..*" EloHistory : история рейтинга
+Match "1" --> "0..*" EloHistory : изменение по матчу
+Tournament "1" --> "0..*" EloHistory : в рамках турнира
+@enduml

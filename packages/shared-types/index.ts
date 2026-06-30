@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// User Schemas
+// схемы пользователя
 export const UserRoleSchema = z.enum(["Player", "Referee", "Organizer", "Admin"]);
 export type UserRole = z.infer<typeof UserRoleSchema>;
 
@@ -29,7 +29,7 @@ export const UpdateProfileInputSchema = z.object({
 });
 export type UpdateProfileInput = z.infer<typeof UpdateProfileInputSchema>;
 
-// Team Schemas
+// схемы команды
 export const CreateTeamInputSchema = z.object({
   name: z.string().min(2, "Team name must be at least 2 characters").max(100),
 });
@@ -40,7 +40,7 @@ export const AddTeamMemberInputSchema = z.object({
 });
 export type AddTeamMemberInput = z.infer<typeof AddTeamMemberInputSchema>;
 
-// Discipline Schemas
+// схемы дисциплины
 export const GameTypeSchema = z.enum(["SINGLE", "TEAM"]);
 export type GameType = z.infer<typeof GameTypeSchema>;
 
@@ -51,10 +51,10 @@ export const CreateDisciplineInputSchema = z.object({
 });
 export type CreateDisciplineInput = z.infer<typeof CreateDisciplineInputSchema>;
 
-// Tournament Schemas
+// схемы турнира
 // Два режима проведения (упрощённая версия):
-//  STANDARD — участники зарегистрированы, влияет на ELO-рейтинг;
-//  SANDBOX  — автономный учёт, имена вводятся текстом, ELO не затрагивается.
+//  STANDARD - участники зарегистрированы, влияет на ELO-рейтинг;
+//  SANDBOX  - автономный учёт, имена вводятся текстом, ELO не затрагивается.
 export const TournamentTypeSchema = z.enum(["STANDARD", "SANDBOX"]);
 export type TournamentType = z.infer<typeof TournamentTypeSchema>;
 
@@ -80,7 +80,7 @@ export const JoinTournamentInputSchema = z.object({
 });
 export type JoinTournamentInput = z.infer<typeof JoinTournamentInputSchema>;
 
-// Match result input schema
+// схема ввода результата матча
 export const SubmitMatchScoreSchema = z.object({
   score1: z.number().int().nonnegative(),
   score2: z.number().int().nonnegative(),

@@ -37,7 +37,7 @@ export default function PlayerProfilePage() {
 
     (async () => {
       try {
-        // Публичный профиль — основной запрос без авторизации
+        // Публичный профиль - основной запрос без авторизации
         const pubRes = await apiFetch(`/users/${playerId}/public`, { signal } as any);
         if (signal.aborted) return;
 
@@ -50,7 +50,7 @@ export default function PlayerProfilePage() {
         if (signal.aborted) return;
         setPlayer(pubData);
 
-        // Опциональные данные — ошибки не показывают "не найден"
+        // Опциональные данные - ошибки не показывают "не найден"
         await Promise.all([
           apiFetch(`/users/${playerId}/elo-history`, { signal } as any)
             .then((r) => (r.ok ? r.json() : []))
@@ -88,7 +88,7 @@ export default function PlayerProfilePage() {
     { key: "elo", header: "ELO", numeric: true, render: (row: any) => <span className="font-bold font-mono text-[var(--status-done)]">{1000 + row.eloDelta}</span> },
     { key: "matchesCount", header: "Матчи", numeric: true },
     { key: "winsCount", header: "Победы", numeric: true, render: (row: any) => <span className="text-[var(--status-win)]">{row.winsCount}</span> },
-    { key: "winrate", header: "WR%", numeric: true, render: (row: any) => <span>{row.matchesCount > 0 ? `${Math.round((row.winsCount / row.matchesCount) * 100)}%` : "—"}</span> },
+    { key: "winrate", header: "WR%", numeric: true, render: (row: any) => <span>{row.matchesCount > 0 ? `${Math.round((row.winsCount / row.matchesCount) * 100)}%` : "-"}</span> },
     { key: "eloDelta", header: "Δ ELO", numeric: true, render: (row: any) => <span className={`font-bold ${row.eloDelta >= 0 ? "text-[var(--status-win)]" : "text-[var(--status-danger)]"}`}>{row.eloDelta >= 0 ? `+${row.eloDelta}` : row.eloDelta}</span> },
   ];
 
@@ -154,7 +154,7 @@ export default function PlayerProfilePage() {
                 <div className="bg-[var(--panel-sunken)] rounded-lg px-3 py-2 text-center">
                   <div className="text-[10px] font-cond uppercase text-[var(--text-muted)] mb-0.5">Среднее ELO</div>
                   <div className="text-lg font-mono font-bold text-[var(--status-done)]">
-                    {avgElo ?? "—"}
+                    {avgElo ?? "-"}
                   </div>
                 </div>
                 <div className="bg-[var(--panel-sunken)] rounded-lg px-3 py-2 text-center">
@@ -168,7 +168,7 @@ export default function PlayerProfilePage() {
                 <div className="bg-[var(--panel-sunken)] rounded-lg px-3 py-2 text-center">
                   <div className="text-[10px] font-cond uppercase text-[var(--text-muted)] mb-0.5">Винрейт</div>
                   <div className="text-lg font-mono font-bold text-[var(--accent)]">
-                    {winrate !== null ? `${winrate}%` : "—"}
+                    {winrate !== null ? `${winrate}%` : "-"}
                   </div>
                 </div>
               </div>

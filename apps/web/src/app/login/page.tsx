@@ -79,7 +79,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8">
-      {/* Маг — фиксированный нижний левый угол, чуть заходит за край */}
+      {/* Маг - фиксированный нижний левый угол, чуть заходит за край */}
       <div
         className="hidden lg:block fixed bottom-0 left-0 pointer-events-none select-none z-0"
         style={{ transform: "translateX(-14%)" }}
@@ -87,7 +87,7 @@ export default function LoginPage() {
         <Sprite src="/sprites/mage.png" alt="" height={400} />
       </div>
 
-      {/* Призрак — фиксированный нижний правый угол, зеркально */}
+      {/* Призрак - фиксированный нижний правый угол, зеркально */}
       <div
         className="hidden lg:block fixed bottom-0 right-0 pointer-events-none select-none z-0"
         style={{ transform: "translateX(14%)" }}
@@ -95,7 +95,7 @@ export default function LoginPage() {
         <Sprite src="/sprites/ghost.png" alt="" height={400} flip />
       </div>
 
-      {/* Форма — строго по центру */}
+      {/* Форма - строго по центру */}
       <Window
         title={isRegister ? "Регистрация" : "Авторизация"}
         onClose={() => router.push("/")}
@@ -134,7 +134,7 @@ export default function LoginPage() {
         {!isRegister && (
           <div className="panel-98 p-3 mb-6">
             <div className="dither text-[9px] uppercase tracking-widest text-[var(--text-muted)] px-2 py-1 mb-2">
-              Демо-доступ — нажмите, чтобы подставить
+              Демо-доступ - нажмите, чтобы подставить
             </div>
             <div className="flex flex-col gap-1.5">
               {DEMO_ACCOUNTS.map((acc) => (

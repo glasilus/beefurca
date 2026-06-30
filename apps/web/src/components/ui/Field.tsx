@@ -3,7 +3,7 @@
 import React from "react";
 
 /* ----------------------------------------------------------------
-   <Field> — wrapper with label + error
+   <Field> - wrapper with label + error
    ---------------------------------------------------------------- */
 export interface FieldProps {
   label?: string;
@@ -32,7 +32,7 @@ export const Field: React.FC<FieldProps> = ({
 );
 
 /* ----------------------------------------------------------------
-   <Input> — inset style
+   <Input> - inset style
    ---------------------------------------------------------------- */
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {}
@@ -55,7 +55,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 Input.displayName = "Input";
 
 /* ----------------------------------------------------------------
-   <Select> — inset style, matching Input look
+   <Select> - inset style, matching Input look
    ---------------------------------------------------------------- */
 export interface SelectProps
   extends React.SelectHTMLAttributes<HTMLSelectElement> {}
@@ -81,7 +81,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
 Select.displayName = "Select";
 
 /* ----------------------------------------------------------------
-   <Checkbox> — with label
+   <Checkbox> - with label
    ---------------------------------------------------------------- */
 export interface CheckboxProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
